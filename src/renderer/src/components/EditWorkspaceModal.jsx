@@ -7,10 +7,19 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
   const [icon, setIcon] = useState(workspace?.icon || '📁')
   const [defaultAgent, setDefaultAgent] = useState(workspace?.defaultAgent || 'Claude Code')
   const [customAgentPath, setCustomAgentPath] = useState(workspace?.customAgentPath || '')
+  const [claudeProjectPath, setClaudeProjectPath] = useState(workspace?.claudeProjectPath || workspace?.root || '')
+  const [codexProjectPath, setCodexProjectPath] = useState(workspace?.codexProjectPath || workspace?.root || '')
 
   const handleSave = () => {
     if (!name.trim()) return
-    onSave(workspace.id, { name: name.trim(), icon, defaultAgent, customAgentPath: customAgentPath.trim() })
+    onSave(workspace.id, {
+      name: name.trim(),
+      icon,
+      defaultAgent,
+      customAgentPath: customAgentPath.trim(),
+      claudeProjectPath: claudeProjectPath.trim(),
+      codexProjectPath: codexProjectPath.trim()
+    })
     onClose()
   }
 
@@ -93,7 +102,7 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>自定义可执行文件路径 (可选)</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>Claude Code 关联 Project 目录</div>
             <input
               className="quick-input"
               style={{
@@ -106,9 +115,29 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
                 fontSize: 11,
                 fontFamily: 'monospace'
               }}
-              value={customAgentPath}
-              onChange={(e) => setCustomAgentPath(e.target.value)}
-              placeholder="如 /usr/local/bin/claude (为空使用系统默认检测)"
+              value={claudeProjectPath}
+              onChange={(e) => setClaudeProjectPath(e.target.value)}
+              placeholder="如 /Users/dimoo/Desktop/works/PetPal (查看 Claude 历史)"
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>Codex / ChatGPT 关联 Project 目录</div>
+            <input
+              className="quick-input"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                color: 'var(--text-primary)',
+                fontSize: 11,
+                fontFamily: 'monospace'
+              }}
+              value={codexProjectPath}
+              onChange={(e) => setCodexProjectPath(e.target.value)}
+              placeholder="如 /Users/dimoo/Desktop/works/PetPal (查看 Codex 历史)"
             />
           </div>
 

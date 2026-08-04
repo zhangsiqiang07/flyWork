@@ -57,11 +57,27 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
     }
   }, [ws?.root])
 
+  const [selectedAgentTab, setSelectedAgentTab] = useState(ws?.defaultAgent || 'ChatGPT / Codex')
+  const [nativeAgentSessions, setNativeAgentSessions] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 12
+
+  const loadNativeSessions = useCallback(async () => {
+    if (!ws || !window.flywork?.getAgentProjectSessions) return
+    const targetPath = selectedAgentTab.includes('Claude') ? (ws.claudeProjectPath || ws.root) : (ws.codexProjectPath || ws.root)
+    const list = await window.flywork.getAgentProjectSessions(selectedAgentTab, targetPath, ws.name)
+    setNativeAgentSessions(list || [])
+    setCurrentPage(1)
+  }, [ws, selectedAgentTab])
+
   useEffect(() => {
     if (activeTab === 'Git' || activeTab === '概览') {
       refreshGitData()
     }
-  }, [refreshGitData, activeTab])
+    if (activeTab === '会话') {
+      loadNativeSessions()
+    }
+  }, [refreshGitData, loadNativeSessions, activeTab, selectedAgentTab])
 
   const showGitToast = (msg) => {
     setGitNotice(msg)
@@ -628,39 +644,168 @@ Aborting
         )}
 
         {activeTab === '会话' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {sessions.length === 0 ? (
-              <div className="empty-state">
-                <div style={{ fontSize: 32 }}>▶️</div>
-                <div className="empty-state-title">还没有工作会话</div>
-                <div className="empty-state-desc">点击「开始工作」创建此项目的第一个会话</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* FlyWork Sessions */}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
+                flyWork 关联任务会话 ({sessions.length})
               </div>
-            ) : sessions.map(session => (
-              <div key={session.id} className="card" style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: session.status === 'active' ? 'var(--accent-green)' : 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{session.title}</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '1px 6px', borderRadius: 3 }}>⑂ {session.branch}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {session.status === 'active' ? '进行中' : `暂停于 ${formatRelTime(session.updatedAt)}`}
-                      </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sessions.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    暂无主动开启的 flyWork 会话，点击顶部「▶ 开始工作」开启任务跟踪。
+                  </div>
+                ) : (
+                  sessions.map(session => (
+                    <div key={session.id} className="card" style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: session.status === 'active' ? 'var(--accent-green)' : 'var(--accent-amber)', marginTop: 5, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{session.title}</div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '1px 6px', borderRadius: 3 }}>⑂ {session.branch}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              {session.status === 'active' ? '进行中' : `暂停于 ${formatRelTime(session.updatedAt)}`}
+                            </span>
+                          </div>
+                          {session.notes && <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{session.notes}</div>}
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {session.status === 'active'
+                              ? <button className="btn btn-secondary btn-sm" onClick={() => onPauseSession(session.id)}>⏸ 暂停</button>
+                              : <button className="btn btn-primary btn-sm" onClick={() => onResumeSession(session.id)}>▶ 继续</button>
+                            }
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    {session.notes && <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{session.notes}</div>}
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {session.status === 'active'
-                        ? <button className="btn btn-secondary btn-sm" onClick={() => onPauseSession(session.id)}>⏸ 暂停</button>
-                        : <button className="btn btn-primary btn-sm" onClick={() => onResumeSession(session.id)}>▶ 继续</button>
-                      }
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>
-                        {session.resources?.length || 0} 个资源
-                      </span>
-                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Native Agent Project Sessions */}
+            <div style={{ background: 'var(--bg-card)', borderRadius: 12, padding: 16, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    桌面智能体项目专属会话
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>只过滤显示当前工程 <strong style={{ color: 'var(--accent-blue)' }}>{ws.name}</strong> 对应的智能体会话列表</span>
+                    <span className="badge badge-gray" style={{ fontSize: 9, opacity: 0.8 }}>
+                      {selectedAgentTab.includes('ChatGPT') ? '📌 对齐应用侧边栏与最新时间排序' : '🕒 按最近交互时间倒序'}
+                    </span>
                   </div>
                 </div>
+                
+                {/* Agent Switcher Tabs */}
+                <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  {['ChatGPT / Codex', 'Claude Code', 'OpenCode'].map((agentName) => {
+                    const isActive = selectedAgentTab === agentName
+                    return (
+                      <button
+                        key={agentName}
+                        onClick={() => setSelectedAgentTab(agentName)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: isActive ? 600 : 400,
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: isActive ? 'var(--accent-blue)' : 'transparent',
+                          color: isActive ? '#fff' : 'var(--text-secondary)',
+                          transition: 'all 150ms ease'
+                        }}
+                      >
+                        {agentName === 'ChatGPT / Codex' ? '🧠 ChatGPT / Codex' : agentName === 'Claude Code' ? '🤖 Claude Code' : '💻 OpenCode'}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            ))}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {nativeAgentSessions.length > 0 ? (
+                  <>
+                    {nativeAgentSessions.slice(0, currentPage * pageSize).map((nSess, idx) => (
+                      <div
+                        key={nSess.sessionId || idx}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justify: 'space-between',
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border)',
+                          transition: 'border-color 150ms ease'
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ color: 'var(--accent-blue)' }}>💬</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nSess.summary}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 12 }}>
+                            <span>Session: <code style={{ fontSize: 10 }}>{nSess.sessionId.slice(0, 12)}</code></span>
+                            <span>更新时间: {nSess.updatedAt}</span>
+                            <span style={{ color: 'var(--accent-green)' }}>✓ 已匹配项目 {ws.name}</span>
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: 11, marginLeft: 12 }}
+                          onClick={() => {
+                            onSetContextPanel({ type: 'native-session', sessionId: nSess.sessionId, summary: nSess.summary, agent: selectedAgentTab })
+                          }}
+                        >
+                          对话 ➔
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Pagination / Load More Controls */}
+                    {nativeAgentSessions.length > currentPage * pageSize ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          已显示 <strong style={{ color: 'var(--text-primary)' }}>{Math.min(currentPage * pageSize, nativeAgentSessions.length)}</strong> / 共 <strong>{nativeAgentSessions.length}</strong> 条历史会话
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: 11 }}
+                            onClick={() => setCurrentPage((prev) => prev + 1)}
+                          >
+                            👇 加载更多 (+12)
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ fontSize: 11, color: 'var(--accent-blue)' }}
+                            onClick={() => setCurrentPage(Math.ceil(nativeAgentSessions.length / pageSize))}
+                          >
+                            展开全量 ({nativeAgentSessions.length} 条)
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      nativeAgentSessions.length > pageSize && (
+                        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+                          ✓ 已加载全量共 {nativeAgentSessions.length} 条项目会话
+                        </div>
+                      )
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '16px 14px', borderRadius: 8, textAlign: 'center' }}>
+                    未在 <strong>{selectedAgentTab}</strong> 中找到工程 <strong style={{ color: 'var(--accent-blue)' }}>{ws.name}</strong> 的专属历史会话。
+                    <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
+                      请检查上方编辑 ✏️ 中配置的关联 Project 路径是否一致。
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const TYPE_CONFIG = {
   git: { label: 'Git', color: 'var(--accent-blue)', bg: 'var(--accent-blue-dim)' },

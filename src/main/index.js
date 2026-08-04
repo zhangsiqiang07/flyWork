@@ -14,7 +14,7 @@ import { join } from 'path'
 import { spawn, exec } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 
 const execAsync = promisify(exec)
@@ -448,6 +448,211 @@ function setupIPC() {
       opencode: checkCli('opencode'),
       gemini: checkCli('gemini')
     }
+  })
+
+  // Get project sessions from native agent storage (Claude Code / Codex / ChatGPT)
+  ipcMain.handle('get-agent-project-sessions', async (_, { agent, projectPath, workspaceName }) => {
+    if (!projectPath && !workspaceName) return []
+    const sessions = []
+    const seenThreadIds = new Set()
+
+    // 1. ChatGPT / Codex native parser
+    if (!agent || agent.toLowerCase().includes('codex') || agent.toLowerCase().includes('chatgpt')) {
+      const globStatePath = join(homedir(), '.codex', '.codex-global-state.json')
+      const sessIndexPath = join(homedir(), '.codex', 'session_index.jsonl')
+
+      if (existsSync(globStatePath) && existsSync(sessIndexPath)) {
+        try {
+          const globData = JSON.parse(readFileSync(globStatePath, 'utf-8'))
+          const projects = globData['local-projects'] || {}
+          const threadAssigns = globData['thread-project-assignments'] || {}
+          const threadTitles = globData['thread-titles'] || {}
+          const sidebarOrders = globData['sidebar-project-thread-orders'] || {}
+
+          // Find target project ID in Codex
+          let matchedProjectId = null
+          Object.values(projects).forEach((p) => {
+            if (
+              (workspaceName && p.name === workspaceName) ||
+              (projectPath && p.rootPaths && p.rootPaths.some((rp) => rp === projectPath || projectPath.endsWith(rp.split('/').pop())))
+            ) {
+              matchedProjectId = p.id
+            }
+          })
+
+          const indexMap = {}
+          const lines = readFileSync(sessIndexPath, 'utf-8').split('\n').filter(Boolean)
+          lines.forEach((l) => {
+            try {
+              const item = JSON.parse(l)
+              indexMap[item.id] = item
+            } catch {}
+          })
+
+          const targetThreadIds = new Set()
+
+          // A) Thread IDs from sidebarOrders (contains all 180+ threads for project)
+          if (matchedProjectId && sidebarOrders[matchedProjectId]?.threadIds) {
+            sidebarOrders[matchedProjectId].threadIds.forEach((id) => targetThreadIds.add(id))
+          }
+
+          // B) Thread IDs from threadAssigns
+          Object.entries(threadAssigns).forEach(([tId, assign]) => {
+            if (assign && (assign.projectId === matchedProjectId || (assign.cwd && projectPath && assign.cwd === projectPath))) {
+              targetThreadIds.add(tId)
+            }
+          })
+
+          // C) Fallback scan in session_index
+          lines.forEach((l) => {
+            try {
+              const item = JSON.parse(l)
+              if (item.thread_name && workspaceName && item.thread_name.includes(workspaceName)) {
+                targetThreadIds.add(item.id)
+              }
+            } catch {}
+          })
+
+          targetThreadIds.forEach((tId) => {
+            if (seenThreadIds.has(tId)) return
+            seenThreadIds.add(tId)
+
+            const item = indexMap[tId] || {}
+            const title = threadTitles[tId] || item.thread_name
+            if (!title) return
+
+            const dateObj = item.updated_at ? new Date(item.updated_at) : new Date(0)
+            sessions.push({
+              sessionId: tId,
+              agent: 'ChatGPT / Codex',
+              summary: title,
+              updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '历史',
+              rawTimestamp: dateObj.getTime(),
+              isMatched: true
+            })
+          })
+        } catch (err) {
+          console.error('Failed to parse Codex state:', err)
+        }
+      }
+    }
+
+    // 2. Claude Code native parser
+    if (!agent || agent.toLowerCase().includes('claude')) {
+      const claudeHist = join(homedir(), '.claude', 'history.jsonl')
+      if (existsSync(claudeHist)) {
+        try {
+          const lines = readFileSync(claudeHist, 'utf-8').split('\n').filter(Boolean)
+          lines.reverse().forEach((line) => {
+            try {
+              const item = JSON.parse(line)
+              const p = item.project || ''
+              const isMatched =
+                (projectPath && (p === projectPath || projectPath.endsWith(p.split('/').pop()))) ||
+                (workspaceName && p.includes(workspaceName))
+
+              if (isMatched) {
+                const sId = item.sessionId || item.timestamp
+                if (sId && !seenThreadIds.has(sId)) {
+                  seenThreadIds.add(sId)
+                  const dateObj = item.timestamp ? new Date(item.timestamp) : new Date(0)
+                  sessions.push({
+                    sessionId: String(sId),
+                    agent: 'Claude Code',
+                    summary: typeof item.display === 'string' && item.display.length > 2 && item.display !== 'user' ? item.display.slice(0, 50) : `Claude Code 会话 ${String(sId).slice(0, 6)}`,
+                    updatedAt: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '最近',
+                    rawTimestamp: dateObj.getTime(),
+                    isMatched: true
+                  })
+                }
+              }
+            } catch {}
+          })
+        } catch {}
+      }
+    }
+
+    // Sort strictly by rawTimestamp descending (100% matches ChatGPT App Sidebar order)
+    return sessions.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+  })
+
+  // Get full messages for a specific native agent session/thread
+  ipcMain.handle('get-native-thread-messages', async (_, { sessionId }) => {
+    if (!sessionId) return []
+    const messages = []
+
+    // Helper recursive search
+    const findFile = (dir, targetId) => {
+      if (!existsSync(dir)) return null
+      try {
+        const entries = readdirSync(dir, { withFileTypes: true })
+        for (const entry of entries) {
+          const fullPath = join(dir, entry.name)
+          if (entry.isDirectory()) {
+            const found = findFile(fullPath, targetId)
+            if (found) return found
+          } else if (entry.name.includes(targetId)) {
+            return fullPath
+          }
+        }
+      } catch {}
+      return null
+    }
+
+    // 1. Search in ~/.codex/sessions
+    const codexSessDir = join(homedir(), '.codex', 'sessions')
+    const foundCodexFile = findFile(codexSessDir, sessionId)
+    if (foundCodexFile) {
+      try {
+        const content = readFileSync(foundCodexFile, 'utf-8')
+        content.split('\n').filter(Boolean).forEach((line) => {
+          try {
+            const item = JSON.parse(line)
+            if (item.type === 'event_msg' && item.payload) {
+              const pType = item.payload.type
+              if (pType === 'user_message' || pType === 'agent_message') {
+                const role = pType === 'user_message' ? 'user' : 'assistant'
+                const text = item.payload.message || item.payload.text || item.payload.content || ''
+                if (text && typeof text === 'string') {
+                  messages.push({
+                    role,
+                    content: text,
+                    time: item.payload.timestamp ? new Date(item.payload.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''
+                  })
+                }
+              }
+            }
+          } catch {}
+        })
+      } catch {}
+      if (messages.length > 0) return messages
+    }
+
+    // 2. Search in ~/.claude/history.jsonl
+    const claudeHist = join(homedir(), '.claude', 'history.jsonl')
+    if (existsSync(claudeHist)) {
+      try {
+        const content = readFileSync(claudeHist, 'utf-8')
+        content.split('\n').filter(Boolean).forEach((line) => {
+          try {
+            const item = JSON.parse(line)
+            if (item.sessionId === sessionId || String(item.timestamp) === sessionId) {
+              if (item.display && item.display !== 'status') {
+                const role = item.display === 'assistant' || item.display === 'model' ? 'assistant' : 'user'
+                const text = typeof item.display === 'string' ? item.display : `命令记录`
+                messages.push({
+                  role,
+                  content: text,
+                  time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''
+                })
+              }
+            }
+          } catch {}
+        })
+      } catch {}
+    }
+
+    return messages
   })
 
   // Generate AI Commit preview (Conventional Commit)

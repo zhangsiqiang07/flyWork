@@ -19,8 +19,10 @@ const flyworkAPI = {
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
 
-  // Local Agents Detection
+  // Local Agents Detection & Sessions
   detectLocalAgents: () => ipcRenderer.invoke('detect-local-agents'),
+  getAgentProjectSessions: (agent, projectPath, workspaceName) => ipcRenderer.invoke('get-agent-project-sessions', { agent, projectPath, workspaceName }),
+  getNativeThreadMessages: (sessionId) => ipcRenderer.invoke('get-native-thread-messages', { sessionId }),
 
   // Git info & Operations
   getGitInfo: (workdir) => ipcRenderer.invoke('get-git-info', workdir),
