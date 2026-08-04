@@ -318,7 +318,7 @@ export default function App() {
       case 'inbox':
         return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
       case 'automations':
-        return <AutomationsView automations={automations} workspaces={workspaces} setAutomations={setAutomations} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onAskAI={handleAskAI} />
+        return null
       case 'activity':
         return <Activity activityLog={activityLog} workspaces={workspaces} />
       case 'yunxiao-settings':
@@ -367,7 +367,20 @@ export default function App() {
         <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} yunxiaoConfigured={yunxiaoConfigured} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
         <div className="main-content">
           <Suspense fallback={<ViewSkeleton />}>
-            {renderMainContent()}
+            {/* Keep automation runtime state and its IPC log subscription alive while users browse elsewhere. */}
+            <div style={{ display: currentView === 'automations' ? 'block' : 'none', height: '100%' }}>
+              <AutomationsView
+                automations={automations}
+                workspaces={workspaces}
+                setAutomations={setAutomations}
+                onSetContextPanel={(c) => {
+                  setContextPanelContent(c)
+                  setContextPanelOpen(true)
+                }}
+                onAskAI={handleAskAI}
+              />
+            </div>
+            {currentView !== 'automations' && renderMainContent()}
           </Suspense>
         </div>
         <ContextPanel isOpen={contextPanelOpen} activeTab={contextPanelContent} onTabChange={setContextPanelContent} currentView={currentView} selectedWorkspace={selectedWorkspace} sessions={sessions} activityLog={activityLog} chatHistories={chatHistories} onUpdateChatHistories={setChatHistories} />
