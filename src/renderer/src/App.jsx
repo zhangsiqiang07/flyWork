@@ -19,6 +19,8 @@ const WorkspaceDetail = lazy(() => import('./views/WorkspaceDetail'))
 const Inbox = lazy(() => import('./views/Inbox'))
 const AutomationsView = lazy(() => import('./views/Automations'))
 const Activity = lazy(() => import('./views/Activity'))
+const YunxiaoSettings = lazy(() => import('./components/YunxiaoSettings'))
+const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
 
 function ViewSkeleton() {
   return (
@@ -47,11 +49,18 @@ export default function App() {
   const [activityLog, setActivityLog] = useState([])
   const [automations, setAutomations] = useState([])
   const [chatHistories, setChatHistories] = useState({})
+  const [yunxiaoConfigured, setYunxiaoConfigured] = useState(false)
 
   // 1. Initial Data Loading
   useEffect(() => {
     async function initData() {
       try {
+        // Check Yunxiao configuration status
+        if (window.flywork?.yunxiaoCheckAuth) {
+          const yunxiaoAuth = await window.flywork.yunxiaoCheckAuth()
+          setYunxiaoConfigured(yunxiaoAuth.success && yunxiaoAuth.configured)
+        }
+
         if (window.flywork?.loadData) {
           const savedData = await window.flywork.loadData()
           if (savedData && Array.isArray(savedData.workspaces)) {
@@ -312,6 +321,16 @@ export default function App() {
         return <AutomationsView automations={automations} workspaces={workspaces} setAutomations={setAutomations} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onAskAI={handleAskAI} />
       case 'activity':
         return <Activity activityLog={activityLog} workspaces={workspaces} />
+      case 'yunxiao-settings':
+        return <YunxiaoSettings onConfigChange={(config) => {
+          setYunxiaoConfigured(config.configured)
+          if (config.configured) {
+            // 配置完成后自动切换到仪表板
+            setCurrentView('yunxiao')
+          }
+        }} />
+      case 'yunxiao':
+        return yunxiaoConfigured ? <YunxiaoDashboard /> : <YunxiaoSettings onConfigChange={(config) => setYunxiaoConfigured(config.configured)} />
       default:
         return null
     }
@@ -345,7 +364,7 @@ export default function App() {
       </div>
 
       <div className="main-body">
-        <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
+        <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} yunxiaoConfigured={yunxiaoConfigured} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
         <div className="main-content">
           <Suspense fallback={<ViewSkeleton />}>
             {renderMainContent()}

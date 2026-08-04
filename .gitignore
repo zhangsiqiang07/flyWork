@@ -12,6 +12,7 @@ release
 *.pkg
 *.deb
 *.rpm
+docs
 
 # Logs
 logs

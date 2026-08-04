@@ -17,6 +17,51 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 
+// 云效服务模块
+import {
+  storeToken,
+  getStoredToken,
+  deleteStoredToken,
+  hasStoredToken,
+  validateToken,
+  getConfig,
+  storeConfig,
+  setCurrentOrganization,
+  getCurrentOrganizationId
+} from './services/yunxiao/auth.js'
+import {
+  listOrganizations,
+  searchMembers,
+  getMember,
+  getOrganization
+} from './services/yunxiao/organization.js'
+import {
+  searchProjects,
+  getProject,
+  listProjectMembers,
+  createProject,
+  listProjects
+} from './services/yunxiao/project.js'
+import {
+  listWorkitems,
+  getWorkitem,
+  getWorkitemImage,
+  createWorkitem,
+  updateWorkitemField,
+  listWorkitemFields,
+  listWorkflowStatuses,
+  createWorkitemComment,
+  listWorkitemComments,
+  listWorkitemAttachments,
+  listProjectWorkitemTypes
+} from './services/yunxiao/workitem.js'
+import {
+  listSprints,
+  getSprintInfo,
+  createSprint,
+  updateSprint
+} from './services/yunxiao/sprint.js'
+
 const execAsync = promisify(exec)
 
 // Audit log path
@@ -58,7 +103,10 @@ const ACTION_REGISTRY = {
   'run-tests': {
     name: '运行单元测试',
     risk: 'normal',
-    command: ['xcodebuild', ['test', '-scheme', 'PetPal', '-destination', 'platform=iOS Simulator,name=iPhone 15']],
+    command: [
+      'xcodebuild',
+      ['test', '-scheme', 'PetPal', '-destination', 'platform=iOS Simulator,name=iPhone 15']
+    ],
     dryRunOutput: '将执行: xcodebuild test -scheme PetPal ...'
   },
   'open-terminal': {
@@ -78,7 +126,43 @@ const ACTION_REGISTRY = {
 let mainWindow = null
 let tray = null
 let commandCenterWindow = null
+let workitemDetailWindow = null
 const activeAutomationProcesses = new Map()
+
+function openWorkitemDetailWindow(workitemId) {
+  if (!workitemId) throw new Error('未指定工作项')
+  if (workitemDetailWindow && !workitemDetailWindow.isDestroyed()) workitemDetailWindow.close()
+
+  workitemDetailWindow = new BrowserWindow({
+    width: 820,
+    height: 760,
+    minWidth: 620,
+    minHeight: 480,
+    title: '云效工作项详情',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
+    backgroundColor: '#0d1117',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+  workitemDetailWindow.on('closed', () => {
+    workitemDetailWindow = null
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    const detailUrl = new URL(process.env['ELECTRON_RENDERER_URL'])
+    detailUrl.searchParams.set('workitemDetail', workitemId)
+    workitemDetailWindow.loadURL(detailUrl.toString())
+  } else {
+    workitemDetailWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      query: { workitemDetail: workitemId }
+    })
+  }
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -136,7 +220,13 @@ function setupTray() {
     { label: 'flyWork', enabled: false },
     { type: 'separator' },
     { label: '显示主窗口', click: () => mainWindow?.show() },
-    { label: '今日视图', click: () => { mainWindow?.show(); mainWindow?.webContents.send('navigate', 'today') } },
+    {
+      label: '今日视图',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.webContents.send('navigate', 'today')
+      }
+    },
     { type: 'separator' },
     { label: '退出 flyWork', role: 'quit' }
   ])
@@ -169,10 +259,11 @@ function setupGlobalShortcuts() {
 
 function writeAuditLog(entry) {
   ensureDataDir()
-  const line = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    ...entry
-  }) + '\n'
+  const line =
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      ...entry
+    }) + '\n'
   try {
     const { appendFileSync } = require('fs')
     appendFileSync(AUDIT_LOG_PATH, line)
@@ -182,7 +273,8 @@ function writeAuditLog(entry) {
 }
 
 function getBuiltinGitEnv(workdir) {
-  if (!workdir || !existsSync(workdir)) return { PROJECT_DIR: workdir || '', WORKSPACE_ROOT: workdir || '' }
+  if (!workdir || !existsSync(workdir))
+    return { PROJECT_DIR: workdir || '', WORKSPACE_ROOT: workdir || '' }
   try {
     const opts = { cwd: workdir, encoding: 'utf-8', timeout: 3000 }
     const branch = execSync('git rev-parse --abbrev-ref HEAD 2>/dev/null', opts).trim() || 'main'
@@ -191,7 +283,8 @@ function getBuiltinGitEnv(workdir) {
     const commitMsg = execSync('git log -1 --pretty=format:"%s" 2>/dev/null', opts).trim() || ''
     const author = execSync('git log -1 --pretty=format:"%an" 2>/dev/null', opts).trim() || ''
     const authorEmail = execSync('git log -1 --pretty=format:"%ae" 2>/dev/null', opts).trim() || ''
-    const isDirty = execSync('git status --porcelain 2>/dev/null', opts).trim().length > 0 ? 'true' : 'false'
+    const isDirty =
+      execSync('git status --porcelain 2>/dev/null', opts).trim().length > 0 ? 'true' : 'false'
 
     return {
       GIT_BRANCH: branch,
@@ -217,112 +310,154 @@ function getBuiltinGitEnv(workdir) {
 
 function setupIPC() {
   // Execute custom automation step (with real-time streaming log output)
-  ipcMain.handle('execute-automation-step', async (event, { command, workdir, customEnv = {}, dryRun, stepKey }) => {
-    const sender = event.sender
+  ipcMain.handle(
+    'execute-automation-step',
+    async (event, { command, workdir, customEnv = {}, dryRun, stepKey }) => {
+      const sender = event.sender
 
-
-    // Helper to send a log chunk to renderer
-    const sendChunk = (type, text) => {
-      if (!sender.isDestroyed()) {
-        sender.send('automation-log-chunk', { stepKey, type, text, ts: Date.now() })
+      // Helper to send a log chunk to renderer
+      const sendChunk = (type, text) => {
+        if (!sender.isDestroyed()) {
+          sender.send('automation-log-chunk', { stepKey, type, text, ts: Date.now() })
+        }
       }
-    }
 
-    // Never silently fall back to the home directory. A misplaced command is
-    // more dangerous than a failed command, especially for Git operations.
-    if (!workdir) {
-      const error = '自动化流程未绑定有效工作区，已阻止执行。请在编辑自动化流程时关联一个工作区。'
-      sendChunk('stderr', `❌ ${error}`)
-      return { success: false, exitCode: -1, output: '', error }
-    }
-    if (!existsSync(workdir)) {
-      const error = `工作区目录不存在：${workdir}\n已阻止执行；请在“工作区”中更新该目录后重试。`
-      sendChunk('stderr', `❌ ${error}`)
-      return { success: false, exitCode: -1, output: '', error }
-    }
+      // Never silently fall back to the home directory. A misplaced command is
+      // more dangerous than a failed command, especially for Git operations.
+      if (!workdir) {
+        const error = '自动化流程未绑定有效工作区，已阻止执行。请在编辑自动化流程时关联一个工作区。'
+        sendChunk('stderr', `❌ ${error}`)
+        return { success: false, exitCode: -1, output: '', error }
+      }
+      if (!existsSync(workdir)) {
+        const error = `工作区目录不存在：${workdir}\n已阻止执行；请在“工作区”中更新该目录后重试。`
+        sendChunk('stderr', `❌ ${error}`)
+        return { success: false, exitCode: -1, output: '', error }
+      }
 
-    const cwd = workdir
+      const cwd = workdir
 
-    const builtinGitEnv = getBuiltinGitEnv(cwd)
-    const combinedEnv = {
-      ...process.env,
-      ...builtinGitEnv,
-      ...(customEnv || {}),
-      PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
-    }
+      const builtinGitEnv = getBuiltinGitEnv(cwd)
+      const combinedEnv = {
+        ...process.env,
+        ...builtinGitEnv,
+        ...(customEnv || {}),
+        PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
+      }
 
-    writeAuditLog({ type: dryRun ? 'AUTOMATION_DRY_RUN' : 'AUTOMATION_EXECUTE', command, workdir: cwd, envKeys: Object.keys(customEnv || {}) })
-
-    sendChunk('info', `[工作目录] ${cwd}\n`)
-
-    if (dryRun) {
-      const gitInfoStr = Object.entries(builtinGitEnv).map(([k, v]) => `  ${k}="${v}"`).join('\n')
-      const customEnvStr = Object.entries(customEnv || {}).map(([k, v]) => `  ${k}="${v}"`).join('\n') || '  (无自定义环境变量)'
-      const dryOutput = [
-        `[Dry Run 预演模式]`,
-        `工作目录: ${cwd}`,
-        ``,
-        `内置 Git 环境变量:\n${gitInfoStr}`,
-        ``,
-        `自定义环境变量:\n${customEnvStr}`,
-        ``,
-        `即将在 Shell 中执行指令:\n$ ${command}`
-      ].join('\n')
-      sendChunk('stdout', dryOutput)
-      return { success: true, dryRun: true, exitCode: 0, output: dryOutput, error: '', gitEnv: builtinGitEnv }
-    }
-
-    // Real execution with streaming output via spawn
-    return new Promise((resolve) => {
-      const proc = spawn('/bin/bash', ['-c', command], {
-        cwd,
-        env: combinedEnv,
-        detached: process.platform !== 'win32',
-        stdio: ['ignore', 'pipe', 'pipe']
-      })
-      activeAutomationProcesses.set(stepKey, proc)
-
-      let stdoutBuf = ''
-      let stderrBuf = ''
-
-      proc.stdout.on('data', (chunk) => {
-        const text = chunk.toString()
-        stdoutBuf += text
-        sendChunk('stdout', text)
+      writeAuditLog({
+        type: dryRun ? 'AUTOMATION_DRY_RUN' : 'AUTOMATION_EXECUTE',
+        command,
+        workdir: cwd,
+        envKeys: Object.keys(customEnv || {})
       })
 
-      proc.stderr.on('data', (chunk) => {
-        const text = chunk.toString()
-        stderrBuf += text
-        sendChunk('stderr', text)
-      })
+      sendChunk('info', `[工作目录] ${cwd}\n`)
 
-      proc.on('close', (code) => {
-        activeAutomationProcesses.delete(stepKey)
-        const wasCancelled = proc.__flyworkCancelled === true
-        const exitCode = wasCancelled ? 130 : code
-        const success = !wasCancelled && code === 0
-        const error = wasCancelled ? '执行已由用户终止' : stderrBuf
-        writeAuditLog({ type: wasCancelled ? 'AUTOMATION_CANCELLED' : 'AUTOMATION_RESULT', command, success, exitCode, error: error.slice(0, 500) })
-        sendChunk('exit', wasCancelled ? '\n[已终止] 当前步骤及其子进程已停止。' : `\n[进程退出] Exit Code: ${code}`)
-        resolve({
-          success,
-          exitCode,
-          output: stdoutBuf || (success ? '执行完成，无输出' : ''),
-          error,
+      if (dryRun) {
+        const gitInfoStr = Object.entries(builtinGitEnv)
+          .map(([k, v]) => `  ${k}="${v}"`)
+          .join('\n')
+        const customEnvStr =
+          Object.entries(customEnv || {})
+            .map(([k, v]) => `  ${k}="${v}"`)
+            .join('\n') || '  (无自定义环境变量)'
+        const dryOutput = [
+          `[Dry Run 预演模式]`,
+          `工作目录: ${cwd}`,
+          ``,
+          `内置 Git 环境变量:\n${gitInfoStr}`,
+          ``,
+          `自定义环境变量:\n${customEnvStr}`,
+          ``,
+          `即将在 Shell 中执行指令:\n$ ${command}`
+        ].join('\n')
+        sendChunk('stdout', dryOutput)
+        return {
+          success: true,
+          dryRun: true,
+          exitCode: 0,
+          output: dryOutput,
+          error: '',
           gitEnv: builtinGitEnv
+        }
+      }
+
+      // Real execution with streaming output via spawn
+      return new Promise((resolve) => {
+        const proc = spawn('/bin/bash', ['-c', command], {
+          cwd,
+          env: combinedEnv,
+          detached: process.platform !== 'win32',
+          stdio: ['ignore', 'pipe', 'pipe']
+        })
+        activeAutomationProcesses.set(stepKey, proc)
+
+        let stdoutBuf = ''
+        let stderrBuf = ''
+
+        proc.stdout.on('data', (chunk) => {
+          const text = chunk.toString()
+          stdoutBuf += text
+          sendChunk('stdout', text)
+        })
+
+        proc.stderr.on('data', (chunk) => {
+          const text = chunk.toString()
+          stderrBuf += text
+          sendChunk('stderr', text)
+        })
+
+        proc.on('close', (code) => {
+          activeAutomationProcesses.delete(stepKey)
+          const wasCancelled = proc.__flyworkCancelled === true
+          const exitCode = wasCancelled ? 130 : code
+          const success = !wasCancelled && code === 0
+          const error = wasCancelled ? '执行已由用户终止' : stderrBuf
+          writeAuditLog({
+            type: wasCancelled ? 'AUTOMATION_CANCELLED' : 'AUTOMATION_RESULT',
+            command,
+            success,
+            exitCode,
+            error: error.slice(0, 500)
+          })
+          sendChunk(
+            'exit',
+            wasCancelled
+              ? '\n[已终止] 当前步骤及其子进程已停止。'
+              : `\n[进程退出] Exit Code: ${code}`
+          )
+          resolve({
+            success,
+            exitCode,
+            output: stdoutBuf || (success ? '执行完成，无输出' : ''),
+            error,
+            gitEnv: builtinGitEnv
+          })
+        })
+
+        proc.on('error', (err) => {
+          activeAutomationProcesses.delete(stepKey)
+          const errorStr = err.message
+          sendChunk('stderr', `\n[进程错误] ${errorStr}`)
+          writeAuditLog({
+            type: 'AUTOMATION_RESULT',
+            command,
+            success: false,
+            exitCode: -1,
+            error: errorStr
+          })
+          resolve({
+            success: false,
+            exitCode: -1,
+            output: stdoutBuf,
+            error: errorStr,
+            gitEnv: builtinGitEnv
+          })
         })
       })
-
-      proc.on('error', (err) => {
-        activeAutomationProcesses.delete(stepKey)
-        const errorStr = err.message
-        sendChunk('stderr', `\n[进程错误] ${errorStr}`)
-        writeAuditLog({ type: 'AUTOMATION_RESULT', command, success: false, exitCode: -1, error: errorStr })
-        resolve({ success: false, exitCode: -1, output: stdoutBuf, error: errorStr, gitEnv: builtinGitEnv })
-      })
-    })
-  })
+    }
+  )
 
   // Stop the shell and all commands it started for an automation step.
   ipcMain.handle('cancel-automation-step', async (_, stepKey) => {
@@ -341,7 +476,9 @@ function setupIPC() {
         process.kill(-proc.pid, 'SIGTERM')
         setTimeout(() => {
           if (activeAutomationProcesses.get(stepKey) === proc && proc.exitCode === null) {
-            try { process.kill(-proc.pid, 'SIGKILL') } catch {}
+            try {
+              process.kill(-proc.pid, 'SIGKILL')
+            } catch {}
           }
         }, 3000)
       }
@@ -350,7 +487,6 @@ function setupIPC() {
       return { success: false, error: err.message }
     }
   })
-
 
   // Execute a whitelisted action
   ipcMain.handle('execute-action', async (_, { actionId, workdir, dryRun }) => {
@@ -402,17 +538,26 @@ function setupIPC() {
     })
   })
 
-
-
   // Get audit log
   ipcMain.handle('get-audit-log', async () => {
     ensureDataDir()
     try {
       if (!existsSync(AUDIT_LOG_PATH)) return []
       const content = readFileSync(AUDIT_LOG_PATH, 'utf-8')
-      return content.trim().split('\n').filter(Boolean).map(l => {
-        try { return JSON.parse(l) } catch { return null }
-      }).filter(Boolean).reverse().slice(0, 100)
+      return content
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => {
+          try {
+            return JSON.parse(l)
+          } catch {
+            return null
+          }
+        })
+        .filter(Boolean)
+        .reverse()
+        .slice(0, 100)
     } catch {
       return []
     }
@@ -465,9 +610,12 @@ function setupIPC() {
 
   // Show open directory dialog
   ipcMain.handle('show-open-dialog', async (_, options) => {
-    const result = await dialog.showOpenDialog(mainWindow, options || {
-      properties: ['openDirectory']
-    })
+    const result = await dialog.showOpenDialog(
+      mainWindow,
+      options || {
+        properties: ['openDirectory']
+      }
+    )
     return result
   })
 
@@ -484,22 +632,39 @@ function setupIPC() {
   // Get real Git info for a workspace directory (async non-blocking)
   ipcMain.handle('get-git-info', async (_, workdir) => {
     if (!workdir || !existsSync(workdir)) {
-      return { isGit: false, gitBranch: '无', gitModifiedFiles: [], lastCommit: '目录不存在', lastCommitHash: '', lastCommitTime: '' }
+      return {
+        isGit: false,
+        gitBranch: '无',
+        gitModifiedFiles: [],
+        lastCommit: '目录不存在',
+        lastCommitHash: '',
+        lastCommitTime: ''
+      }
     }
     try {
       const [branchRes, statusRes, logRes] = await Promise.allSettled([
         execAsync('git branch --show-current', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }),
         execAsync('git status --porcelain', { cwd: workdir, timeout: 5000, encoding: 'utf-8' }),
-        execAsync('git log -1 --pretty=format:"%h|%s|%cr"', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+        execAsync('git log -1 --pretty=format:"%h|%s|%cr"', {
+          cwd: workdir,
+          timeout: 3000,
+          encoding: 'utf-8'
+        })
       ])
 
-      const branch = (branchRes.status === 'fulfilled' ? branchRes.value.stdout : '').trim() || 'HEAD'
+      const branch =
+        (branchRes.status === 'fulfilled' ? branchRes.value.stdout : '').trim() || 'HEAD'
       const statusOutput = (statusRes.status === 'fulfilled' ? statusRes.value.stdout : '').trim()
-      const modifiedFiles = statusOutput ? statusOutput.split('\n').filter(Boolean).map((line) => {
-        const status = line.slice(0, 2).trim()
-        const path = line.slice(3).trim()
-        return { status: status || 'M', path }
-      }) : []
+      const modifiedFiles = statusOutput
+        ? statusOutput
+            .split('\n')
+            .filter(Boolean)
+            .map((line) => {
+              const status = line.slice(0, 2).trim()
+              const path = line.slice(3).trim()
+              return { status: status || 'M', path }
+            })
+        : []
 
       let lastCommit = '未提交'
       let lastCommitHash = ''
@@ -520,7 +685,14 @@ function setupIPC() {
         lastCommitTime
       }
     } catch {
-      return { isGit: false, gitBranch: '无', gitModifiedFiles: [], lastCommit: '非 Git 仓库', lastCommitHash: '', lastCommitTime: '' }
+      return {
+        isGit: false,
+        gitBranch: '无',
+        gitModifiedFiles: [],
+        lastCommit: '非 Git 仓库',
+        lastCommitHash: '',
+        lastCommitTime: ''
+      }
     }
   })
 
@@ -569,15 +741,28 @@ function setupIPC() {
       if (target.startsWith('origin/')) {
         const localName = target.replace('origin/', '')
         try {
-          execSync(`git checkout "${localName}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+          execSync(`git checkout "${localName}"`, {
+            cwd: workdir,
+            timeout: 5000,
+            encoding: 'utf-8'
+          })
         } catch {
-          execSync(`git checkout -b "${localName}" "${target}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+          execSync(`git checkout -b "${localName}" "${target}"`, {
+            cwd: workdir,
+            timeout: 5000,
+            encoding: 'utf-8'
+          })
         }
         target = localName
       } else {
         execSync(`git checkout "${target}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
       }
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-checkout', name: `切换分支至 ${target}`, workdir })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-checkout',
+        name: `切换分支至 ${target}`,
+        workdir
+      })
       return { success: true, output: `✓ 已成功切换至 ${target}` }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -589,8 +774,17 @@ function setupIPC() {
     try {
       const { execSync } = require('child_process')
       const base = baseBranch || 'HEAD'
-      const res = execSync(`git checkout -b "${newBranch}" "${base}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-create-branch', name: `基于 ${base} 创建分支 ${newBranch}`, workdir })
+      const res = execSync(`git checkout -b "${newBranch}" "${base}"`, {
+        cwd: workdir,
+        timeout: 5000,
+        encoding: 'utf-8'
+      })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-create-branch',
+        name: `基于 ${base} 创建分支 ${newBranch}`,
+        workdir
+      })
       return { success: true, output: res }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -630,7 +824,11 @@ function setupIPC() {
     const seenThreadIds = new Set()
 
     // 1. ChatGPT / Codex native parser
-    if (!agent || agent.toLowerCase().includes('codex') || agent.toLowerCase().includes('chatgpt')) {
+    if (
+      !agent ||
+      agent.toLowerCase().includes('codex') ||
+      agent.toLowerCase().includes('chatgpt')
+    ) {
       const globStatePath = join(homedir(), '.codex', '.codex-global-state.json')
       const sessIndexPath = join(homedir(), '.codex', 'session_index.jsonl')
 
@@ -647,7 +845,11 @@ function setupIPC() {
           Object.values(projects).forEach((p) => {
             if (
               (workspaceName && p.name === workspaceName) ||
-              (projectPath && p.rootPaths && p.rootPaths.some((rp) => rp === projectPath || projectPath.endsWith(rp.split('/').pop())))
+              (projectPath &&
+                p.rootPaths &&
+                p.rootPaths.some(
+                  (rp) => rp === projectPath || projectPath.endsWith(rp.split('/').pop())
+                ))
             ) {
               matchedProjectId = p.id
             }
@@ -671,7 +873,11 @@ function setupIPC() {
 
           // B) Thread IDs from threadAssigns
           Object.entries(threadAssigns).forEach(([tId, assign]) => {
-            if (assign && (assign.projectId === matchedProjectId || (assign.cwd && projectPath && assign.cwd === projectPath))) {
+            if (
+              assign &&
+              (assign.projectId === matchedProjectId ||
+                (assign.cwd && projectPath && assign.cwd === projectPath))
+            ) {
               targetThreadIds.add(tId)
             }
           })
@@ -699,7 +905,12 @@ function setupIPC() {
               sessionId: tId,
               agent: 'ChatGPT / Codex',
               summary: title,
-              updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '历史',
+              updatedAt: item.updated_at
+                ? new Date(item.updated_at).toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                : '历史',
               rawTimestamp: dateObj.getTime(),
               isMatched: true
             })
@@ -732,8 +943,18 @@ function setupIPC() {
                   sessions.push({
                     sessionId: String(sId),
                     agent: 'Claude Code',
-                    summary: typeof item.display === 'string' && item.display.length > 2 && item.display !== 'user' ? item.display.slice(0, 50) : `Claude Code 会话 ${String(sId).slice(0, 6)}`,
-                    updatedAt: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '最近',
+                    summary:
+                      typeof item.display === 'string' &&
+                      item.display.length > 2 &&
+                      item.display !== 'user'
+                        ? item.display.slice(0, 50)
+                        : `Claude Code 会话 ${String(sId).slice(0, 6)}`,
+                    updatedAt: item.timestamp
+                      ? new Date(item.timestamp).toLocaleTimeString('zh-CN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : '最近',
                     rawTimestamp: dateObj.getTime(),
                     isMatched: true
                   })
@@ -778,25 +999,34 @@ function setupIPC() {
     if (foundCodexFile) {
       try {
         const content = readFileSync(foundCodexFile, 'utf-8')
-        content.split('\n').filter(Boolean).forEach((line) => {
-          try {
-            const item = JSON.parse(line)
-            if (item.type === 'event_msg' && item.payload) {
-              const pType = item.payload.type
-              if (pType === 'user_message' || pType === 'agent_message') {
-                const role = pType === 'user_message' ? 'user' : 'assistant'
-                const text = item.payload.message || item.payload.text || item.payload.content || ''
-                if (text && typeof text === 'string') {
-                  messages.push({
-                    role,
-                    content: text,
-                    time: item.payload.timestamp ? new Date(item.payload.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''
-                  })
+        content
+          .split('\n')
+          .filter(Boolean)
+          .forEach((line) => {
+            try {
+              const item = JSON.parse(line)
+              if (item.type === 'event_msg' && item.payload) {
+                const pType = item.payload.type
+                if (pType === 'user_message' || pType === 'agent_message') {
+                  const role = pType === 'user_message' ? 'user' : 'assistant'
+                  const text =
+                    item.payload.message || item.payload.text || item.payload.content || ''
+                  if (text && typeof text === 'string') {
+                    messages.push({
+                      role,
+                      content: text,
+                      time: item.payload.timestamp
+                        ? new Date(item.payload.timestamp).toLocaleTimeString('zh-CN', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : ''
+                    })
+                  }
                 }
               }
-            }
-          } catch {}
-        })
+            } catch {}
+          })
       } catch {}
       if (messages.length > 0) return messages
     }
@@ -806,22 +1036,31 @@ function setupIPC() {
     if (existsSync(claudeHist)) {
       try {
         const content = readFileSync(claudeHist, 'utf-8')
-        content.split('\n').filter(Boolean).forEach((line) => {
-          try {
-            const item = JSON.parse(line)
-            if (item.sessionId === sessionId || String(item.timestamp) === sessionId) {
-              if (item.display && item.display !== 'status') {
-                const role = item.display === 'assistant' || item.display === 'model' ? 'assistant' : 'user'
-                const text = typeof item.display === 'string' ? item.display : `命令记录`
-                messages.push({
-                  role,
-                  content: text,
-                  time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''
-                })
+        content
+          .split('\n')
+          .filter(Boolean)
+          .forEach((line) => {
+            try {
+              const item = JSON.parse(line)
+              if (item.sessionId === sessionId || String(item.timestamp) === sessionId) {
+                if (item.display && item.display !== 'status') {
+                  const role =
+                    item.display === 'assistant' || item.display === 'model' ? 'assistant' : 'user'
+                  const text = typeof item.display === 'string' ? item.display : `命令记录`
+                  messages.push({
+                    role,
+                    content: text,
+                    time: item.timestamp
+                      ? new Date(item.timestamp).toLocaleTimeString('zh-CN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : ''
+                  })
+                }
               }
-            }
-          } catch {}
-        })
+            } catch {}
+          })
       } catch {}
     }
 
@@ -832,33 +1071,53 @@ function setupIPC() {
   ipcMain.handle('git-ai-commit-preview', async (_, workdir) => {
     try {
       const { execSync } = require('child_process')
-      const status = execSync('git status --short --untracked-files=all', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }).trim()
+      const status = execSync('git status --short --untracked-files=all', {
+        cwd: workdir,
+        timeout: 3000,
+        encoding: 'utf-8'
+      }).trim()
       if (!status) {
         return { success: false, error: '没有需要提交的未提交改动 (Working tree clean)' }
       }
-      const diffStat = execSync('git diff --stat HEAD', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }).trim()
-      
+      const diffStat = execSync('git diff --stat HEAD', {
+        cwd: workdir,
+        timeout: 3000,
+        encoding: 'utf-8'
+      }).trim()
+
       // Check if local Claude CLI is available
       const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
       const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
 
       let claudeBin = ''
       try {
-        claudeBin = execSync('which claude 2>/dev/null || command -v claude 2>/dev/null', { env: { ...process.env, PATH: pathEnv }, timeout: 1500, encoding: 'utf-8' }).trim()
+        claudeBin = execSync('which claude 2>/dev/null || command -v claude 2>/dev/null', {
+          env: { ...process.env, PATH: pathEnv },
+          timeout: 1500,
+          encoding: 'utf-8'
+        }).trim()
       } catch {
         // Ignored
       }
 
       if (claudeBin) {
         try {
-          const prompt = '你是一名资深工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。\n要求：使用 Conventional Commits 格式，格式为 type(scope): 中文标题。\ntype 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。\n只输出最终可以直接传给 git commit 的文字，不要使用 Markdown 代码块。'
-          const diffContext = execSync('git diff HEAD --stat && git status --short', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
-          const aiMsg = execSync(`echo ${JSON.stringify(diffContext)} | "${claudeBin}" -p ${JSON.stringify(prompt)} --output-format text --max-turns 1`, {
+          const prompt =
+            '你是一名资深工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。\n要求：使用 Conventional Commits 格式，格式为 type(scope): 中文标题。\ntype 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。\n只输出最终可以直接传给 git commit 的文字，不要使用 Markdown 代码块。'
+          const diffContext = execSync('git diff HEAD --stat && git status --short', {
             cwd: workdir,
-            env: { ...process.env, PATH: pathEnv },
-            timeout: 10000,
+            timeout: 3000,
             encoding: 'utf-8'
-          }).trim()
+          })
+          const aiMsg = execSync(
+            `echo ${JSON.stringify(diffContext)} | "${claudeBin}" -p ${JSON.stringify(prompt)} --output-format text --max-turns 1`,
+            {
+              cwd: workdir,
+              env: { ...process.env, PATH: pathEnv },
+              timeout: 10000,
+              encoding: 'utf-8'
+            }
+          ).trim()
 
           if (aiMsg) {
             return { success: true, commitMessage: aiMsg, diffStat, engine: 'Claude Code CLI' }
@@ -872,29 +1131,34 @@ function setupIPC() {
       const lines = status.split('\n')
       let type = 'feat'
       let scope = ''
-      const filePaths = lines.map(l => l.slice(3).trim())
-      
-      if (filePaths.every(f => f.includes('test') || f.includes('spec'))) {
+      const filePaths = lines.map((l) => l.slice(3).trim())
+
+      if (filePaths.every((f) => f.includes('test') || f.includes('spec'))) {
         type = 'test'
-      } else if (filePaths.every(f => f.endsWith('.md') || f.includes('doc'))) {
+      } else if (filePaths.every((f) => f.endsWith('.md') || f.includes('doc'))) {
         type = 'docs'
-      } else if (filePaths.every(f => f.includes('config') || f.endsWith('.json') || f.endsWith('.lock'))) {
+      } else if (
+        filePaths.every((f) => f.includes('config') || f.endsWith('.json') || f.endsWith('.lock'))
+      ) {
         type = 'chore'
-      } else if (filePaths.some(f => f.includes('fix') || f.includes('bug'))) {
+      } else if (filePaths.some((f) => f.includes('fix') || f.includes('bug'))) {
         type = 'fix'
-      } else if (lines.some(l => l.startsWith('M '))) {
+      } else if (lines.some((l) => l.startsWith('M '))) {
         type = 'feat'
       }
 
-      if (filePaths.some(f => f.includes('views/'))) scope = 'views'
-      else if (filePaths.some(f => f.includes('components/'))) scope = 'components'
-      else if (filePaths.some(f => f.includes('main/'))) scope = 'main'
-      else if (filePaths.some(f => f.includes('preload/'))) scope = 'preload'
+      if (filePaths.some((f) => f.includes('views/'))) scope = 'views'
+      else if (filePaths.some((f) => f.includes('components/'))) scope = 'components'
+      else if (filePaths.some((f) => f.includes('main/'))) scope = 'main'
+      else if (filePaths.some((f) => f.includes('preload/'))) scope = 'preload'
 
       const scopePart = scope ? `(${scope})` : ''
-      const mainFilesText = filePaths.slice(0, 3).map(f => f.split('/').pop()).join('、')
+      const mainFilesText = filePaths
+        .slice(0, 3)
+        .map((f) => f.split('/').pop())
+        .join('、')
       const commitTitle = `${type}${scopePart}: 更新 ${mainFilesText} 相关的逻辑`
-      const bodyLines = filePaths.slice(0, 5).map(f => `- 更改与调整 ${f}`)
+      const bodyLines = filePaths.slice(0, 5).map((f) => `- 更改与调整 ${f}`)
       const commitMessage = `${commitTitle}\n\n${bodyLines.join('\n')}`
 
       return { success: true, commitMessage, diffStat, engine: 'Local Rule Engine' }
@@ -910,8 +1174,17 @@ function setupIPC() {
       if (stageAll) {
         execSync('git add -A', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
       }
-      const res = execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-commit', name: `提交代码: ${message.split('\n')[0]}`, workdir })
+      const res = execSync(`git commit -m ${JSON.stringify(message)}`, {
+        cwd: workdir,
+        timeout: 5000,
+        encoding: 'utf-8'
+      })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-commit',
+        name: `提交代码: ${message.split('\n')[0]}`,
+        workdir
+      })
       return { success: true, output: res }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -922,9 +1195,23 @@ function setupIPC() {
   ipcMain.handle('git-push', async (_, { workdir, remote = 'origin' }) => {
     try {
       const { execSync } = require('child_process')
-      const branch = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'main'
-      const res = execSync(`git push ${remote} ${branch} || git push -u ${remote} ${branch}`, { cwd: workdir, timeout: 15000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-push', name: `推送代码至 ${remote}/${branch}`, workdir })
+      const branch =
+        execSync('git branch --show-current', {
+          cwd: workdir,
+          timeout: 2000,
+          encoding: 'utf-8'
+        }).trim() || 'main'
+      const res = execSync(`git push ${remote} ${branch} || git push -u ${remote} ${branch}`, {
+        cwd: workdir,
+        timeout: 15000,
+        encoding: 'utf-8'
+      })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-push',
+        name: `推送代码至 ${remote}/${branch}`,
+        workdir
+      })
       return { success: true, output: res || '✓ 推送成功' }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -935,8 +1222,17 @@ function setupIPC() {
   ipcMain.handle('git-pull', async (_, { workdir, remote = 'origin' }) => {
     try {
       const { execSync } = require('child_process')
-      const res = execSync(`git pull ${remote} --rebase`, { cwd: workdir, timeout: 15000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-pull', name: `从 ${remote} 拉取更新`, workdir })
+      const res = execSync(`git pull ${remote} --rebase`, {
+        cwd: workdir,
+        timeout: 15000,
+        encoding: 'utf-8'
+      })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-pull',
+        name: `从 ${remote} 拉取更新`,
+        workdir
+      })
       return { success: true, output: res || '✓ 已是最新代码' }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -948,8 +1244,17 @@ function setupIPC() {
     try {
       const { execSync } = require('child_process')
       const msg = message ? `"${message}"` : ''
-      const res = execSync(`git stash push -u -m ${msg}`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-stash', name: `挂起工作区代码 (${msg})`, workdir })
+      const res = execSync(`git stash push -u -m ${msg}`, {
+        cwd: workdir,
+        timeout: 5000,
+        encoding: 'utf-8'
+      })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-stash',
+        name: `挂起工作区代码 (${msg})`,
+        workdir
+      })
       return { success: true, output: res }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -960,7 +1265,12 @@ function setupIPC() {
     try {
       const { execSync } = require('child_process')
       const res = execSync('git stash pop', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-stash-pop', name: '恢复挂起的代码 (Stash Pop)', workdir })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-stash-pop',
+        name: '恢复挂起的代码 (Stash Pop)',
+        workdir
+      })
       return { success: true, output: res }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -972,11 +1282,24 @@ function setupIPC() {
     try {
       const { execSync } = require('child_process')
       if (file) {
-        execSync(`git checkout -- "${file}" || git clean -fd "${file}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+        execSync(`git checkout -- "${file}" || git clean -fd "${file}"`, {
+          cwd: workdir,
+          timeout: 5000,
+          encoding: 'utf-8'
+        })
       } else {
-        execSync('git checkout -- . && git clean -fd', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+        execSync('git checkout -- . && git clean -fd', {
+          cwd: workdir,
+          timeout: 5000,
+          encoding: 'utf-8'
+        })
       }
-      writeAuditLog({ type: 'EXECUTE', actionId: 'git-discard', name: `放弃修改: ${file || '全部文件'}`, workdir })
+      writeAuditLog({
+        type: 'EXECUTE',
+        actionId: 'git-discard',
+        name: `放弃修改: ${file || '全部文件'}`,
+        workdir
+      })
       return { success: true }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -997,7 +1320,11 @@ function setupIPC() {
   ipcMain.handle('git-unstage-file', async (_, { workdir, file }) => {
     try {
       const { execSync } = require('child_process')
-      execSync(`git restore --staged "${file}" || git reset HEAD "${file}"`, { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      execSync(`git restore --staged "${file}" || git reset HEAD "${file}"`, {
+        cwd: workdir,
+        timeout: 3000,
+        encoding: 'utf-8'
+      })
       return { success: true }
     } catch (err) {
       return { success: false, error: err.stderr || err.message }
@@ -1008,15 +1335,338 @@ function setupIPC() {
   ipcMain.handle('git-get-log', async (_, workdir) => {
     if (!workdir || !existsSync(workdir)) return []
     try {
-      const { stdout } = await execAsync('git log -20 --pretty=format:"%h|%s|%an|%cr|%d"', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      const { stdout } = await execAsync('git log -20 --pretty=format:"%h|%s|%an|%cr|%d"', {
+        cwd: workdir,
+        timeout: 5000,
+        encoding: 'utf-8'
+      })
       const logOutput = stdout.trim()
       if (!logOutput) return []
-      return logOutput.split('\n').filter(Boolean).map((line) => {
-        const [hash, subject, author, time, refs] = line.split('|')
-        return { hash, subject, author, time, refs: refs ? refs.trim() : '' }
-      })
+      return logOutput
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+          const [hash, subject, author, time, refs] = line.split('|')
+          return { hash, subject, author, time, refs: refs ? refs.trim() : '' }
+        })
     } catch {
       return []
+    }
+  })
+
+  // ==================== 云效 API IPC Handlers ====================
+
+  // 检查是否已配置云效 Token
+  ipcMain.handle('yunxiao-check-auth', async () => {
+    try {
+      const hasToken = await hasStoredToken()
+      const config = getConfig()
+      return {
+        success: true,
+        configured: hasToken,
+        currentOrganizationId: config?.currentOrganizationId || null,
+        currentOrganizationName: config?.currentOrganizationName || null
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 验证并存储云效 Token
+  ipcMain.handle('yunxiao-validate-token', async (_, token) => {
+    try {
+      const result = await validateToken(token)
+      if (result.valid) {
+        writeAuditLog({ type: 'YUNXIAO_AUTH', action: 'TOKEN_VALIDATED' })
+      }
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 清除云效 Token
+  ipcMain.handle('yunxiao-logout', async () => {
+    try {
+      await deleteStoredToken()
+      writeAuditLog({ type: 'YUNXIAO_AUTH', action: 'TOKEN_DELETED' })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取组织列表
+  ipcMain.handle('yunxiao-list-organizations', async () => {
+    try {
+      const result = await listOrganizations()
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取组织详情
+  ipcMain.handle('yunxiao-get-organization', async (_, organizationId) => {
+    try {
+      const result = await getOrganization(organizationId)
+      return { success: true, data: result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 设置当前组织
+  ipcMain.handle(
+    'yunxiao-set-current-organization',
+    async (_, { organizationId, organizationName }) => {
+      try {
+        setCurrentOrganization(organizationId, organizationName)
+        writeAuditLog({ type: 'YUNXIAO_CONFIG', action: 'SET_ORGANIZATION', organizationId })
+        return { success: true }
+      } catch (err) {
+        return { success: false, error: err.message }
+      }
+    }
+  )
+
+  // 搜索组织成员
+  ipcMain.handle('yunxiao-search-members', async (_, options) => {
+    try {
+      const result = await searchMembers(options)
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取成员详情
+  ipcMain.handle('yunxiao-get-member', async (_, { memberId, organizationId }) => {
+    try {
+      const result = await getMember(memberId, organizationId)
+      return { success: true, data: result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取云效配置
+  ipcMain.handle('yunxiao-get-config', async () => {
+    try {
+      const config = getConfig()
+      return { success: true, data: config || {} }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 搜索项目
+  ipcMain.handle('yunxiao-search-projects', async (_, options) => {
+    try {
+      const result = await searchProjects(options)
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取项目列表（简化版）
+  ipcMain.handle('yunxiao-list-projects', async (_, organizationId) => {
+    try {
+      const projects = await listProjects(organizationId)
+      return { success: true, projects }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取项目详情
+  ipcMain.handle('yunxiao-get-project', async (_, { projectId, organizationId }) => {
+    try {
+      const project = await getProject(projectId, organizationId)
+      return { success: true, data: project }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取项目成员
+  ipcMain.handle('yunxiao-list-project-members', async (_, { projectId, organizationId }) => {
+    try {
+      const members = await listProjectMembers(projectId, organizationId)
+      return { success: true, members }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 创建项目
+  ipcMain.handle('yunxiao-create-project', async (_, { projectData, organizationId }) => {
+    try {
+      const project = await createProject(projectData, organizationId)
+      writeAuditLog({ type: 'YUNXIAO_PROJECT', action: 'CREATE', projectId: project.id })
+      return { success: true, data: project }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-list-workitems', async (_, options) => {
+    try {
+      const result = await listWorkitems(options)
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-get-workitem', async (_, { workitemId, organizationId }) => {
+    try {
+      return { success: true, workitem: await getWorkitem(workitemId, organizationId) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-open-workitem-detail', async (_, workitemId) => {
+    try {
+      openWorkitemDetailWindow(workitemId)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-get-workitem-image', async (_, { imageUrl, workitemId, organizationId }) => {
+    try {
+      return {
+        success: true,
+        dataUrl: await getWorkitemImage(imageUrl, workitemId, organizationId)
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-create-workitem', async (_, { workitem, organizationId }) => {
+    try {
+      const data = await createWorkitem(workitem, organizationId)
+      writeAuditLog({
+        type: 'YUNXIAO_WORKITEM',
+        action: 'CREATE',
+        projectId: workitem.spaceIdentifier,
+        workitemId: data.workitemIdentifier || data.identifier
+      })
+      return { success: true, data }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle(
+    'yunxiao-update-workitem-field',
+    async (_, { workitemId, fields, organizationId }) => {
+      try {
+        const data = await updateWorkitemField(workitemId, fields, organizationId)
+        writeAuditLog({ type: 'YUNXIAO_WORKITEM', action: 'UPDATE_FIELD', workitemId })
+        return { success: true, data }
+      } catch (err) {
+        return { success: false, error: err.message }
+      }
+    }
+  )
+
+  ipcMain.handle('yunxiao-list-workitem-fields', async (_, options) => {
+    try {
+      return { success: true, fields: await listWorkitemFields(options) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle(
+    'yunxiao-list-project-workitem-types',
+    async (_, { projectId, category, organizationId }) => {
+      try {
+        return {
+          success: true,
+          types: await listProjectWorkitemTypes(projectId, category, organizationId)
+        }
+      } catch (err) {
+        return { success: false, error: err.message }
+      }
+    }
+  )
+  ipcMain.handle('yunxiao-list-workflow-statuses', async (_, options) => {
+    try {
+      return { success: true, statuses: await listWorkflowStatuses(options) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle(
+    'yunxiao-create-workitem-comment',
+    async (_, { workitemId, content, organizationId }) => {
+      try {
+        const data = await createWorkitemComment(workitemId, content, organizationId)
+        writeAuditLog({ type: 'YUNXIAO_WORKITEM', action: 'ADD_COMMENT', workitemId })
+        return { success: true, data }
+      } catch (err) {
+        return { success: false, error: err.message }
+      }
+    }
+  )
+  ipcMain.handle('yunxiao-list-workitem-comments', async (_, { workitemId, organizationId }) => {
+    try {
+      return { success: true, comments: await listWorkitemComments(workitemId, organizationId) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle('yunxiao-list-workitem-attachments', async (_, { workitemId, organizationId }) => {
+    try {
+      return {
+        success: true,
+        attachments: await listWorkitemAttachments(workitemId, organizationId)
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('yunxiao-list-sprints', async (_, options) => {
+    try {
+      return { success: true, ...(await listSprints(options)) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle('yunxiao-get-sprint', async (_, { sprintId, projectId, organizationId }) => {
+    try {
+      return { success: true, data: await getSprintInfo(sprintId, projectId, organizationId) }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle('yunxiao-create-sprint', async (_, { sprint, organizationId }) => {
+    try {
+      const data = await createSprint(sprint, organizationId)
+      writeAuditLog({
+        type: 'YUNXIAO_SPRINT',
+        action: 'CREATE',
+        sprintId: data.identifier || data.id
+      })
+      return { success: true, data }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+  ipcMain.handle('yunxiao-update-sprint', async (_, { sprintId, sprint, organizationId }) => {
+    try {
+      const data = await updateSprint(sprintId, sprint, organizationId)
+      writeAuditLog({ type: 'YUNXIAO_SPRINT', action: 'UPDATE', sprintId })
+      return { success: true, data }
+    } catch (err) {
+      return { success: false, error: err.message }
     }
   })
 }
