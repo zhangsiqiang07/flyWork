@@ -24,15 +24,36 @@ export default function Activity({ activityLog, workspaces }) {
   const [filterType, setFilterType] = useState('all')
   const [filterWorkspace, setFilterWorkspace] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [realAuditLogs, setRealAuditLogs] = useState([])
 
-  const filteredLog = activityLog.filter(item => {
+  useEffect(() => {
+    if (window.flywork?.getAuditLog) {
+      window.flywork.getAuditLog().then((logs) => {
+        if (Array.isArray(logs)) {
+          const mapped = logs.map((log, idx) => ({
+            id: `audit-${log.timestamp}-${idx}`,
+            type: 'action',
+            title: log.name ? `动作拦截/执行: ${log.name}` : `系统日志: ${log.type}`,
+            detail: log.reason ? `被拦截: ${log.reason}` : `工作路径: ${log.workdir || '.'} | 状态: ${log.type}`,
+            timestamp: log.timestamp || new Date().toISOString(),
+            workspaceId: null
+          }))
+          setRealAuditLogs(mapped)
+        }
+      })
+    }
+  }, [])
+
+  const allLogs = [...realAuditLogs, ...activityLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+
+  const filteredLog = allLogs.filter(item => {
     if (filterType !== 'all' && item.type !== filterType) return false
     if (filterWorkspace !== 'all' && item.workspaceId !== filterWorkspace) return false
-    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && !item.detail.toLowerCase().includes(searchQuery.toLowerCase())) return false
+    if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase()) && !item.detail?.toLowerCase().includes(searchQuery.toLowerCase())) return false
     return true
   })
 
-  const typeCounts = activityLog.reduce((acc, item) => {
+  const typeCounts = allLogs.reduce((acc, item) => {
     acc[item.type] = (acc[item.type] || 0) + 1
     return acc
   }, {})

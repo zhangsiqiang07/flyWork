@@ -19,6 +19,25 @@ const flyworkAPI = {
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
 
+  // Local Agents Detection
+  detectLocalAgents: () => ipcRenderer.invoke('detect-local-agents'),
+
+  // Git info & Operations
+  getGitInfo: (workdir) => ipcRenderer.invoke('get-git-info', workdir),
+  gitGetBranches: (workdir) => ipcRenderer.invoke('git-get-branches', workdir),
+  gitCheckout: (workdir, branch) => ipcRenderer.invoke('git-checkout', { workdir, branch }),
+  gitCreateBranch: (workdir, newBranch, baseBranch) => ipcRenderer.invoke('git-create-branch', { workdir, newBranch, baseBranch }),
+  gitAiCommitPreview: (workdir) => ipcRenderer.invoke('git-ai-commit-preview', workdir),
+  gitCommit: (workdir, message, stageAll = true) => ipcRenderer.invoke('git-commit', { workdir, message, stageAll }),
+  gitPush: (workdir, remote = 'origin') => ipcRenderer.invoke('git-push', { workdir, remote }),
+  gitPull: (workdir, remote = 'origin') => ipcRenderer.invoke('git-pull', { workdir, remote }),
+  gitStash: (workdir, message) => ipcRenderer.invoke('git-stash', { workdir, message }),
+  gitStashPop: (workdir) => ipcRenderer.invoke('git-stash-pop', workdir),
+  gitDiscard: (workdir, file) => ipcRenderer.invoke('git-discard', { workdir, file }),
+  gitStageFile: (workdir, file) => ipcRenderer.invoke('git-stage-file', { workdir, file }),
+  gitUnstageFile: (workdir, file) => ipcRenderer.invoke('git-unstage-file', { workdir, file }),
+  gitGetLog: (workdir) => ipcRenderer.invoke('git-get-log', workdir),
+
   // Actions registry
   getActions: () => ipcRenderer.invoke('get-actions'),
 

@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ActionRunner from '../components/ActionRunner'
+import EditWorkspaceModal from '../components/EditWorkspaceModal'
+import GitCreateBranchModal from '../components/GitCreateBranchModal'
+import GitAiCommitModal from '../components/GitAiCommitModal'
 
 function formatRelTime(iso) {
   const d = new Date(iso)
@@ -20,11 +23,147 @@ const RISK_CONFIG = {
   high: { label: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onResumeSession, onPauseSession, onBack, onSetContextPanel }) {
+export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace }) {
   const [activeTab, setActiveTab] = useState('概览')
   const [runningAction, setRunningAction] = useState(null)
   const [newSessionTitle, setNewSessionTitle] = useState('')
   const [showNewSession, setShowNewSession] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  // Git states
+  const [liveGitInfo, setLiveGitInfo] = useState(null)
+  const [branches, setBranches] = useState([])
+  const [commitLog, setCommitLog] = useState([])
+  const [showCreateBranchModal, setShowCreateBranchModal] = useState(false)
+  const [showAiCommitModal, setShowAiCommitModal] = useState(false)
+  const [gitNotice, setGitNotice] = useState('')
+  const [isGitOperating, setIsGitOperating] = useState(false)
+
+  const refreshGitData = useCallback(async () => {
+    if (!ws?.root) return
+    if (window.flywork?.getGitInfo) {
+      const info = await window.flywork.getGitInfo(ws.root)
+      if (info) setLiveGitInfo(info)
+    }
+    if (window.flywork?.gitGetBranches) {
+      const res = await window.flywork.gitGetBranches(ws.root)
+      if (res && Array.isArray(res.branches)) setBranches(res.branches)
+    }
+    if (window.flywork?.gitGetLog) {
+      const logs = await window.flywork.gitGetLog(ws.root)
+      if (Array.isArray(logs)) setCommitLog(logs)
+    }
+  }, [ws?.root])
+
+  useEffect(() => {
+    refreshGitData()
+  }, [refreshGitData, activeTab])
+
+  const showGitToast = (msg) => {
+    setGitNotice(msg)
+    setTimeout(() => setGitNotice(''), 4000)
+  }
+
+  const handleSwitchBranch = async (targetBranch) => {
+    if (!targetBranch || isGitOperating) return
+    setIsGitOperating(true)
+    try {
+      const res = await window.flywork?.gitCheckout(ws.root, targetBranch)
+      if (res?.success) {
+        showGitToast(`✓ 已成功切换至分支 ${targetBranch}`)
+        refreshGitData()
+      } else {
+        showGitToast(`❌ 切换失败: ${res?.error || '是否有未提交改动冲掉？'}`)
+      }
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handleCreateBranch = async (newBranch, baseBranch) => {
+    if (isGitOperating) return { success: false, error: '正在操作中' }
+    setIsGitOperating(true)
+    try {
+      const res = await window.flywork?.gitCreateBranch(ws.root, newBranch, baseBranch)
+      if (res?.success) {
+        showGitToast(`✓ 成功建并切至新分支 ${newBranch}`)
+        refreshGitData()
+      }
+      return res
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handlePush = async () => {
+    setIsGitOperating(true)
+    showGitToast('正在推送代码至远程仓库...')
+    try {
+      const res = await window.flywork?.gitPush(ws.root)
+      if (res?.success) showGitToast(`✓ 推送成功: ${res.output}`)
+      else showGitToast(`❌ 推送失败: ${res?.error}`)
+      refreshGitData()
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handlePull = async () => {
+    setIsGitOperating(true)
+    showGitToast('正在拉取远程代码并变基...')
+    try {
+      const res = await window.flywork?.gitPull(ws.root)
+      if (res?.success) showGitToast(`✓ 拉取成功: ${res.output}`)
+      else showGitToast(`❌ 拉取失败: ${res?.error}`)
+      refreshGitData()
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handleStash = async () => {
+    setIsGitOperating(true)
+    try {
+      const res = await window.flywork?.gitStash(ws.root, 'flyWork Stash')
+      if (res?.success) showGitToast('✓ 已暂存当前工作区修改 (Git Stash)')
+      else showGitToast(`❌ Stash 失败: ${res?.error}`)
+      refreshGitData()
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handleStashPop = async () => {
+    setIsGitOperating(true)
+    try {
+      const res = await window.flywork?.gitStashPop(ws.root)
+      if (res?.success) showGitToast('✓ 已恢复暂存代码 (Stash Pop)')
+      else showGitToast(`❌ 恢复失败: ${res?.error}`)
+      refreshGitData()
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const handleDiscard = async (file = null) => {
+    const targetName = file || '全部未提交修改'
+    if (!confirm(`确定要放弃 ${targetName} 吗？此操作无法撤销。`)) return
+    setIsGitOperating(true)
+    try {
+      const res = await window.flywork?.gitDiscard(ws.root, file)
+      if (res?.success) showGitToast(`✓ 已还原 ${targetName}`)
+      else showGitToast(`❌ 还原失败: ${res?.error}`)
+      refreshGitData()
+    } finally {
+      setIsGitOperating(false)
+    }
+  }
+
+  const gitBranch = liveGitInfo?.gitBranch || ws.gitBranch || 'main'
+  const gitModifiedFiles = liveGitInfo?.gitModifiedFiles || ws.gitModifiedFiles || []
+  const lastCommit = liveGitInfo?.lastCommit || ws.lastCommit || '无提交历史'
+  const lastCommitHash = liveGitInfo?.lastCommitHash || ws.lastCommitHash || ''
+  const lastCommitTime = liveGitInfo?.lastCommitTime || ws.lastCommitTime || ''
 
   const activeSession = sessions.find(s => s.status === 'active')
 
@@ -36,10 +175,24 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onBack} title="返回">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: ws.bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{ws.icon}</div>
+          <div
+            onClick={() => setShowEditModal(true)}
+            style={{ width: 36, height: 36, borderRadius: 10, background: ws.bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}
+            title="点击修改图标"
+          >
+            {ws.icon}
+          </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="page-title" style={{ margin: 0, fontSize: 18 }}>{ws.name}</div>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setShowEditModal(true)}
+                title="修改名称及图标"
+                style={{ opacity: 0.7, padding: '2px 4px' }}
+              >
+                ✏️
+              </button>
               {ws.buildStatus === 'failed' ? (
                 <span className="badge badge-red" style={{ fontSize: 10 }}>❌ 构建失败</span>
               ) : (
@@ -93,11 +246,11 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
             <div className="card" style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>GIT 状态</div>
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '2px 8px', borderRadius: 4 }}>⑂ {ws.gitBranch}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '2px 8px', borderRadius: 4 }}>⑂ {gitBranch}</span>
               </div>
               <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
                 <div className="stat-item">
-                  <div className="stat-value" style={{ fontSize: 22 }}>{ws.gitModifiedFiles?.length || 0}</div>
+                  <div className="stat-value" style={{ fontSize: 22 }}>{gitModifiedFiles.length}</div>
                   <div className="stat-label">修改文件</div>
                 </div>
                 <div className="stat-item">
@@ -106,7 +259,7 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
                 </div>
               </div>
               <div className="git-file-list">
-                {(ws.gitModifiedFiles || []).slice(0, 4).map((f, i) => (
+                {gitModifiedFiles.slice(0, 4).map((f, i) => (
                   <div key={i} className="git-file-item">
                     <span className={`git-file-status git-status-${f.status}`}>{f.status}</span>
                     <span style={{ color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -114,8 +267,11 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
                     </span>
                   </div>
                 ))}
-                {ws.gitModifiedFiles?.length > 4 && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 8px' }}>+{ws.gitModifiedFiles.length - 4} 个更多</div>
+                {gitModifiedFiles.length > 4 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 8px' }}>+{gitModifiedFiles.length - 4} 个更多</div>
+                )}
+                {gitModifiedFiles.length === 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 8px' }}>无未提交修改 (Working tree clean)</div>
                 )}
               </div>
             </div>
@@ -193,41 +349,180 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
 
         {activeTab === 'Git' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {gitNotice && (
+              <div style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', padding: '10px 14px', borderRadius: 8, fontSize: 12, border: '1px solid rgba(79,158,248,0.3)', animation: 'fadeIn 150ms ease' }}>
+                {gitNotice}
+              </div>
+            )}
+
+            {/* Branch & Sync Bar */}
             <div className="card" style={{ padding: 16 }}>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>当前分支</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', padding: '6px 10px', borderRadius: 6 }}>⑂ {ws.gitBranch}</div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>最近提交</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)', padding: '6px 10px', background: 'var(--bg-elevated)', borderRadius: 6, border: '1px solid var(--border)' }}>
-                    {ws.lastCommitHash} · {ws.lastCommitTime}
-                  </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>分支与远程同步</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={handlePull} disabled={isGitOperating} title="git pull --rebase">
+                    ⬇️ 拉取
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handlePush} disabled={isGitOperating} title="git push origin">
+                    ⬆️ 推送
+                  </button>
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>最新提交说明</div>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', background: 'var(--bg-elevated)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', lineHeight: 1.6 }}>
-                {ws.lastCommit}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>切换分支:</span>
+                  <select
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--accent-blue)',
+                      borderRadius: 6,
+                      color: 'var(--accent-blue)',
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      outline: 'none',
+                      minWidth: 160
+                    }}
+                    value={gitBranch}
+                    onChange={(e) => handleSwitchBranch(e.target.value)}
+                    disabled={isGitOperating}
+                  >
+                    {branches.length > 0 ? (
+                      <>
+                        <optgroup label="本地分支">
+                          {branches.filter(b => !b.isRemote).map((b) => (
+                            <option key={b.name} value={b.name}>
+                              {b.isCurrent ? `⑂ ${b.name} (当前)` : `⑂ ${b.name}`}
+                            </option>
+                          ))}
+                        </optgroup>
+                        {branches.some(b => b.isRemote) && (
+                          <optgroup label="远程分支 (Checkout 自动跟踪)">
+                            {branches.filter(b => b.isRemote).map((b) => (
+                              <option key={b.name} value={b.name}>
+                                ☁️ {b.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </>
+                    ) : (
+                      <option value={gitBranch}>⑂ {gitBranch}</option>
+                    )}
+                  </select>
+                  <button
+                    className="btn btn-ghost btn-icon btn-sm"
+                    onClick={refreshGitData}
+                    title="刷新分支与 Git 状态"
+                    disabled={isGitOperating}
+                  >
+                    🔄
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setShowCreateBranchModal(true)}>
+                    + 基于分支新建
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleStash} disabled={isGitOperating} title="暂存当前修改">
+                    📦 Stash
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleStashPop} disabled={isGitOperating} title="恢复上一次暂存">
+                    解暂存
+                  </button>
+                </div>
               </div>
             </div>
 
+            {/* Uncommitted Changes Manager */}
             <div className="card" style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  修改文件 ({ws.gitModifiedFiles?.length || 0})
+                  未提交改动 ({gitModifiedFiles.length})
                 </div>
-                <button className="btn btn-secondary btn-sm">
-                  🤖 AI 生成 Commit
-                </button>
+                {gitModifiedFiles.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--accent-red)', fontSize: 11 }}
+                      onClick={() => handleDiscard(null)}
+                      disabled={isGitOperating}
+                    >
+                      🗑️ 还原全部改动
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setShowAiCommitModal(true)}
+                    >
+                      🤖 AI 智能 Commit
+                    </button>
+                  </div>
+                )}
               </div>
+
               <div className="git-file-list">
-                {(ws.gitModifiedFiles || []).map((f, i) => (
-                  <div key={i} className="git-file-item" style={{ padding: '4px 8px' }}>
+                {gitModifiedFiles.map((f, i) => (
+                  <div key={i} className="git-file-item" style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span className={`git-file-status git-status-${f.status}`}>{f.status}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-primary)', flex: 1 }}>{f.path}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1, fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {f.path}
+                    </span>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 10, padding: '2px 6px', color: 'var(--text-muted)' }}
+                      title="放弃改动"
+                      onClick={() => handleDiscard(f.path)}
+                    >
+                      还原
+                    </button>
                   </div>
                 ))}
+                {gitModifiedFiles.length === 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '12px 0', textAlign: 'center' }}>
+                    ✓ 暂无未提交修改，代码仓库很干净。
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Commit Log History */}
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                提交历史 (Commit Log)
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {commitLog.length > 0 ? (
+                  commitLog.map((log) => (
+                    <div
+                      key={log.hash}
+                      style={{
+                        padding: '8px 12px',
+                        background: 'var(--bg-elevated)',
+                        borderRadius: 6,
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-purple)', background: 'var(--accent-purple-dim)', padding: '2px 6px', borderRadius: 4 }}>
+                        {log.hash}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {log.subject}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {log.author} · {log.time} {log.refs ? ` · ${log.refs}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>{lastCommit}</div>
+                )}
               </div>
             </div>
           </div>
@@ -373,6 +668,28 @@ Aborting
 
       {runningAction && (
         <ActionRunner action={runningAction} workspace={ws} onClose={() => setRunningAction(null)} />
+      )}
+      {showEditModal && (
+        <EditWorkspaceModal
+          workspace={ws}
+          onClose={() => setShowEditModal(false)}
+          onSave={onUpdateWorkspace}
+        />
+      )}
+      {showCreateBranchModal && (
+        <GitCreateBranchModal
+          branches={branches}
+          currentBranch={gitBranch}
+          onClose={() => setShowCreateBranchModal(false)}
+          onCreate={handleCreateBranch}
+        />
+      )}
+      {showAiCommitModal && (
+        <GitAiCommitModal
+          workspace={ws}
+          onClose={() => setShowAiCommitModal(false)}
+          onCommitSuccess={refreshGitData}
+        />
       )}
     </div>
   )

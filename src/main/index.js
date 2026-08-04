@@ -304,6 +304,346 @@ function setupIPC() {
       dryRunOutput: action.dryRunOutput
     }))
   })
+
+  // Get real Git info for a workspace directory
+  ipcMain.handle('get-git-info', async (_, workdir) => {
+    if (!workdir || !existsSync(workdir)) {
+      return { isGit: false, gitBranch: '无', gitModifiedFiles: [], lastCommit: '目录不存在', lastCommitHash: '', lastCommitTime: '' }
+    }
+    try {
+      const { execSync } = require('child_process')
+      const branch = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'HEAD'
+      const statusOutput = execSync('git status --porcelain', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      const modifiedFiles = statusOutput.split('\n').filter(Boolean).map((line) => {
+        const status = line.slice(0, 2).trim()
+        const path = line.slice(3).trim()
+        return { status: status || 'M', path }
+      })
+
+      let lastCommit = '未提交'
+      let lastCommitHash = ''
+      let lastCommitTime = ''
+      try {
+        const logOutput = execSync('git log -1 --pretty=format:"%h|%s|%cr"', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim()
+        if (logOutput) {
+          const parts = logOutput.split('|')
+          lastCommitHash = parts[0] || ''
+          lastCommit = parts[1] || '提交记录'
+          lastCommitTime = parts[2] || ''
+        }
+      } catch {
+        // Ignored if no commits exist yet
+      }
+
+      return {
+        isGit: true,
+        gitBranch: branch,
+        gitModifiedFiles: modifiedFiles,
+        lastCommit,
+        lastCommitHash,
+        lastCommitTime
+      }
+    } catch {
+      return { isGit: false, gitBranch: '无', gitModifiedFiles: [], lastCommit: '非 Git 仓库', lastCommitHash: '', lastCommitTime: '' }
+    }
+  })
+
+  // Get branches list
+  ipcMain.handle('git-get-branches', async (_, workdir) => {
+    if (!workdir || !existsSync(workdir)) return { current: 'main', branches: [] }
+    try {
+      const { execSync } = require('child_process')
+      const current = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'HEAD'
+
+      // Try fetching latest remote references in background (short timeout)
+      try {
+        execSync('git fetch --all --prune', { cwd: workdir, timeout: 4000, encoding: 'utf-8' })
+      } catch {
+        // Ignore if offline or no remote
+      }
+
+      const output = execSync('git branch -a', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      const lines = output.split('\n').filter(Boolean)
+      const branches = []
+      const seenNames = new Set()
+
+      for (let line of lines) {
+        const trimmed = line.trim()
+        if (trimmed.includes('->')) continue // Skip HEAD refs like origin/HEAD -> origin/main
+        const isCurrent = trimmed.startsWith('*')
+        let rawName = trimmed.replace(/^\*\s*/, '').trim()
+        let cleanName = rawName
+        if (cleanName.startsWith('remotes/')) {
+          cleanName = cleanName.replace('remotes/', '')
+        }
+        if (!cleanName || seenNames.has(cleanName)) continue
+        seenNames.add(cleanName)
+        branches.push({
+          name: cleanName,
+          isCurrent,
+          isRemote: cleanName.startsWith('origin/')
+        })
+      }
+
+      return { current, branches }
+    } catch (err) {
+      return { current: 'main', branches: [], error: err.message }
+    }
+  })
+
+  // Checkout branch
+  ipcMain.handle('git-checkout', async (_, { workdir, branch }) => {
+    try {
+      const { execSync } = require('child_process')
+      let target = branch.trim()
+      if (target.startsWith('origin/')) {
+        const localName = target.replace('origin/', '')
+        try {
+          execSync(`git checkout "${localName}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+        } catch {
+          execSync(`git checkout -b "${localName}" "${target}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+        }
+        target = localName
+      } else {
+        execSync(`git checkout "${target}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      }
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-checkout', name: `切换分支至 ${target}`, workdir })
+      return { success: true, output: `✓ 已成功切换至 ${target}` }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Create & checkout new branch
+  ipcMain.handle('git-create-branch', async (_, { workdir, newBranch, baseBranch }) => {
+    try {
+      const { execSync } = require('child_process')
+      const base = baseBranch || 'HEAD'
+      const res = execSync(`git checkout -b "${newBranch}" "${base}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-create-branch', name: `基于 ${base} 创建分支 ${newBranch}`, workdir })
+      return { success: true, output: res }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Detect local CLI agents (Claude Code, Codex, OpenCode, Gemini, etc.)
+  ipcMain.handle('detect-local-agents', async () => {
+    const checkCli = (cmd) => {
+      try {
+        const { execSync } = require('child_process')
+        const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
+        const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
+        const binPath = execSync(`which ${cmd} 2>/dev/null || command -v ${cmd} 2>/dev/null`, {
+          env: { ...process.env, PATH: pathEnv },
+          timeout: 2000,
+          encoding: 'utf-8'
+        }).trim()
+        return { installed: Boolean(binPath), path: binPath || null }
+      } catch {
+        return { installed: false, path: null }
+      }
+    }
+
+    return {
+      claude: checkCli('claude'),
+      codex: checkCli('codex'),
+      opencode: checkCli('opencode'),
+      gemini: checkCli('gemini')
+    }
+  })
+
+  // Generate AI Commit preview (Conventional Commit)
+  ipcMain.handle('git-ai-commit-preview', async (_, workdir) => {
+    try {
+      const { execSync } = require('child_process')
+      const status = execSync('git status --short --untracked-files=all', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }).trim()
+      if (!status) {
+        return { success: false, error: '没有需要提交的未提交改动 (Working tree clean)' }
+      }
+      const diffStat = execSync('git diff --stat HEAD', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }).trim()
+      
+      // Check if local Claude CLI is available
+      const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
+      const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
+
+      let claudeBin = ''
+      try {
+        claudeBin = execSync('which claude 2>/dev/null || command -v claude 2>/dev/null', { env: { ...process.env, PATH: pathEnv }, timeout: 1500, encoding: 'utf-8' }).trim()
+      } catch {
+        // Ignored
+      }
+
+      if (claudeBin) {
+        try {
+          const prompt = '你是一名资深工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。\n要求：使用 Conventional Commits 格式，格式为 type(scope): 中文标题。\ntype 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。\n只输出最终可以直接传给 git commit 的文字，不要使用 Markdown 代码块。'
+          const diffContext = execSync('git diff HEAD --stat && git status --short', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+          const aiMsg = execSync(`echo ${JSON.stringify(diffContext)} | "${claudeBin}" -p ${JSON.stringify(prompt)} --output-format text --max-turns 1`, {
+            cwd: workdir,
+            env: { ...process.env, PATH: pathEnv },
+            timeout: 10000,
+            encoding: 'utf-8'
+          }).trim()
+
+          if (aiMsg) {
+            return { success: true, commitMessage: aiMsg, diffStat, engine: 'Claude Code CLI' }
+          }
+        } catch {
+          // Fallback to rule engine
+        }
+      }
+
+      // Rule-based fallback
+      const lines = status.split('\n')
+      let type = 'feat'
+      let scope = ''
+      const filePaths = lines.map(l => l.slice(3).trim())
+      
+      if (filePaths.every(f => f.includes('test') || f.includes('spec'))) {
+        type = 'test'
+      } else if (filePaths.every(f => f.endsWith('.md') || f.includes('doc'))) {
+        type = 'docs'
+      } else if (filePaths.every(f => f.includes('config') || f.endsWith('.json') || f.endsWith('.lock'))) {
+        type = 'chore'
+      } else if (filePaths.some(f => f.includes('fix') || f.includes('bug'))) {
+        type = 'fix'
+      } else if (lines.some(l => l.startsWith('M '))) {
+        type = 'feat'
+      }
+
+      if (filePaths.some(f => f.includes('views/'))) scope = 'views'
+      else if (filePaths.some(f => f.includes('components/'))) scope = 'components'
+      else if (filePaths.some(f => f.includes('main/'))) scope = 'main'
+      else if (filePaths.some(f => f.includes('preload/'))) scope = 'preload'
+
+      const scopePart = scope ? `(${scope})` : ''
+      const mainFilesText = filePaths.slice(0, 3).map(f => f.split('/').pop()).join('、')
+      const commitTitle = `${type}${scopePart}: 更新 ${mainFilesText} 相关的逻辑`
+      const bodyLines = filePaths.slice(0, 5).map(f => `- 更改与调整 ${f}`)
+      const commitMessage = `${commitTitle}\n\n${bodyLines.join('\n')}`
+
+      return { success: true, commitMessage, diffStat, engine: 'Local Rule Engine' }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // Commit changes
+  ipcMain.handle('git-commit', async (_, { workdir, message, stageAll = true }) => {
+    try {
+      const { execSync } = require('child_process')
+      if (stageAll) {
+        execSync('git add -A', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      }
+      const res = execSync(`git commit -m ${JSON.stringify(message)}`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-commit', name: `提交代码: ${message.split('\n')[0]}`, workdir })
+      return { success: true, output: res }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Push code
+  ipcMain.handle('git-push', async (_, { workdir, remote = 'origin' }) => {
+    try {
+      const { execSync } = require('child_process')
+      const branch = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'main'
+      const res = execSync(`git push ${remote} ${branch} || git push -u ${remote} ${branch}`, { cwd: workdir, timeout: 15000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-push', name: `推送代码至 ${remote}/${branch}`, workdir })
+      return { success: true, output: res || '✓ 推送成功' }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Pull code
+  ipcMain.handle('git-pull', async (_, { workdir, remote = 'origin' }) => {
+    try {
+      const { execSync } = require('child_process')
+      const res = execSync(`git pull ${remote} --rebase`, { cwd: workdir, timeout: 15000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-pull', name: `从 ${remote} 拉取更新`, workdir })
+      return { success: true, output: res || '✓ 已是最新代码' }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Stash & Stash Pop
+  ipcMain.handle('git-stash', async (_, { workdir, message }) => {
+    try {
+      const { execSync } = require('child_process')
+      const msg = message ? `"${message}"` : ''
+      const res = execSync(`git stash push -u -m ${msg}`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-stash', name: `挂起工作区代码 (${msg})`, workdir })
+      return { success: true, output: res }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  ipcMain.handle('git-stash-pop', async (_, workdir) => {
+    try {
+      const { execSync } = require('child_process')
+      const res = execSync('git stash pop', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-stash-pop', name: '恢复挂起的代码 (Stash Pop)', workdir })
+      return { success: true, output: res }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Discard changes
+  ipcMain.handle('git-discard', async (_, { workdir, file }) => {
+    try {
+      const { execSync } = require('child_process')
+      if (file) {
+        execSync(`git checkout -- "${file}" || git clean -fd "${file}"`, { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      } else {
+        execSync('git checkout -- . && git clean -fd', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      }
+      writeAuditLog({ type: 'EXECUTE', actionId: 'git-discard', name: `放弃修改: ${file || '全部文件'}`, workdir })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Stage & Unstage single file
+  ipcMain.handle('git-stage-file', async (_, { workdir, file }) => {
+    try {
+      const { execSync } = require('child_process')
+      execSync(`git add "${file}"`, { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  ipcMain.handle('git-unstage-file', async (_, { workdir, file }) => {
+    try {
+      const { execSync } = require('child_process')
+      execSync(`git restore --staged "${file}" || git reset HEAD "${file}"`, { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.stderr || err.message }
+    }
+  })
+
+  // Get recent 20 commits log
+  ipcMain.handle('git-get-log', async (_, workdir) => {
+    if (!workdir || !existsSync(workdir)) return []
+    try {
+      const { execSync } = require('child_process')
+      const logOutput = execSync('git log -20 --pretty=format:"%h|%s|%an|%cr|%d"', { cwd: workdir, timeout: 5000, encoding: 'utf-8' }).trim()
+      if (!logOutput) return []
+      return logOutput.split('\n').filter(Boolean).map((line) => {
+        const [hash, subject, author, time, refs] = line.split('|')
+        return { hash, subject, author, time, refs: refs ? refs.trim() : '' }
+      })
+    } catch {
+      return []
+    }
+  })
 }
 
 app.whenReady().then(() => {

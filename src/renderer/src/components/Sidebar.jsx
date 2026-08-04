@@ -1,4 +1,4 @@
-export default function Sidebar({ currentView, workspaces, sessions, inboxCount, onNavigate, onOpenWorkspace }) {
+export default function Sidebar({ currentView, selectedWorkspaceId, workspaces, sessions, inboxCount, onNavigate, onOpenWorkspace }) {
   const activeSessions = sessions.filter(s => s.status === 'active')
   
   const navItems = [
@@ -60,7 +60,7 @@ export default function Sidebar({ currentView, workspaces, sessions, inboxCount,
         {workspaces.map(ws => (
           <div
             key={ws.id}
-            className={`sidebar-item ${currentView === 'workspace-detail' ? 'active' : ''}`}
+            className={`sidebar-item ${currentView === 'workspace-detail' && selectedWorkspaceId === ws.id ? 'active' : ''}`}
             onClick={() => onOpenWorkspace(ws.id)}
             style={{ paddingLeft: 6 }}
           >

@@ -24,25 +24,28 @@ export default function ActionRunner({ action, workspace, onClose }) {
   const riskConf = RISK_CONFIG[action.risk] || RISK_CONFIG.readonly
   const needsConfirm = action.risk === 'high'
 
-  const handleExecute = (dry = false) => {
+  const handleExecute = async (dry = false) => {
     setIsDryRun(dry)
     if (action.risk === 'high' && !dry && phase !== 'confirm') {
       setPhase('confirm')
       return
     }
     setPhase('running')
-    
-    // Simulate execution
-    setTimeout(async () => {
+
+    try {
       let result
-      if (window.flywork) {
+      if (window.flywork?.executeAction) {
         result = await window.flywork.executeAction(action.id, workspace?.root, dry)
       } else {
         result = { success: true, output: dry ? `[DRY RUN] ${MOCK_OUTPUTS[action.id] || '命令将被执行'}` : (MOCK_OUTPUTS[action.id] || '执行成功') }
       }
-      setOutput(result.output || result.error || (dry ? `[DRY RUN] ${action.name} - 模拟成功` : `${action.name} 执行成功`))
+      const finalOutput = result.output || result.error || (result.success ? `✓ ${action.name} 执行成功` : `❌ ${action.name} 执行失败`)
+      setOutput(finalOutput)
+    } catch (err) {
+      setOutput(`错误: ${err.message}`)
+    } finally {
       setPhase('done')
-    }, dry ? 500 : 1500)
+    }
   }
 
   return (

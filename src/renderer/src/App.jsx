@@ -25,11 +25,59 @@ export default function App() {
   const [contextPanelOpen, setContextPanelOpen] = useState(true)
   const [contextPanelContent, setContextPanelContent] = useState('ai')
 
-  const [workspaces] = useState(WORKSPACES)
-  const [sessions, setSessions] = useState(SESSIONS)
-  const [inboxItems, setInboxItems] = useState(INBOX_ITEMS)
-  const [activityLog] = useState(ACTIVITY_LOG)
-  const [automations, setAutomations] = useState(AUTOMATIONS)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [workspaces, setWorkspaces] = useState([])
+  const [sessions, setSessions] = useState([])
+  const [inboxItems, setInboxItems] = useState([])
+  const [activityLog, setActivityLog] = useState([])
+  const [automations, setAutomations] = useState([])
+
+  // 1. Initial Data Loading
+  useEffect(() => {
+    async function initData() {
+      try {
+        if (window.flywork?.loadData) {
+          const savedData = await window.flywork.loadData()
+          if (savedData && Array.isArray(savedData.workspaces)) {
+            setWorkspaces(savedData.workspaces || [])
+            setSessions(savedData.sessions || [])
+            setInboxItems(savedData.inboxItems || [])
+            setActivityLog(savedData.activityLog || [])
+            setAutomations(savedData.automations || [])
+            setIsLoaded(true)
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load saved data:', err)
+      }
+      // Fallback to initial mock data if no saved data exists
+      setWorkspaces(WORKSPACES)
+      setSessions(SESSIONS)
+      setInboxItems(INBOX_ITEMS)
+      setActivityLog(ACTIVITY_LOG)
+      setAutomations(AUTOMATIONS)
+      setIsLoaded(true)
+    }
+    initData()
+  }, [])
+
+  // 2. Data Auto-Persistence
+  useEffect(() => {
+    if (!isLoaded) return
+    const timer = setTimeout(() => {
+      if (window.flywork?.saveData) {
+        window.flywork.saveData({
+          workspaces,
+          sessions,
+          inboxItems,
+          activityLog,
+          automations
+        })
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [workspaces, sessions, inboxItems, activityLog, automations, isLoaded])
 
   useEffect(() => {
     if (window.flywork) {
@@ -59,6 +107,59 @@ export default function App() {
     setCommandCenterOpen(false)
   }, [])
 
+  const addWorkspaceFromFolder = useCallback(async () => {
+    if (!window.flywork?.showOpenDialog) return
+    const result = await window.flywork.showOpenDialog({
+      properties: ['openDirectory'],
+      title: '选择本地工程/项目文件夹'
+    })
+    if (!result || result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return
+    }
+    const folderPath = result.filePaths[0]
+    const folderName = folderPath.split('/').filter(Boolean).pop() || '未命名工作区'
+
+    const newWs = {
+      id: `ws-${Date.now()}`,
+      name: folderName,
+      icon: '📁',
+      color: '#4f9ef8',
+      bgColor: 'rgba(79,158,248,0.15)',
+      root: folderPath,
+      description: folderPath,
+      gitBranch: 'main',
+      gitModifiedFiles: [],
+      lastCommit: '关联本地项目目录',
+      lastCommitHash: '',
+      lastCommitTime: '刚刚',
+      buildStatus: 'success',
+      buildMessage: '关联就绪',
+      services: [],
+      actions: [
+        { id: 'open-finder', name: '打开 Finder', risk: 'readonly', icon: '📁' },
+        { id: 'open-terminal', name: '打开终端', risk: 'readonly', icon: '💻' },
+        { id: 'git-status', name: '查看 Git 状态', risk: 'readonly', icon: '📊' }
+      ],
+      tags: ['Local']
+    }
+
+    setWorkspaces((prev) => [newWs, ...prev])
+  }, [])
+
+  const updateWorkspace = useCallback((workspaceId, updates) => {
+    setWorkspaces((prev) =>
+      prev.map((w) => (w.id === workspaceId ? { ...w, ...updates } : w))
+    )
+  }, [])
+
+  const deleteWorkspace = useCallback((workspaceId) => {
+    setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId))
+    if (selectedWorkspaceId === workspaceId) {
+      setSelectedWorkspaceId(null)
+      setCurrentView('workspaces')
+    }
+  }, [selectedWorkspaceId])
+
   const resumeSession = useCallback((sessionId) => {
     setSessions((prev) =>
       prev.map((s) =>
@@ -80,6 +181,10 @@ export default function App() {
     setInboxItems((prev) => [{ id: `inbox-${Date.now()}`, createdAt: new Date().toISOString(), ...item }, ...prev])
   }, [])
 
+  const deleteInboxItem = useCallback((id) => {
+    setInboxItems((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
   const selectedWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId)
   const inboxCount = inboxItems.length
   const activeSessions = sessions.filter((s) => s.status === 'active').length
@@ -89,13 +194,22 @@ export default function App() {
       case 'today':
         return <Today sessions={sessions} workspaces={workspaces} activityLog={activityLog} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onPauseSession={pauseSession} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} />
       case 'workspaces':
-        return <Workspaces workspaces={workspaces} sessions={sessions} onOpenWorkspace={openWorkspace} />
+        return (
+          <Workspaces
+            workspaces={workspaces}
+            sessions={sessions}
+            onOpenWorkspace={openWorkspace}
+            onAddWorkspace={addWorkspaceFromFolder}
+            onUpdateWorkspace={updateWorkspace}
+            onDeleteWorkspace={deleteWorkspace}
+          />
+        )
       case 'workspace-detail':
         return selectedWorkspace ? (
-          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} />
+          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} />
         ) : null
       case 'inbox':
-        return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} />
+        return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
       case 'automations':
         return <AutomationsView automations={automations} workspaces={workspaces} setAutomations={setAutomations} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} />
       case 'activity':
@@ -133,7 +247,7 @@ export default function App() {
       </div>
 
       <div className="main-body">
-        <Sidebar currentView={currentView} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
+        <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
         <div className="main-content">{renderMainContent()}</div>
         <ContextPanel isOpen={contextPanelOpen} activeTab={contextPanelContent} onTabChange={setContextPanelContent} currentView={currentView} selectedWorkspace={selectedWorkspace} sessions={sessions} activityLog={activityLog} />
       </div>

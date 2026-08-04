@@ -18,7 +18,7 @@ function formatRelTime(iso) {
   return `${Math.floor(diff / 86400000)}天前`
 }
 
-export default function Inbox({ items, workspaces, onAddItem }) {
+export default function Inbox({ items, workspaces, onAddItem, onDeleteItem }) {
   const [quickText, setQuickText] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [selectedItem, setSelectedItem] = useState(null)
@@ -167,6 +167,19 @@ export default function Inbox({ items, workspaces, onAddItem }) {
                 {selectedItem.tags.map(tag => <span key={tag} className="badge badge-gray" style={{ fontSize: 10 }}>{tag}</span>)}
               </div>
             )}
+            <div className="divider" />
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', color: 'var(--accent-red)', borderColor: 'var(--accent-red-dim)' }}
+              onClick={() => {
+                if (onDeleteItem) {
+                  onDeleteItem(selectedItem.id)
+                  setSelectedItem(null)
+                }
+              }}
+            >
+              🗑️ 删除该条目
+            </button>
           </div>
         )}
       </div>

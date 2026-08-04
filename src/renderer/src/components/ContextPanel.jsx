@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const TABS = [
   { id: 'ai', label: 'AI 助手', icon: '🤖' },
@@ -23,6 +23,21 @@ export default function ContextPanel({ isOpen, activeTab, onTabChange, currentVi
   const [aiInput, setAiInput] = useState('')
   const [conversations, setConversations] = useState(AI_CONVERSATIONS)
   const [isTyping, setIsTyping] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState('Claude Code')
+  const [localAgents, setLocalAgents] = useState({
+    claude: { installed: false },
+    codex: { installed: false },
+    opencode: { installed: false },
+    gemini: { installed: false }
+  })
+
+  useEffect(() => {
+    if (window.flywork?.detectLocalAgents) {
+      window.flywork.detectLocalAgents().then((res) => {
+        if (res) setLocalAgents(res)
+      })
+    }
+  }, [])
 
   if (!isOpen) return <div className="context-panel collapsed" />
 
@@ -72,17 +87,27 @@ export default function ContextPanel({ isOpen, activeTab, onTabChange, currentVi
       <div className="context-panel-body">
         {activeTab === 'ai' && (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
-            {/* Agent selector */}
+            {/* Agent selector with real CLI auto-detection */}
             <div style={{ marginBottom: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>当前智能体</div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {['Claude Code', 'OpenCode', 'Codex'].map(agent => (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>已检测到的 CLI 智能体</div>
+              </div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'claude', name: 'Claude Code', installed: localAgents.claude?.installed },
+                  { id: 'codex', name: 'Codex', installed: localAgents.codex?.installed },
+                  { id: 'opencode', name: 'OpenCode', installed: localAgents.opencode?.installed },
+                  { id: 'gemini', name: 'Gemini', installed: localAgents.gemini?.installed }
+                ].map(agent => (
                   <button
-                    key={agent}
-                    className={`btn btn-sm ${agent === 'Claude Code' ? 'btn-secondary' : 'btn-ghost'}`}
-                    style={{ fontSize: 10 }}
+                    key={agent.id}
+                    className={`btn btn-sm ${selectedAgent === agent.name ? 'btn-secondary' : 'btn-ghost'}`}
+                    onClick={() => setSelectedAgent(agent.name)}
+                    style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4, opacity: agent.installed ? 1 : 0.5 }}
+                    title={agent.installed ? `本地已检测到 ${agent.name} CLI` : `本地未检测到 ${agent.name}`}
                   >
-                    {agent}
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: agent.installed ? 'var(--accent-green)' : 'var(--text-muted)' }} />
+                    {agent.name}
                   </button>
                 ))}
               </div>
