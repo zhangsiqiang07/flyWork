@@ -23,7 +23,7 @@ const RISK_CONFIG = {
   high: { label: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace }) {
+export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace, onDeleteWorkspace }) {
   const [activeTab, setActiveTab] = useState('概览')
   const [runningAction, setRunningAction] = useState(null)
   const [newSessionTitle, setNewSessionTitle] = useState('')
@@ -38,25 +38,29 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
   const [showAiCommitModal, setShowAiCommitModal] = useState(false)
   const [gitNotice, setGitNotice] = useState('')
   const [isGitOperating, setIsGitOperating] = useState(false)
+  const [isGitLoading, setIsGitLoading] = useState(false)
 
   const refreshGitData = useCallback(async () => {
     if (!ws?.root) return
-    if (window.flywork?.getGitInfo) {
-      const info = await window.flywork.getGitInfo(ws.root)
+    setIsGitLoading(true)
+    try {
+      const [info, branchesRes, logs] = await Promise.all([
+        window.flywork?.getGitInfo ? window.flywork.getGitInfo(ws.root) : Promise.resolve(null),
+        window.flywork?.gitGetBranches ? window.flywork.gitGetBranches(ws.root) : Promise.resolve(null),
+        window.flywork?.gitGetLog ? window.flywork.gitGetLog(ws.root) : Promise.resolve([])
+      ])
       if (info) setLiveGitInfo(info)
-    }
-    if (window.flywork?.gitGetBranches) {
-      const res = await window.flywork.gitGetBranches(ws.root)
-      if (res && Array.isArray(res.branches)) setBranches(res.branches)
-    }
-    if (window.flywork?.gitGetLog) {
-      const logs = await window.flywork.gitGetLog(ws.root)
+      if (branchesRes && Array.isArray(branchesRes.branches)) setBranches(branchesRes.branches)
       if (Array.isArray(logs)) setCommitLog(logs)
+    } finally {
+      setIsGitLoading(false)
     }
   }, [ws?.root])
 
   useEffect(() => {
-    refreshGitData()
+    if (activeTab === 'Git' || activeTab === '概览') {
+      refreshGitData()
+    }
   }, [refreshGitData, activeTab])
 
   const showGitToast = (msg) => {
@@ -202,7 +206,21 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{ws.root}</div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {onDeleteWorkspace && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ color: 'var(--accent-red)', fontSize: 11 }}
+                onClick={() => {
+                  if (confirm(`确定要删除工作空间 "${ws.name}" 吗？`)) {
+                    onDeleteWorkspace(ws.id)
+                  }
+                }}
+                title="删除该工作空间"
+              >
+                🗑️ 删除空间
+              </button>
+            )}
             {activeSession ? (
               <button className="btn btn-secondary btn-sm" onClick={() => onPauseSession(activeSession.id)}>⏸ 暂停会话</button>
             ) : (

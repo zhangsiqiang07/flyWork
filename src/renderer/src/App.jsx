@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import {
   WORKSPACES,
   SESSIONS,
@@ -10,13 +10,28 @@ import Sidebar from './components/Sidebar'
 import StatusBar from './components/StatusBar'
 import CommandCenter from './components/CommandCenter'
 import ContextPanel from './components/ContextPanel'
-import Today from './views/Today'
-import Workspaces from './views/Workspaces'
-import WorkspaceDetail from './views/WorkspaceDetail'
-import Inbox from './views/Inbox'
-import AutomationsView from './views/Automations'
-import Activity from './views/Activity'
 import './styles/index.css'
+
+// Dynamic lazy imports for non-blocking view chunk loading
+const Today = lazy(() => import('./views/Today'))
+const Workspaces = lazy(() => import('./views/Workspaces'))
+const WorkspaceDetail = lazy(() => import('./views/WorkspaceDetail'))
+const Inbox = lazy(() => import('./views/Inbox'))
+const AutomationsView = lazy(() => import('./views/Automations'))
+const Activity = lazy(() => import('./views/Activity'))
+
+function ViewSkeleton() {
+  return (
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 150ms ease' }}>
+      <div style={{ width: 180, height: 24, background: 'var(--bg-elevated)', borderRadius: 6, opacity: 0.6 }} />
+      <div style={{ width: 320, height: 16, background: 'var(--bg-elevated)', borderRadius: 4, opacity: 0.4 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginTop: 16 }}>
+        <div style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }} />
+        <div style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }} />
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   const [currentView, setCurrentView] = useState('today')
@@ -31,6 +46,7 @@ export default function App() {
   const [inboxItems, setInboxItems] = useState([])
   const [activityLog, setActivityLog] = useState([])
   const [automations, setAutomations] = useState([])
+  const [chatHistories, setChatHistories] = useState({})
 
   // 1. Initial Data Loading
   useEffect(() => {
@@ -44,6 +60,7 @@ export default function App() {
             setInboxItems(savedData.inboxItems || [])
             setActivityLog(savedData.activityLog || [])
             setAutomations(savedData.automations || [])
+            setChatHistories(savedData.chatHistories || {})
             setIsLoaded(true)
             return
           }
@@ -51,12 +68,13 @@ export default function App() {
       } catch (err) {
         console.error('Failed to load saved data:', err)
       }
-      // Fallback to initial mock data if no saved data exists
-      setWorkspaces(WORKSPACES)
-      setSessions(SESSIONS)
-      setInboxItems(INBOX_ITEMS)
-      setActivityLog(ACTIVITY_LOG)
-      setAutomations(AUTOMATIONS)
+      // Default to empty array (no mock example workspaces)
+      setWorkspaces([])
+      setSessions([])
+      setInboxItems([])
+      setActivityLog([])
+      setAutomations([])
+      setChatHistories({})
       setIsLoaded(true)
     }
     initData()
@@ -72,12 +90,13 @@ export default function App() {
           sessions,
           inboxItems,
           activityLog,
-          automations
+          automations,
+          chatHistories
         })
       }
     }, 500)
     return () => clearTimeout(timer)
-  }, [workspaces, sessions, inboxItems, activityLog, automations, isLoaded])
+  }, [workspaces, sessions, inboxItems, activityLog, automations, chatHistories, isLoaded])
 
   useEffect(() => {
     if (window.flywork) {
@@ -189,6 +208,41 @@ export default function App() {
   const inboxCount = inboxItems.length
   const activeSessions = sessions.filter((s) => s.status === 'active').length
 
+  const importWorkspaceByPath = useCallback((rootPath, customName, defaultAgent = 'Claude Code') => {
+    if (!rootPath) return
+    const folderName = customName || rootPath.split('/').pop() || 'Unassigned Project'
+    const newId = `ws-${Date.now()}`
+    const newWs = {
+      id: newId,
+      name: folderName,
+      description: `自动关联的 ${defaultAgent} 本地项目`,
+      root: rootPath,
+      gitBranch: 'main',
+      gitStatus: 'clean',
+      gitModifiedCount: 0,
+      icon: defaultAgent.includes('Claude') ? '🤖' : '🧠',
+      bgColor: 'var(--accent-purple-dim)',
+      defaultAgent,
+      gitModifiedFiles: [],
+      lastCommit: '已关联原生 CLI 存储',
+      lastCommitHash: '',
+      lastCommitTime: '刚刚',
+      buildStatus: 'success',
+      buildMessage: '同步就绪',
+      services: [],
+      actions: [
+        { id: 'open-finder', name: '打开 Finder', risk: 'readonly', icon: '📁' },
+        { id: 'open-terminal', name: '打开终端', risk: 'readonly', icon: '💻' },
+        { id: 'git-status', name: '查看 Git 状态', risk: 'readonly', icon: '📊' }
+      ],
+      tags: ['Native Agent', defaultAgent]
+    }
+
+    setWorkspaces((prev) => [newWs, ...prev])
+    setSelectedWorkspaceId(newId)
+    setCurrentView('workspace-detail')
+  }, [])
+
   const renderMainContent = () => {
     switch (currentView) {
       case 'today':
@@ -202,11 +256,12 @@ export default function App() {
             onAddWorkspace={addWorkspaceFromFolder}
             onUpdateWorkspace={updateWorkspace}
             onDeleteWorkspace={deleteWorkspace}
+            onImportWorkspace={importWorkspaceByPath}
           />
         )
       case 'workspace-detail':
         return selectedWorkspace ? (
-          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} />
+          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} onDeleteWorkspace={deleteWorkspace} />
         ) : null
       case 'inbox':
         return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
@@ -248,8 +303,12 @@ export default function App() {
 
       <div className="main-body">
         <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
-        <div className="main-content">{renderMainContent()}</div>
-        <ContextPanel isOpen={contextPanelOpen} activeTab={contextPanelContent} onTabChange={setContextPanelContent} currentView={currentView} selectedWorkspace={selectedWorkspace} sessions={sessions} activityLog={activityLog} />
+        <div className="main-content">
+          <Suspense fallback={<ViewSkeleton />}>
+            {renderMainContent()}
+          </Suspense>
+        </div>
+        <ContextPanel isOpen={contextPanelOpen} activeTab={contextPanelContent} onTabChange={setContextPanelContent} currentView={currentView} selectedWorkspace={selectedWorkspace} sessions={sessions} activityLog={activityLog} chatHistories={chatHistories} onUpdateChatHistories={setChatHistories} />
       </div>
 
       <StatusBar workspaces={workspaces} sessions={sessions} />

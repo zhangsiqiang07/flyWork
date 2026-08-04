@@ -11,10 +11,13 @@ import {
   dialog
 } from 'electron'
 import { join } from 'path'
-import { spawn } from 'child_process'
+import { spawn, exec } from 'child_process'
+import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
+
+const execAsync = promisify(exec)
 
 // Audit log path
 const AUDIT_LOG_PATH = join(homedir(), '.flywork', 'audit.log')
@@ -305,34 +308,34 @@ function setupIPC() {
     }))
   })
 
-  // Get real Git info for a workspace directory
+  // Get real Git info for a workspace directory (async non-blocking)
   ipcMain.handle('get-git-info', async (_, workdir) => {
     if (!workdir || !existsSync(workdir)) {
       return { isGit: false, gitBranch: '无', gitModifiedFiles: [], lastCommit: '目录不存在', lastCommitHash: '', lastCommitTime: '' }
     }
     try {
-      const { execSync } = require('child_process')
-      const branch = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'HEAD'
-      const statusOutput = execSync('git status --porcelain', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
-      const modifiedFiles = statusOutput.split('\n').filter(Boolean).map((line) => {
+      const [branchRes, statusRes, logRes] = await Promise.allSettled([
+        execAsync('git branch --show-current', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }),
+        execAsync('git status --porcelain', { cwd: workdir, timeout: 5000, encoding: 'utf-8' }),
+        execAsync('git log -1 --pretty=format:"%h|%s|%cr"', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
+      ])
+
+      const branch = (branchRes.status === 'fulfilled' ? branchRes.value.stdout : '').trim() || 'HEAD'
+      const statusOutput = (statusRes.status === 'fulfilled' ? statusRes.value.stdout : '').trim()
+      const modifiedFiles = statusOutput ? statusOutput.split('\n').filter(Boolean).map((line) => {
         const status = line.slice(0, 2).trim()
         const path = line.slice(3).trim()
         return { status: status || 'M', path }
-      })
+      }) : []
 
       let lastCommit = '未提交'
       let lastCommitHash = ''
       let lastCommitTime = ''
-      try {
-        const logOutput = execSync('git log -1 --pretty=format:"%h|%s|%cr"', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim()
-        if (logOutput) {
-          const parts = logOutput.split('|')
-          lastCommitHash = parts[0] || ''
-          lastCommit = parts[1] || '提交记录'
-          lastCommitTime = parts[2] || ''
-        }
-      } catch {
-        // Ignored if no commits exist yet
+      if (logRes.status === 'fulfilled' && logRes.value.stdout) {
+        const parts = logRes.value.stdout.trim().split('|')
+        lastCommitHash = parts[0] || ''
+        lastCommit = parts[1] || '提交记录'
+        lastCommitTime = parts[2] || ''
       }
 
       return {
@@ -348,22 +351,16 @@ function setupIPC() {
     }
   })
 
-  // Get branches list
+  // Get branches list (async, non-blocking local query)
   ipcMain.handle('git-get-branches', async (_, workdir) => {
     if (!workdir || !existsSync(workdir)) return { current: 'main', branches: [] }
     try {
-      const { execSync } = require('child_process')
-      const current = execSync('git branch --show-current', { cwd: workdir, timeout: 2000, encoding: 'utf-8' }).trim() || 'HEAD'
-
-      // Try fetching latest remote references in background (short timeout)
-      try {
-        execSync('git fetch --all --prune', { cwd: workdir, timeout: 4000, encoding: 'utf-8' })
-      } catch {
-        // Ignore if offline or no remote
-      }
-
-      const output = execSync('git branch -a', { cwd: workdir, timeout: 3000, encoding: 'utf-8' })
-      const lines = output.split('\n').filter(Boolean)
+      const [branchRes, outputRes] = await Promise.all([
+        execAsync('git branch --show-current', { cwd: workdir, timeout: 3000, encoding: 'utf-8' }),
+        execAsync('git branch -a', { cwd: workdir, timeout: 4000, encoding: 'utf-8' })
+      ])
+      const current = branchRes.stdout.trim() || 'HEAD'
+      const lines = outputRes.stdout.split('\n').filter(Boolean)
       const branches = []
       const seenNames = new Set()
 
@@ -629,12 +626,12 @@ function setupIPC() {
     }
   })
 
-  // Get recent 20 commits log
+  // Get recent 20 commits log (async non-blocking)
   ipcMain.handle('git-get-log', async (_, workdir) => {
     if (!workdir || !existsSync(workdir)) return []
     try {
-      const { execSync } = require('child_process')
-      const logOutput = execSync('git log -20 --pretty=format:"%h|%s|%an|%cr|%d"', { cwd: workdir, timeout: 5000, encoding: 'utf-8' }).trim()
+      const { stdout } = await execAsync('git log -20 --pretty=format:"%h|%s|%an|%cr|%d"', { cwd: workdir, timeout: 5000, encoding: 'utf-8' })
+      const logOutput = stdout.trim()
       if (!logOutput) return []
       return logOutput.split('\n').filter(Boolean).map((line) => {
         const [hash, subject, author, time, refs] = line.split('|')

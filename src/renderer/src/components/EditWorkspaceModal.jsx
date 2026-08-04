@@ -5,23 +5,25 @@ const PRESET_ICONS = ['📁', '🐾', '🧠', '🐛', '⚡️', '🚀', '💻', 
 export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
   const [name, setName] = useState(workspace?.name || '')
   const [icon, setIcon] = useState(workspace?.icon || '📁')
+  const [defaultAgent, setDefaultAgent] = useState(workspace?.defaultAgent || 'Claude Code')
+  const [customAgentPath, setCustomAgentPath] = useState(workspace?.customAgentPath || '')
 
   const handleSave = () => {
     if (!name.trim()) return
-    onSave(workspace.id, { name: name.trim(), icon })
+    onSave(workspace.id, { name: name.trim(), icon, defaultAgent, customAgentPath: customAgentPath.trim() })
     onClose()
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">编辑工作空间信息</div>
+          <div className="modal-title">编辑工作空间配置</div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>
             ✕
           </button>
         </div>
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>选择专属图标 (Emoji)</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -30,10 +32,10 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
                   key={emoji}
                   className={`btn ${icon === emoji ? 'btn-secondary' : 'btn-ghost'}`}
                   style={{
-                    width: 38,
-                    height: 38,
+                    width: 36,
+                    height: 36,
                     padding: 0,
-                    fontSize: 20,
+                    fontSize: 18,
                     border: icon === emoji ? '2px solid var(--accent-blue)' : '1px solid var(--border)'
                   }}
                   onClick={() => setIcon(emoji)}
@@ -59,19 +61,62 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
               }}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSave()
-              }}
               placeholder="请输入工作空间名称"
               autoFocus
             />
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            关联工程路径：<span style={{ fontFamily: 'monospace' }}>{workspace?.root}</span>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>绑定默认 CLI 智能体</div>
+            <select
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--accent-blue)',
+                borderRadius: 6,
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                outline: 'none'
+              }}
+              value={defaultAgent}
+              onChange={(e) => setDefaultAgent(e.target.value)}
+            >
+              <option value="Claude Code">🤖 Claude Code (推荐)</option>
+              <option value="Codex">🧠 Codex CLI</option>
+              <option value="OpenCode">💻 OpenCode CLI</option>
+              <option value="Gemini">⚡️ Gemini CLI</option>
+            </select>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+              进入该空间时将自动唤醒此智能体及对应独立对话记录。
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>自定义可执行文件路径 (可选)</div>
+            <input
+              className="quick-input"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                color: 'var(--text-primary)',
+                fontSize: 11,
+                fontFamily: 'monospace'
+              }}
+              value={customAgentPath}
+              onChange={(e) => setCustomAgentPath(e.target.value)}
+              placeholder="如 /usr/local/bin/claude (为空使用系统默认检测)"
+            />
+          </div>
+
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            关联工程目录：<span style={{ fontFamily: 'monospace', color: 'var(--accent-blue)' }}>{workspace?.root}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>
               取消
             </button>

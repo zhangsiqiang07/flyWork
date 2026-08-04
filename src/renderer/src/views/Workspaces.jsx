@@ -14,7 +14,7 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
           </div>
           <button className="btn btn-primary btn-sm" onClick={onAddWorkspace}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-            添加本地项目
+            选择本地工程目录
           </button>
         </div>
       </div>

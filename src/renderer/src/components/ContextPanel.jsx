@@ -19,9 +19,19 @@ const AI_CONVERSATIONS = [
   }
 ]
 
-export default function ContextPanel({ isOpen, activeTab, onTabChange, currentView, selectedWorkspace, sessions, activityLog }) {
+function getDefaultMessages(agent, ws) {
+  const wsName = ws ? ws.name : '全局环境'
+  return [
+    {
+      role: 'assistant',
+      content: `👋 你好！我是 **${agent}**，已关联工作空间 **「${wsName}」**。\n\n我随时为你解答代码疑问、分析 Git 改动或提供开发建议！`,
+      time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+  ]
+}
+
+export default function ContextPanel({ isOpen, activeTab, onTabChange, currentView, selectedWorkspace, sessions, activityLog, chatHistories, onUpdateChatHistories }) {
   const [aiInput, setAiInput] = useState('')
-  const [conversations, setConversations] = useState(AI_CONVERSATIONS)
   const [isTyping, setIsTyping] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState('Claude Code')
   const [localAgents, setLocalAgents] = useState({
@@ -39,22 +49,50 @@ export default function ContextPanel({ isOpen, activeTab, onTabChange, currentVi
     }
   }, [])
 
+  useEffect(() => {
+    if (selectedWorkspace?.defaultAgent) {
+      setSelectedAgent(selectedWorkspace.defaultAgent)
+    }
+  }, [selectedWorkspace?.id, selectedWorkspace?.defaultAgent])
+
   if (!isOpen) return <div className="context-panel collapsed" />
+
+  const threadKey = `${selectedWorkspace?.id || 'global'}_${selectedAgent}`
+  const conversations = chatHistories?.[threadKey] || getDefaultMessages(selectedAgent, selectedWorkspace)
 
   const handleAISend = () => {
     if (!aiInput.trim()) return
     const msg = aiInput.trim()
+    const nowTime = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    const userMsg = { role: 'user', content: msg, time: nowTime }
+
+    const newThread = [...conversations, userMsg]
+    if (onUpdateChatHistories) {
+      onUpdateChatHistories((prev) => ({ ...prev, [threadKey]: newThread }))
+    }
     setAiInput('')
-    setConversations(prev => [...prev, { role: 'user', content: msg }])
     setIsTyping(true)
+
     setTimeout(() => {
-      setConversations(prev => [...prev, {
+      const assistantMsg = {
         role: 'assistant',
-        content: `正在分析「${msg}」...\n\n我已收集当前工作上下文（分支 ${selectedWorkspace?.gitBranch || 'main'}，${selectedWorkspace?.gitModifiedFiles?.length || 0} 个修改文件），将生成针对性建议。`,
-        time: new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })
-      }])
+        content: `[${selectedAgent}] 已分析「${selectedWorkspace?.name || '全局项目'}」的问题：\n\n已根据当前工程上下文（分支: \`${selectedWorkspace?.gitBranch || 'main'}\`，路径: \`${selectedWorkspace?.root || '本地'}\`）为你完成对「${msg}」的解答。`,
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      }
+      const updatedThread = [...newThread, assistantMsg]
+      if (onUpdateChatHistories) {
+        onUpdateChatHistories((prev) => ({ ...prev, [threadKey]: updatedThread }))
+      }
       setIsTyping(false)
-    }, 1500)
+    }, 1200)
+  }
+
+  const handleClearThread = () => {
+    if (confirm(`确定要清空「${selectedWorkspace?.name || '全局'}」中 ${selectedAgent} 的对话记录吗？`)) {
+      if (onUpdateChatHistories) {
+        onUpdateChatHistories((prev) => ({ ...prev, [threadKey]: [] }))
+      }
+    }
   }
 
   const recentActivity = activityLog?.slice(0, 5) || []
@@ -91,6 +129,14 @@ export default function ContextPanel({ isOpen, activeTab, onTabChange, currentVi
             <div style={{ marginBottom: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>已检测到的 CLI 智能体</div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: 10, padding: '1px 5px', color: 'var(--text-muted)' }}
+                  onClick={handleClearThread}
+                  title="清空当前智能体在该空间的对话"
+                >
+                  🗑️ 清空
+                </button>
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {[
