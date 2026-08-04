@@ -8,7 +8,7 @@ export const WORKSPACES = [
     icon: '🐾',
     color: '#4f9ef8',
     bgColor: 'rgba(79,158,248,0.15)',
-    root: '/Users/dimoo/Projects/PetPal',
+    root: '/Users/dimoo/Desktop/works/PetPal',
     description: 'iOS 宠物社交平台',
     gitBranch: 'fix/tabbar-video',
     gitModifiedFiles: [
@@ -338,18 +338,20 @@ export const ACTIVITY_LOG = [
 export const AUTOMATIONS = [
   {
     id: 'auto-001',
-    name: 'PetPal 发布 TestFlight',
+    name: 'PetPal 自动化打包构建',
     workspaceId: 'petpal-ios',
-    description: '检查代码质量、运行测试、打包并上传到 TestFlight',
+    description: '读取 packaging 目录配置，注入环境变量与内置 Git 动态参数执行自动化构建',
     lastRun: '2026-08-01T14:00:00+08:00',
     lastStatus: 'success',
+    env: {
+      BUILD_ENV: 'dev',
+      SCHEME: 'PetPal',
+      INSTALL_PODS: '1'
+    },
     steps: [
-      { id: 's1', name: '检查工作区状态', command: 'git status --porcelain', risk: 'readonly', status: 'complete' },
-      { id: 's2', name: '同步远程 main 分支', command: 'git pull origin main --rebase', risk: 'modify', status: 'complete' },
-      { id: 's3', name: '运行单元测试', command: 'xcodebuild test -scheme PetPal', risk: 'normal', status: 'pending' },
-      { id: 's4', name: '执行 Fastlane beta', command: 'fastlane beta', risk: 'high', status: 'pending' },
-      { id: 's5', name: '上传 TestFlight', command: 'fastlane upload_to_testflight', risk: 'high', status: 'pending' },
-      { id: 's6', name: '保存构建记录', command: 'flywork log build --result success', risk: 'normal', status: 'pending' }
+      { id: 's1', name: '检查工作区 Git 状态与分支', command: 'echo "Branch: $GIT_BRANCH, Commit: $GIT_SHORT_SHA ($GIT_COMMIT_MSG)"', risk: 'readonly', status: 'complete' },
+      { id: 's2', name: '同步远程代码', command: 'git pull origin $GIT_BRANCH --rebase', risk: 'modify', status: 'pending' },
+      { id: 's3', name: '执行 Packaging 构建脚本', command: './packaging/build.sh --env $BUILD_ENV --scheme $SCHEME', risk: 'high', status: 'pending' }
     ]
   },
   {
@@ -359,11 +361,14 @@ export const AUTOMATIONS = [
     description: '整理 Inbox、AI 分类、提交并同步到 Obsidian',
     lastRun: '2026-08-04T08:00:00+08:00',
     lastStatus: 'success',
+    env: {
+      SYNC_BRANCH: 'main'
+    },
     steps: [
       { id: 's1', name: '扫描 Inbox 新文件', command: 'find 00_Inbox -newer .last_sync', risk: 'readonly', status: 'complete' },
       { id: 's2', name: 'AI 分类建议', command: 'flywork ai classify --inbox', risk: 'normal', status: 'complete' },
-      { id: 's3', name: '提交变更', command: 'git add -A && git commit -m "sync: $(date +%Y-%m-%d)"', risk: 'modify', status: 'pending' },
-      { id: 's4', name: '推送到远程', command: 'git push origin main', risk: 'modify', status: 'pending' }
+      { id: 's3', name: '提交变更', command: 'git add -A && git commit -m "sync: $GIT_AUTHOR on $GIT_BRANCH ($BUILD_DATE)"', risk: 'modify', status: 'pending' },
+      { id: 's4', name: '推送到远程', command: 'git push origin $SYNC_BRANCH', risk: 'modify', status: 'pending' }
     ]
   },
   {
@@ -373,6 +378,7 @@ export const AUTOMATIONS = [
     description: '检查所有 Docker 服务状态和 SSL 证书有效期',
     lastRun: '2026-08-04T11:00:00+08:00',
     lastStatus: 'success',
+    env: {},
     steps: [
       { id: 's1', name: '检查 Docker 容器', command: 'docker ps --format table', risk: 'readonly', status: 'complete' },
       { id: 's2', name: '检查 Nginx 状态', command: 'nginx -t && systemctl status nginx', risk: 'readonly', status: 'complete' },

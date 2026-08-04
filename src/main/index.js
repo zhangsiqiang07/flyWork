@@ -11,7 +11,7 @@ import {
   dialog
 } from 'electron'
 import { join } from 'path'
-import { spawn, exec } from 'child_process'
+import { spawn, exec, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
@@ -78,6 +78,7 @@ const ACTION_REGISTRY = {
 let mainWindow = null
 let tray = null
 let commandCenterWindow = null
+const activeAutomationProcesses = new Map()
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -180,7 +181,177 @@ function writeAuditLog(entry) {
   }
 }
 
+function getBuiltinGitEnv(workdir) {
+  if (!workdir || !existsSync(workdir)) return { PROJECT_DIR: workdir || '', WORKSPACE_ROOT: workdir || '' }
+  try {
+    const opts = { cwd: workdir, encoding: 'utf-8', timeout: 3000 }
+    const branch = execSync('git rev-parse --abbrev-ref HEAD 2>/dev/null', opts).trim() || 'main'
+    const commitHash = execSync('git rev-parse HEAD 2>/dev/null', opts).trim() || ''
+    const shortSha = execSync('git rev-parse --short HEAD 2>/dev/null', opts).trim() || ''
+    const commitMsg = execSync('git log -1 --pretty=format:"%s" 2>/dev/null', opts).trim() || ''
+    const author = execSync('git log -1 --pretty=format:"%an" 2>/dev/null', opts).trim() || ''
+    const authorEmail = execSync('git log -1 --pretty=format:"%ae" 2>/dev/null', opts).trim() || ''
+    const isDirty = execSync('git status --porcelain 2>/dev/null', opts).trim().length > 0 ? 'true' : 'false'
+
+    return {
+      GIT_BRANCH: branch,
+      GIT_COMMIT: commitHash,
+      GIT_COMMIT_HASH: commitHash,
+      GIT_SHA: commitHash,
+      GIT_SHORT_SHA: shortSha,
+      GIT_COMMIT_MSG: commitMsg,
+      GIT_COMMIT_MESSAGE: commitMsg,
+      GIT_AUTHOR: author,
+      GIT_AUTHOR_EMAIL: authorEmail,
+      GIT_DIRTY: isDirty,
+      PROJECT_DIR: workdir,
+      WORKSPACE_ROOT: workdir
+    }
+  } catch {
+    return {
+      PROJECT_DIR: workdir || '',
+      WORKSPACE_ROOT: workdir || ''
+    }
+  }
+}
+
 function setupIPC() {
+  // Execute custom automation step (with real-time streaming log output)
+  ipcMain.handle('execute-automation-step', async (event, { command, workdir, customEnv = {}, dryRun, stepKey }) => {
+    const sender = event.sender
+
+
+    // Helper to send a log chunk to renderer
+    const sendChunk = (type, text) => {
+      if (!sender.isDestroyed()) {
+        sender.send('automation-log-chunk', { stepKey, type, text, ts: Date.now() })
+      }
+    }
+
+    // Never silently fall back to the home directory. A misplaced command is
+    // more dangerous than a failed command, especially for Git operations.
+    if (!workdir) {
+      const error = '自动化流程未绑定有效工作区，已阻止执行。请在编辑自动化流程时关联一个工作区。'
+      sendChunk('stderr', `❌ ${error}`)
+      return { success: false, exitCode: -1, output: '', error }
+    }
+    if (!existsSync(workdir)) {
+      const error = `工作区目录不存在：${workdir}\n已阻止执行；请在“工作区”中更新该目录后重试。`
+      sendChunk('stderr', `❌ ${error}`)
+      return { success: false, exitCode: -1, output: '', error }
+    }
+
+    const cwd = workdir
+
+    const builtinGitEnv = getBuiltinGitEnv(cwd)
+    const combinedEnv = {
+      ...process.env,
+      ...builtinGitEnv,
+      ...(customEnv || {}),
+      PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
+    }
+
+    writeAuditLog({ type: dryRun ? 'AUTOMATION_DRY_RUN' : 'AUTOMATION_EXECUTE', command, workdir: cwd, envKeys: Object.keys(customEnv || {}) })
+
+    sendChunk('info', `[工作目录] ${cwd}\n`)
+
+    if (dryRun) {
+      const gitInfoStr = Object.entries(builtinGitEnv).map(([k, v]) => `  ${k}="${v}"`).join('\n')
+      const customEnvStr = Object.entries(customEnv || {}).map(([k, v]) => `  ${k}="${v}"`).join('\n') || '  (无自定义环境变量)'
+      const dryOutput = [
+        `[Dry Run 预演模式]`,
+        `工作目录: ${cwd}`,
+        ``,
+        `内置 Git 环境变量:\n${gitInfoStr}`,
+        ``,
+        `自定义环境变量:\n${customEnvStr}`,
+        ``,
+        `即将在 Shell 中执行指令:\n$ ${command}`
+      ].join('\n')
+      sendChunk('stdout', dryOutput)
+      return { success: true, dryRun: true, exitCode: 0, output: dryOutput, error: '', gitEnv: builtinGitEnv }
+    }
+
+    // Real execution with streaming output via spawn
+    return new Promise((resolve) => {
+      const proc = spawn('/bin/bash', ['-c', command], {
+        cwd,
+        env: combinedEnv,
+        detached: process.platform !== 'win32',
+        stdio: ['ignore', 'pipe', 'pipe']
+      })
+      activeAutomationProcesses.set(stepKey, proc)
+
+      let stdoutBuf = ''
+      let stderrBuf = ''
+
+      proc.stdout.on('data', (chunk) => {
+        const text = chunk.toString()
+        stdoutBuf += text
+        sendChunk('stdout', text)
+      })
+
+      proc.stderr.on('data', (chunk) => {
+        const text = chunk.toString()
+        stderrBuf += text
+        sendChunk('stderr', text)
+      })
+
+      proc.on('close', (code) => {
+        activeAutomationProcesses.delete(stepKey)
+        const wasCancelled = proc.__flyworkCancelled === true
+        const exitCode = wasCancelled ? 130 : code
+        const success = !wasCancelled && code === 0
+        const error = wasCancelled ? '执行已由用户终止' : stderrBuf
+        writeAuditLog({ type: wasCancelled ? 'AUTOMATION_CANCELLED' : 'AUTOMATION_RESULT', command, success, exitCode, error: error.slice(0, 500) })
+        sendChunk('exit', wasCancelled ? '\n[已终止] 当前步骤及其子进程已停止。' : `\n[进程退出] Exit Code: ${code}`)
+        resolve({
+          success,
+          exitCode,
+          output: stdoutBuf || (success ? '执行完成，无输出' : ''),
+          error,
+          gitEnv: builtinGitEnv
+        })
+      })
+
+      proc.on('error', (err) => {
+        activeAutomationProcesses.delete(stepKey)
+        const errorStr = err.message
+        sendChunk('stderr', `\n[进程错误] ${errorStr}`)
+        writeAuditLog({ type: 'AUTOMATION_RESULT', command, success: false, exitCode: -1, error: errorStr })
+        resolve({ success: false, exitCode: -1, output: stdoutBuf, error: errorStr, gitEnv: builtinGitEnv })
+      })
+    })
+  })
+
+  // Stop the shell and all commands it started for an automation step.
+  ipcMain.handle('cancel-automation-step', async (_, stepKey) => {
+    const proc = activeAutomationProcesses.get(stepKey)
+    if (!proc || proc.exitCode !== null || proc.killed) {
+      return { success: false, error: '没有正在运行的步骤' }
+    }
+
+    try {
+      proc.__flyworkCancelled = true
+      if (process.platform === 'win32') {
+        proc.kill('SIGTERM')
+      } else {
+        // The process was spawned detached, so a negative PID targets its
+        // process group rather than leaving child commands running.
+        process.kill(-proc.pid, 'SIGTERM')
+        setTimeout(() => {
+          if (activeAutomationProcesses.get(stepKey) === proc && proc.exitCode === null) {
+            try { process.kill(-proc.pid, 'SIGKILL') } catch {}
+          }
+        }, 3000)
+      }
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+
   // Execute a whitelisted action
   ipcMain.handle('execute-action', async (_, { actionId, workdir, dryRun }) => {
     const action = ACTION_REGISTRY[actionId]
@@ -230,6 +401,8 @@ function setupIPC() {
       }
     })
   })
+
+
 
   // Get audit log
   ipcMain.handle('get-audit-log', async () => {

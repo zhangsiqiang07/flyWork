@@ -55,11 +55,39 @@ export default function App() {
         if (window.flywork?.loadData) {
           const savedData = await window.flywork.loadData()
           if (savedData && Array.isArray(savedData.workspaces)) {
-            setWorkspaces(savedData.workspaces || [])
+            const loadedWorkspaces = savedData.workspaces || []
+            const wsIds = new Set(loadedWorkspaces.map(w => w.id))
+
+            // Auto-repair: if automation.workspaceId doesn't match any workspace ID,
+            // try to find the workspace by name/root similarity (prevents stale ID mismatches)
+            const LEGACY_ID_MAP = {
+              'petpal-ios': (ws) => ws.some(w => w.root?.toLowerCase().includes('petpal') || w.name?.toLowerCase().includes('petpal')),
+              'knowledge-os': (ws) => ws.some(w => w.root?.toLowerCase().includes('knowledge') || w.name?.toLowerCase().includes('knowledge')),
+              'server-infra': (ws) => ws.some(w => w.name?.toLowerCase().includes('server') || w.name?.toLowerCase().includes('infra'))
+            }
+
+            const repairedAutomations = (savedData.automations || []).map(a => {
+              if (!a.workspaceId || wsIds.has(a.workspaceId)) return a
+              // Try to find a matching workspace by legacy alias
+              const matchFn = LEGACY_ID_MAP[a.workspaceId]
+              if (matchFn) {
+                const matched = loadedWorkspaces.find(w =>
+                  w.root?.toLowerCase().includes(a.workspaceId.replace('-ios', '').replace('-', '')) ||
+                  w.name?.toLowerCase().includes(a.workspaceId.replace('-ios', '').replace('-', ''))
+                )
+                if (matched) {
+                  console.log(`[flyWork] Repaired automation workspaceId: ${a.workspaceId} -> ${matched.id} (${matched.name})`)
+                  return { ...a, workspaceId: matched.id }
+                }
+              }
+              return a
+            })
+
+            setWorkspaces(loadedWorkspaces)
             setSessions(savedData.sessions || [])
             setInboxItems(savedData.inboxItems || [])
             setActivityLog(savedData.activityLog || [])
-            setAutomations(savedData.automations || [])
+            setAutomations(repairedAutomations)
             setChatHistories(savedData.chatHistories || {})
             setIsLoaded(true)
             return
@@ -68,7 +96,7 @@ export default function App() {
       } catch (err) {
         console.error('Failed to load saved data:', err)
       }
-      // Default to empty array (no mock example workspaces)
+      // Default to empty arrays
       setWorkspaces([])
       setSessions([])
       setInboxItems([])
@@ -79,6 +107,7 @@ export default function App() {
     }
     initData()
   }, [])
+
 
   // 2. Data Auto-Persistence
   useEffect(() => {
@@ -243,6 +272,20 @@ export default function App() {
     setCurrentView('workspace-detail')
   }, [])
 
+  const handleAskAI = useCallback((promptText, workspaceId = null) => {
+    const wsId = workspaceId || selectedWorkspaceId || 'global'
+    const threadKey = `${wsId}_Claude Code`
+    const newMsg = { role: 'user', content: promptText, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }
+    const aiReply = { role: 'assistant', content: "🔍 已接收到自动化分析请求。\n\n**诊断定位**：\n已拦截到命令异常输出，建议进行以下排查：\n1. 检查命令行可执行工具与环境变量配置 (PATH)。\n2. 在自动化步骤编辑中尝试使用 ${root} 动态注入工作区绝对路径。\n3. 可对关键修改命令执行 Dry Run 预演验证。", time: '刚刚' }
+
+    setChatHistories((prev) => ({
+      ...prev,
+      [threadKey]: [...(prev[threadKey] || []), newMsg, aiReply]
+    }))
+    setContextPanelContent('ai')
+    setContextPanelOpen(true)
+  }, [selectedWorkspaceId])
+
   const renderMainContent = () => {
     switch (currentView) {
       case 'today':
@@ -266,7 +309,7 @@ export default function App() {
       case 'inbox':
         return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
       case 'automations':
-        return <AutomationsView automations={automations} workspaces={workspaces} setAutomations={setAutomations} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} />
+        return <AutomationsView automations={automations} workspaces={workspaces} setAutomations={setAutomations} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onAskAI={handleAskAI} />
       case 'activity':
         return <Activity activityLog={activityLog} workspaces={workspaces} />
       default:
@@ -314,7 +357,7 @@ export default function App() {
       <StatusBar workspaces={workspaces} sessions={sessions} />
 
       {commandCenterOpen && (
-        <CommandCenter workspaces={workspaces} sessions={sessions} onClose={() => setCommandCenterOpen(false)} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onAddInboxItem={addInboxItem} />
+        <CommandCenter workspaces={workspaces} sessions={sessions} automations={automations} onClose={() => setCommandCenterOpen(false)} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onAddInboxItem={addInboxItem} />
       )}
     </div>
   )

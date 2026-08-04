@@ -7,6 +7,19 @@ const flyworkAPI = {
   executeAction: (actionId, workdir, dryRun = false) =>
     ipcRenderer.invoke('execute-action', { actionId, workdir, dryRun }),
 
+  // Automation execution with real-time streaming
+  executeAutomationStep: (command, workdir, customEnv = {}, dryRun = false, stepKey = '') =>
+    ipcRenderer.invoke('execute-automation-step', { command, workdir, customEnv, dryRun, stepKey }),
+
+  cancelAutomationStep: (stepKey) => ipcRenderer.invoke('cancel-automation-step', stepKey),
+
+  // Subscribe to streaming log chunks from automation execution
+  onAutomationLogChunk: (callback) => {
+    const handler = (_, chunk) => callback(chunk)
+    ipcRenderer.on('automation-log-chunk', handler)
+    return () => ipcRenderer.removeListener('automation-log-chunk', handler)
+  },
+
   // Data persistence
   saveData: (data) => ipcRenderer.invoke('save-data', data),
   loadData: () => ipcRenderer.invoke('load-data'),

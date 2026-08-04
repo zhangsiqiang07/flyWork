@@ -17,7 +17,7 @@ const RISK_LABELS = {
   high: { text: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function CommandCenter({ workspaces, sessions, onClose, onNavigate, onOpenWorkspace, onResumeSession, onAddInboxItem }) {
+export default function CommandCenter({ workspaces, sessions, automations = [], onClose, onNavigate, onOpenWorkspace, onResumeSession, onAddInboxItem }) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [inboxSaved, setInboxSaved] = useState(false)
@@ -48,6 +48,13 @@ export default function CommandCenter({ workspaces, sessions, onClose, onNavigat
       }
     })
 
+    // Match automations
+    (automations || []).forEach(auto => {
+      if (auto.name.toLowerCase().includes(lower) || auto.description?.toLowerCase().includes(lower)) {
+        results.push({ type: 'action', label: `运行自动化: ${auto.name}`, icon: '⚙️', action: `automation:${auto.id}`, meta: `${auto.steps?.length || 0} 步骤` })
+      }
+    })
+
     // Filter suggestions
     COMMAND_SUGGESTIONS.forEach(sug => {
       if (sug.label.toLowerCase().includes(lower)) {
@@ -75,6 +82,8 @@ export default function CommandCenter({ workspaces, sessions, onClose, onNavigat
       onOpenWorkspace(action.replace('workspace:', ''))
     } else if (action.startsWith('resume-session:')) {
       onResumeSession(action.replace('resume-session:', ''))
+    } else if (action.startsWith('automation:')) {
+      onNavigate('automations')
     } else if (action === 'inbox:clipboard') {
       onAddInboxItem({ type: 'clip', title: '剪贴板内容', preview: '从命令中心快速保存', source: 'clipboard', workspaceId: null, tags: [] })
       setInboxSaved(true)

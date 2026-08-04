@@ -26,58 +26,43 @@ export default function GitCreateBranchModal({ branches, currentBranch, onClose,
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" style={{ width: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">基于分支新建分支</div>
+          <div className="modal-title">
+            <span>⑂</span>
+            <span>新建 Git 分支</span>
+          </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>
             ✕
           </button>
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {error && (
-            <div style={{ background: 'var(--accent-red-dim)', color: 'var(--accent-red)', padding: '8px 12px', borderRadius: 6, fontSize: 12 }}>
+            <div style={{ background: 'var(--accent-red-dim)', color: 'var(--accent-red)', padding: '10px 14px', borderRadius: 8, fontSize: 12, border: '1px solid var(--accent-red)' }}>
               {error}
             </div>
           )}
 
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>基准分支 (Base Branch)</div>
+            <label className="form-label">基准分支 (Base Branch)</label>
             <select
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                fontSize: 12,
-                outline: 'none'
-              }}
+              className="form-control"
               value={baseBranch}
               onChange={(e) => setBaseBranch(e.target.value)}
             >
               {branches.map((b) => (
                 <option key={b.name} value={b.name}>
-                  {b.isCurrent ? `⑂ ${b.name} (当前)` : b.name}
+                  {b.isCurrent ? `⑂ ${b.name} (当前分支)` : b.name}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>新分支名称</div>
+            <label className="form-label">新分支名称</label>
             <input
-              className="quick-input"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                fontSize: 13
-              }}
-              placeholder="例如: feature/user-profile 或 fix/login-issue"
+              className="form-control"
+              placeholder="例如 feature/user-profile 或 fix/login-issue"
               value={newBranchName}
               onChange={(e) => setNewBranchName(e.target.value)}
               onKeyDown={(e) => {
@@ -87,28 +72,29 @@ export default function GitCreateBranchModal({ branches, currentBranch, onClose,
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>常用前缀推荐:</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>常用前缀快速添加:</span>
             {['feat/', 'fix/', 'refactor/', 'docs/'].map((prefix) => (
               <button
                 key={prefix}
+                type="button"
                 className="btn btn-ghost btn-sm"
-                style={{ fontSize: 10, padding: '2px 6px' }}
+                style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6 }}
                 onClick={() => setNewBranchName((prev) => (prev.startsWith(prefix) ? prev : `${prefix}${prev}`))}
               >
                 + {prefix}
               </button>
             ))}
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={onClose}>
-              取消
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!newBranchName.trim() || isSubmitting}>
-              {isSubmitting ? '创建中...' : '创建并切换'}
-            </button>
-          </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>
+            取消
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!newBranchName.trim() || isSubmitting}>
+            {isSubmitting ? '创建中...' : '创建并切换分支'}
+          </button>
         </div>
       </div>
     </div>
