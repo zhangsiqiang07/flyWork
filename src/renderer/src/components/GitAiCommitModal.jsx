@@ -4,6 +4,7 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
   const [loading, setLoading] = useState(true)
   const [commitMessage, setCommitMessage] = useState('')
   const [diffStat, setDiffStat] = useState('')
+  const [engine, setEngine] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -17,6 +18,7 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
           if (res.success) {
             setCommitMessage(res.commitMessage)
             setDiffStat(res.diffStat || '')
+            setEngine(res.engine || '')
           } else {
             setError(res.error || '无法生成 Commit 预览')
           }
@@ -59,7 +61,7 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
             <span style={{ fontSize: 20 }}>🤖</span>
             <div>
               <div className="modal-title">AI 智能 Git Commit 生成</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>常规提交格式 (Conventional Commits) 自动推导</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>基于完整 Git Diff 的 Conventional Commits 生成</div>
             </div>
           </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>
@@ -101,7 +103,7 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <label className="form-label" style={{ marginBottom: 0 }}>生成的 Commit 提交信息 (可修正)</label>
-                  <span style={{ fontSize: 10, color: 'var(--accent-blue)' }}>Conventional Commit</span>
+                  <span style={{ fontSize: 10, color: 'var(--accent-blue)' }}>{engine || 'Claude Code CLI'}</span>
                 </div>
                 <textarea
                   className="form-control"

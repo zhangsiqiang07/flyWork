@@ -10,11 +10,11 @@ import {
   Notification,
   dialog
 } from 'electron'
-import { join } from 'path'
-import { spawn, exec, execSync } from 'child_process'
+import { basename, join } from 'path'
+import { spawn, exec, execFileSync, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs'
 import { homedir } from 'os'
 
 // 云效服务模块
@@ -1070,98 +1070,166 @@ function setupIPC() {
   // Generate AI Commit preview (Conventional Commit)
   ipcMain.handle('git-ai-commit-preview', async (_, workdir) => {
     try {
-      const { execSync } = require('child_process')
-      const status = execSync('git status --short --untracked-files=all', {
-        cwd: workdir,
-        timeout: 3000,
-        encoding: 'utf-8'
-      }).trim()
+      const git = (args, cwd) =>
+        execFileSync('git', args, { cwd, timeout: 5000, encoding: 'utf-8' })
+      const repoRoot = git(['rev-parse', '--show-toplevel'], workdir).trim()
+      const status = git(['status', '--short', '--untracked-files=all'], repoRoot).trim()
       if (!status) {
         return { success: false, error: '没有需要提交的未提交改动 (Working tree clean)' }
       }
-      const diffStat = execSync('git diff --stat HEAD', {
-        cwd: workdir,
-        timeout: 3000,
-        encoding: 'utf-8'
-      }).trim()
 
-      // Check if local Claude CLI is available
+      // Keep this context and prompt aligned with ~/bin/git-claude-commit.
+      // A file stat alone cannot describe what changed, particularly for new files.
       const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
       const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
-
       let claudeBin = ''
       try {
-        claudeBin = execSync('which claude 2>/dev/null || command -v claude 2>/dev/null', {
+        claudeBin = execFileSync('which', ['claude'], {
           env: { ...process.env, PATH: pathEnv },
           timeout: 1500,
           encoding: 'utf-8'
         }).trim()
       } catch {
-        // Ignored
+        // Handled below so the UI gets the same actionable error as the local script.
+      }
+      if (!claudeBin) {
+        return { success: false, error: '未找到 Claude Code CLI，请先安装并登录 Claude。' }
       }
 
-      if (claudeBin) {
-        try {
-          const prompt =
-            '你是一名资深工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。\n要求：使用 Conventional Commits 格式，格式为 type(scope): 中文标题。\ntype 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。\n只输出最终可以直接传给 git commit 的文字，不要使用 Markdown 代码块。'
-          const diffContext = execSync('git diff HEAD --stat && git status --short', {
-            cwd: workdir,
-            timeout: 3000,
-            encoding: 'utf-8'
-          })
-          const aiMsg = execSync(
-            `echo ${JSON.stringify(diffContext)} | "${claudeBin}" -p ${JSON.stringify(prompt)} --output-format text --max-turns 1`,
-            {
-              cwd: workdir,
-              env: { ...process.env, PATH: pathEnv },
-              timeout: 10000,
-              encoding: 'utf-8'
-            }
-          ).trim()
+      const untrackedFiles = git(['ls-files', '--others', '--exclude-standard'], repoRoot)
+        .split('\n')
+        .filter(Boolean)
+      const sections = [
+        '# 仓库',
+        basename(repoRoot),
+        '',
+        '# 当前分支',
+        git(['branch', '--show-current'], repoRoot).trim(),
+        '',
+        '# 改动概览',
+        status,
+        '',
+        '# 已暂存差异',
+        git(['diff', '--cached', '--no-ext-diff', '--no-color', '--'], repoRoot),
+        '',
+        '# 未暂存差异',
+        git(['diff', '--no-ext-diff', '--no-color', '--'], repoRoot),
+        '',
+        '# 未跟踪文件',
+        untrackedFiles.join('\n'),
+        '',
+        '# 未跟踪文本文件内容（已过滤敏感文件和大文件）'
+      ]
 
-          if (aiMsg) {
-            return { success: true, commitMessage: aiMsg, diffStat, engine: 'Claude Code CLI' }
+      for (const file of untrackedFiles) {
+        const isSensitive =
+          file === '.env' ||
+          file.startsWith('.env.') ||
+          /\.(pem|key|p12|mobileprovision)$/i.test(file) ||
+          /credentials|secret/i.test(file) ||
+          /Secrets\./.test(file)
+        sections.push(`## ${file}`)
+        if (isSensitive) {
+          sections.push('[因可能包含敏感信息，未读取内容]')
+          continue
+        }
+
+        const filePath = join(repoRoot, file)
+        if (!existsSync(filePath) || !statSync(filePath).isFile()) continue
+        if (statSync(filePath).size > 50000) {
+          sections.push('[文件超过 50KB，未读取内容]')
+          continue
+        }
+
+        const contents = readFileSync(filePath)
+        if (contents.includes(0)) {
+          sections.push('[二进制文件，未读取内容]')
+          continue
+        }
+        sections.push(contents.toString('utf-8').split('\n').slice(0, 400).join('\n'), '')
+      }
+
+      const maxDiffBytes = Number.parseInt(process.env.MAX_DIFF_BYTES || '120000', 10) || 120000
+      let diffContext = Buffer.from(sections.join('\n'), 'utf-8')
+      if (diffContext.length > maxDiffBytes) {
+        diffContext = Buffer.concat([
+          diffContext.subarray(0, maxDiffBytes),
+          Buffer.from(`\n\n[上下文因超过 ${maxDiffBytes} 字节而被截断]\n`, 'utf-8')
+        ])
+      }
+
+      const prompt = `你是一名资深软件工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。
+
+要求：
+1. 使用 Conventional Commits，格式为 type(scope): 中文标题。
+2. type 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。
+3. scope 能明确判断时才填写；不能明确判断时省略 scope。
+4. 标题简洁，建议不超过 50 个中文字符。
+5. 改动较复杂时，在标题后空一行，再输出 2～5 条以 "- " 开头的说明。
+6. 只描述实际改动，不推测目的，不虚构未出现的功能。
+7. 不要使用 Markdown 代码块，不要输出分析过程，不要添加“提交信息：”等前缀。
+8. 最终只输出可以直接传给 git commit 的完整文本。`
+      const model = process.env.CLAUDE_MODEL || 'sonnet'
+      const result = await new Promise((resolve, reject) => {
+        const child = spawn(
+          claudeBin,
+          ['-p', prompt, '--model', model, '--output-format', 'text', '--max-turns', '1'],
+          {
+            cwd: repoRoot,
+            env: { ...process.env, PATH: pathEnv },
+            stdio: ['pipe', 'pipe', 'pipe']
           }
-        } catch {
-          // Fallback to rule engine
+        )
+        let stdout = ''
+        let stderr = ''
+        let timedOut = false
+        const timeout = setTimeout(() => {
+          timedOut = true
+          child.kill('SIGTERM')
+        }, 120000)
+
+        child.stdout.on('data', (chunk) => {
+          stdout += chunk
+        })
+        child.stderr.on('data', (chunk) => {
+          stderr += chunk
+        })
+        child.once('error', (error) => {
+          clearTimeout(timeout)
+          reject(error)
+        })
+        child.once('close', (status) => {
+          clearTimeout(timeout)
+          resolve({
+            status,
+            stdout,
+            stderr,
+            error: timedOut ? new Error('Claude 生成超时（120 秒）。') : null
+          })
+        })
+        child.stdin.on('error', (error) => {
+          clearTimeout(timeout)
+          reject(error)
+        })
+        child.stdin.end(diffContext)
+      })
+      if (result.error || result.status !== 0) {
+        return {
+          success: false,
+          error: result.stderr?.trim() || result.error?.message || 'Claude 生成提交信息失败。'
         }
       }
 
-      // Rule-based fallback
-      const lines = status.split('\n')
-      let type = 'feat'
-      let scope = ''
-      const filePaths = lines.map((l) => l.slice(3).trim())
-
-      if (filePaths.every((f) => f.includes('test') || f.includes('spec'))) {
-        type = 'test'
-      } else if (filePaths.every((f) => f.endsWith('.md') || f.includes('doc'))) {
-        type = 'docs'
-      } else if (
-        filePaths.every((f) => f.includes('config') || f.endsWith('.json') || f.endsWith('.lock'))
-      ) {
-        type = 'chore'
-      } else if (filePaths.some((f) => f.includes('fix') || f.includes('bug'))) {
-        type = 'fix'
-      } else if (lines.some((l) => l.startsWith('M '))) {
-        type = 'feat'
+      const commitMessage = result.stdout.replace(/\s+$/, '')
+      if (!commitMessage.trim()) {
+        return { success: false, error: 'Claude 返回了空提交信息。' }
       }
-
-      if (filePaths.some((f) => f.includes('views/'))) scope = 'views'
-      else if (filePaths.some((f) => f.includes('components/'))) scope = 'components'
-      else if (filePaths.some((f) => f.includes('main/'))) scope = 'main'
-      else if (filePaths.some((f) => f.includes('preload/'))) scope = 'preload'
-
-      const scopePart = scope ? `(${scope})` : ''
-      const mainFilesText = filePaths
-        .slice(0, 3)
-        .map((f) => f.split('/').pop())
-        .join('、')
-      const commitTitle = `${type}${scopePart}: 更新 ${mainFilesText} 相关的逻辑`
-      const bodyLines = filePaths.slice(0, 5).map((f) => `- 更改与调整 ${f}`)
-      const commitMessage = `${commitTitle}\n\n${bodyLines.join('\n')}`
-
-      return { success: true, commitMessage, diffStat, engine: 'Local Rule Engine' }
+      return {
+        success: true,
+        commitMessage,
+        diffStat: status,
+        engine: `Claude Code CLI (${model})`
+      }
     } catch (err) {
       return { success: false, error: err.message }
     }
