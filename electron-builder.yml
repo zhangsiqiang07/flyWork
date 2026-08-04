@@ -1,0 +1,32 @@
+appId: com.flywork.app
+productName: flyWork
+copyright: Copyright © 2026 flyWork
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+asarUnpack:
+  - resources/**
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: dir
+  icon: build/icon.icns
+  category: public.app-category.developer-tools
+  notarize: false
+  identity: null
+  extendInfo:
+    NSDocumentsFolderUsageDescription: "flyWork 需要访问您的项目目录"
+    NSDownloadsFolderUsageDescription: "flyWork 需要访问下载目录"
+dmg:
+  artifactName: ${name}-${version}.${ext}
+  title: flyWork ${version}
+npmRebuild: false
+publish: null
