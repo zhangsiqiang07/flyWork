@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { patchWorkitemStatus } from './workitemStatus.mjs'
 
 const text = (value, fallback = '') =>
   typeof value === 'string' && value.trim() ? value : fallback
@@ -384,6 +385,7 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
   const [statusId, setStatusId] = useState('')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [updatingItemIds, setUpdatingItemIds] = useState(() => new Set())
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -511,14 +513,31 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visibleItems = filtered.slice((page - 1) * pageSize, page * pageSize)
   const updateStatus = async (item, value) => {
-    const result = await window.flywork.yunxiaoUpdateWorkitemField(idOf(item), { status: value })
-    if (!result.success) {
-      const message = result.error || '更新状态失败'
+    const itemId = idOf(item)
+    const status = statusOptionsFor(item).find((candidate) => idOf(candidate) === value)
+    setUpdatingItemIds((current) => new Set(current).add(itemId))
+    try {
+      const result = await window.flywork.yunxiaoUpdateWorkitemField(itemId, { status: value })
+      if (!result.success) throw new Error(result.error || '更新状态失败')
+
+      const applyStatus = (current) =>
+        current && idOf(current) === itemId ? patchWorkitemStatus(current, status) : current
+      setItems((current) => current.map((current) => applyStatus(current)))
+      setSelected(applyStatus)
+      setDetail(applyStatus)
+    } catch (err) {
+      const message = err.message || '更新状态失败'
       setError(message)
       window.setTimeout(() => {
         setError((current) => (current === message ? null : current))
       }, 4000)
-    } else load()
+    } finally {
+      setUpdatingItemIds((current) => {
+        const next = new Set(current)
+        next.delete(itemId)
+        return next
+      })
+    }
   }
   const selectWorkitem = async (item) => {
     if (window.flywork.yunxiaoOpenWorkitemDetail) {
@@ -690,6 +709,7 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
                     value={statusIdOf(item)}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => updateStatus(item, e.target.value)}
+                    disabled={updatingItemIds.has(idOf(item))}
                     style={{ minWidth: 112 }}
                   >
                     {!statusOptionsFor(item).some(
