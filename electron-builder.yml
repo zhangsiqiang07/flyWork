@@ -1,8 +1,8 @@
 appId: com.flywork.app
-productName: flyWork
-copyright: Copyright © 2026 flyWork
+productName: FlyDeck
+copyright: Copyright © 2026 FlyDeck
 directories:
-  buildResources: build
+  buildResources: resources
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -18,15 +18,15 @@ mac:
         - arm64
         - x64
     - target: dir
-  icon: build/icon.icns
+  icon: icon.icns
   category: public.app-category.developer-tools
   notarize: false
   identity: null
   extendInfo:
-    NSDocumentsFolderUsageDescription: "flyWork 需要访问您的项目目录"
-    NSDownloadsFolderUsageDescription: "flyWork 需要访问下载目录"
+    NSDocumentsFolderUsageDescription: "FlyDeck 需要访问您的项目目录"
+    NSDownloadsFolderUsageDescription: "FlyDeck 需要访问下载目录"
 dmg:
-  artifactName: ${name}-${version}.${ext}
-  title: flyWork ${version}
+  artifactName: FlyDeck-${version}-${arch}.${ext}
+  title: FlyDeck ${version}
 npmRebuild: false
 publish: null

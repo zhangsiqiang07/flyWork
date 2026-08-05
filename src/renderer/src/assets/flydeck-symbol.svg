@@ -1,0 +1,21 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none"
+xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mark" x1="270" y1="760" x2="794" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#26C6DA"/>
+      <stop offset="0.52" stop-color="#4F9EF8"/>
+      <stop offset="1" stop-color="#A371F7"/>
+    </linearGradient>
+  </defs>
+  <path d="M330 733V319C330 289 354 265 384 265H667"
+        stroke="url(#mark)" stroke-width="74" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M375 505H609"
+        stroke="url(#mark)" stroke-width="74" stroke-linecap="round"/>
+  <path d="M640 265H758L700 207M758 265L700 323"
+        stroke="url(#mark)" stroke-width="74" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="330" cy="733" r="25" fill="#26C6DA"/>
+  <circle cx="609" cy="505" r="25" fill="#4F9EF8"/>
+  <circle cx="758" cy="265" r="25" fill="#A371F7"/>
+  <path d="M664 628C664 604 684 584 708 584C684 584 664 564 664 540C664 564 644 584 620 584C644 584 664 604 664 628Z"
+        fill="#E6EDF3"/>
+</svg>

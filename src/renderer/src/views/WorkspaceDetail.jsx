@@ -85,6 +85,18 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
     }
   }
 
+  const deleteAutomation = (automation) => {
+    if (runningAutomationId) return
+    if (!window.confirm(`确定要删除自动化流程“${automation.name}”吗？\n\n此操作无法撤销。`)) return
+    onUpdateAutomations?.(prev => prev.filter(item => item.id !== automation.id))
+    setAutomationLogs(prev => {
+      const next = { ...prev }
+      delete next[automation.id]
+      return next
+    })
+    if (expandedAutomationId === automation.id) setExpandedAutomationId(null)
+  }
+
   // Git states
   const [liveGitInfo, setLiveGitInfo] = useState(null)
   const [branches, setBranches] = useState([])
@@ -199,7 +211,7 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
   const handleStash = async () => {
     setIsGitOperating(true)
     try {
-      const res = await window.flywork?.gitStash(ws.root, 'flyWork Stash')
+      const res = await window.flywork?.gitStash(ws.root, 'FlyDeck Stash')
       if (res?.success) showGitToast('✓ 已暂存当前工作区修改 (Git Stash)')
       else showGitToast(`❌ Stash 失败: ${res?.error}`)
       refreshGitData()
@@ -701,6 +713,7 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
                           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} disabled={Boolean(runningAutomationId)} onClick={() => runAutomation(automation, true)}>Dry Run</button>
                           <button className="btn btn-primary btn-sm" style={{ fontSize: 11 }} disabled={Boolean(runningAutomationId)} onClick={() => runAutomation(automation)}>{isRunning ? '执行中…' : '▶ 构建'}</button>
                           <button className="btn btn-ghost btn-icon btn-sm" title="显示步骤与日志" onClick={() => setExpandedAutomationId(isExpanded ? null : automation.id)}>⌄</button>
+                          <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--accent-red)' }} disabled={Boolean(runningAutomationId)} title="删除自动化流程" onClick={() => deleteAutomation(automation)}>🗑️</button>
                         </div>
                         {isExpanded && (
                           <div style={{ padding: '0 12px 12px', borderTop: '1px solid var(--border)' }}>
@@ -762,15 +775,15 @@ Aborting
 
         {activeTab === '会话' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* FlyWork Sessions */}
+            {/* FlyDeck Sessions */}
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
-                flyWork 关联任务会话 ({sessions.length})
+                FlyDeck 关联任务会话 ({sessions.length})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {sessions.length === 0 ? (
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    暂无主动开启的 flyWork 会话，点击顶部「▶ 开始工作」开启任务跟踪。
+                    暂无主动开启的 FlyDeck 会话，点击顶部「▶ 开始工作」开启任务跟踪。
                   </div>
                 ) : (
                   sessions.map(session => (

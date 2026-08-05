@@ -78,7 +78,7 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
       {
         id: `s-${Date.now()}-${prev.length + 1}`,
         name: `步骤 ${prev.length + 1}`,
-        command: 'echo "hello flyWork"',
+        command: 'echo "hello FlyDeck"',
         risk: 'normal',
         envText: '',
         status: 'pending'

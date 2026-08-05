@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import flyDeckSymbol from './assets/flydeck-symbol.svg'
 import {
   WORKSPACES,
   SESSIONS,
@@ -339,10 +340,16 @@ export default function App() {
   return (
     <div className="app-layout">
       <div className="titlebar">
-        <div className="titlebar-logo">
-          <div className="logo-icon">F</div>
-          <span>flyWork</span>
-        </div>
+        <button
+          type="button"
+          className="titlebar-logo"
+          onClick={() => navigateTo('today')}
+          title="返回今日"
+          aria-label="返回今日面板"
+        >
+          <img className="logo-icon" src={flyDeckSymbol} alt="FlyDeck" />
+          <span>FlyDeck</span>
+        </button>
         <div className="titlebar-search">
           <button className="titlebar-search-btn" onClick={() => setCommandCenterOpen(true)}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>

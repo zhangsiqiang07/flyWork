@@ -316,7 +316,7 @@ export default function YunxiaoSettings({ onConfigChange }) {
         </div>
         <ul style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
           <li>访问令牌用于调用云效 API，安全存储在本地</li>
-          <li>配置后可在 flyWork 中管理云效项目和工作项</li>
+          <li>配置后可在 FlyDeck 中管理云效项目和工作项</li>
           <li>支持多组织切换，方便管理不同团队的项目</li>
           <li>所有操作都会记录在审计日志中</li>
         </ul>

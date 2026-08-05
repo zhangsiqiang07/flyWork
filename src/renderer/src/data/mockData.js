@@ -205,12 +205,12 @@ export const INBOX_ITEMS = [
   {
     id: 'inbox-002',
     type: 'note',
-    title: '想法：flyWork 命令中心支持自然语言解析',
+    title: '想法：FlyDeck 命令中心支持自然语言解析',
     preview: '可以用正则 + 语义映射的方式支持 "打开PetPal" "继续昨天的任务" 这类自然语言命令...',
     source: 'quick-capture',
     createdAt: '2026-08-04T09:30:00+08:00',
     workspaceId: null,
-    tags: ['flyWork', '产品想法']
+    tags: ['FlyDeck', '产品想法']
   },
   {
     id: 'inbox-003',

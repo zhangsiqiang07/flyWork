@@ -171,6 +171,7 @@ function createMainWindow() {
     minWidth: 900,
     minHeight: 600,
     show: false,
+    title: 'FlyDeck',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     vibrancy: 'under-window',
@@ -217,7 +218,7 @@ function setupTray() {
   }
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'flyWork', enabled: false },
+    { label: 'FlyDeck', enabled: false },
     { type: 'separator' },
     { label: '显示主窗口', click: () => mainWindow?.show() },
     {
@@ -228,10 +229,10 @@ function setupTray() {
       }
     },
     { type: 'separator' },
-    { label: '退出 flyWork', role: 'quit' }
+    { label: '退出 FlyDeck', role: 'quit' }
   ])
 
-  tray.setToolTip('flyWork')
+  tray.setToolTip('FlyDeck')
   tray.setContextMenu(contextMenu)
   tray.on('click', () => {
     if (mainWindow?.isVisible()) {
