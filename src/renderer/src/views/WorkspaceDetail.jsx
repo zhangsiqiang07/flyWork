@@ -23,12 +23,67 @@ const RISK_CONFIG = {
   high: { label: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace, onDeleteWorkspace }) {
+export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onUpdateAutomations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace, onDeleteWorkspace }) {
   const [activeTab, setActiveTab] = useState('概览')
   const [runningAction, setRunningAction] = useState(null)
   const [newSessionTitle, setNewSessionTitle] = useState('')
   const [showNewSession, setShowNewSession] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [runningAutomationId, setRunningAutomationId] = useState(null)
+  const [automationLogs, setAutomationLogs] = useState({})
+  const [expandedAutomationId, setExpandedAutomationId] = useState(null)
+
+  const resolveAutomationCommand = (command) => {
+    const today = new Date().toISOString().slice(0, 10)
+    return (command || '')
+      .replaceAll('${root}', ws.root || '')
+      .replaceAll('${workspace.root}', ws.root || '')
+      .replaceAll('${branch}', gitBranch)
+      .replaceAll('${gitBranch}', gitBranch)
+      .replaceAll('${date}', today)
+  }
+
+  const runAutomation = async (automation, dryRun = false) => {
+    if (!automation?.steps?.length || runningAutomationId) return
+    const highRiskSteps = automation.steps.filter(step => step.risk === 'high')
+    if (!dryRun && highRiskSteps.length && !window.confirm(`⚠️ 此流程包含 ${highRiskSteps.length} 个高风险步骤，确认在当前工作目录执行吗？\n\n${ws.root}`)) return
+
+    setRunningAutomationId(automation.id)
+    setExpandedAutomationId(automation.id)
+    const results = []
+    try {
+      for (const step of automation.steps) {
+        const command = resolveAutomationCommand(step.command)
+        const stepKey = `build-${ws.id}-${automation.id}-${step.id}`
+        const result = await window.flywork?.executeAutomationStep(
+          command,
+          ws.root,
+          { ...(automation.env || {}), ...(step.env || {}) },
+          dryRun,
+          stepKey
+        )
+        results.push({ name: step.name, command, ...result })
+        if (!result?.success) break
+      }
+    } catch (error) {
+      results.push({ name: '流程执行', command: '', success: false, error: error.message, output: '', exitCode: 1 })
+    } finally {
+      const success = results.length === automation.steps.length && results.every(result => result.success)
+      setAutomationLogs(prev => ({ ...prev, [automation.id]: { dryRun, success, results } }))
+      onUpdateAutomations?.(prev => prev.map(item => item.id === automation.id ? {
+        ...item,
+        lastRun: new Date().toISOString(),
+        lastStatus: success ? 'success' : 'failed',
+        steps: item.steps.map((step, index) => ({ ...step, status: results[index]?.success ? 'complete' : results[index] ? 'failed' : 'pending' }))
+      } : item))
+      onUpdateWorkspace?.(ws.id, {
+        buildStatus: success ? 'success' : 'failed',
+        buildMessage: `${automation.name}${success ? ' 执行成功' : ' 执行失败'}`,
+        buildTime: '刚刚'
+      })
+      setRunningAutomationId(null)
+    }
+  }
 
   // Git states
   const [liveGitInfo, setLiveGitInfo] = useState(null)
@@ -184,6 +239,19 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
   const lastCommit = liveGitInfo?.lastCommit || ws.lastCommit || '无提交历史'
   const lastCommitHash = liveGitInfo?.lastCommitHash || ws.lastCommitHash || ''
   const lastCommitTime = liveGitInfo?.lastCommitTime || ws.lastCommitTime || ''
+  const latestAutomation = automations
+    .filter(automation => automation.lastRun)
+    .sort((a, b) => new Date(b.lastRun) - new Date(a.lastRun))[0]
+  const currentBuildStatus = latestAutomation?.lastStatus === 'success'
+    ? 'success'
+    : latestAutomation?.lastStatus === 'failed'
+      ? 'failed'
+      : ws.buildStatus
+  const currentBuildName = latestAutomation ? `自动化 · ${latestAutomation.name}` : (ws.integrations?.jenkins || 'CI Build')
+  const currentBuildMessage = latestAutomation
+    ? latestAutomation.lastStatus === 'success' ? '自动化流程执行成功' : '自动化流程执行失败'
+    : ws.buildMessage
+  const currentBuildTime = latestAutomation?.lastRun ? formatRelTime(latestAutomation.lastRun) : ws.buildTime
 
   const activeSession = sessions.find(s => s.status === 'active')
 
@@ -213,7 +281,7 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
               >
                 ✏️
               </button>
-              {ws.buildStatus === 'failed' ? (
+              {currentBuildStatus === 'failed' ? (
                 <span className="badge badge-red" style={{ fontSize: 10 }}>❌ 构建失败</span>
               ) : (
                 <span className="badge badge-green" style={{ fontSize: 10 }}>✓ 正常</span>
@@ -314,21 +382,21 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
             <div className="card" style={{ padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>构建状态</div>
               <div className="build-status-card" style={{ padding: 0 }}>
-                <div className={`build-status-icon ${ws.buildStatus}`}>
-                  {ws.buildStatus === 'success'
+                <div className={`build-status-icon ${currentBuildStatus}`}>
+                  {currentBuildStatus === 'success'
                     ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                     : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>
                   }
                 </div>
                 <div className="build-status-info">
-                  <div className="build-status-name">{ws.integrations?.jenkins || 'CI Build'}</div>
-                  <div className="build-status-desc" style={{ color: ws.buildStatus === 'failed' ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-                    {ws.buildMessage}
+                  <div className="build-status-name">{currentBuildName}</div>
+                  <div className="build-status-desc" style={{ color: currentBuildStatus === 'failed' ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+                    {currentBuildMessage}
                   </div>
-                  <div className="build-status-meta">{ws.buildTime}</div>
+                  <div className="build-status-meta">{currentBuildTime}</div>
                 </div>
               </div>
-              {ws.buildStatus === 'failed' && (
+              {currentBuildStatus === 'failed' && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => onSetContextPanel('log')}>查看日志</button>
                   <button className="btn btn-sm" style={{ background: 'var(--accent-purple-dim)', color: 'var(--accent-purple)', border: '1px solid rgba(163,113,247,0.3)' }}>
@@ -607,6 +675,55 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
 
         {activeTab === '构建' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="card" style={{ padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: automations.length ? 12 : 0 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>当前工作目录自动化</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>已绑定此工作空间的流程会直接在 <span style={{ fontFamily: 'monospace' }}>{ws.root}</span> 中执行。</div>
+                </div>
+                <span className="badge badge-blue" style={{ fontSize: 10, flexShrink: 0 }}>{automations.length} 个流程</span>
+              </div>
+
+              {automations.length ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {automations.map(automation => {
+                    const runLog = automationLogs[automation.id]
+                    const isRunning = runningAutomationId === automation.id
+                    const isExpanded = expandedAutomationId === automation.id
+                    return (
+                      <div key={automation.id} style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-elevated)' }}>
+                        <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>⚙️ {automation.name}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{automation.steps?.length || 0} 步骤 · {automation.description || '未填写描述'}</div>
+                          </div>
+                          {runLog && !isRunning && <span className={`badge badge-${runLog.success ? 'green' : 'red'}`} style={{ fontSize: 10 }}>{runLog.dryRun ? '预演完成' : runLog.success ? '构建成功' : '构建失败'}</span>}
+                          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} disabled={Boolean(runningAutomationId)} onClick={() => runAutomation(automation, true)}>Dry Run</button>
+                          <button className="btn btn-primary btn-sm" style={{ fontSize: 11 }} disabled={Boolean(runningAutomationId)} onClick={() => runAutomation(automation)}>{isRunning ? '执行中…' : '▶ 构建'}</button>
+                          <button className="btn btn-ghost btn-icon btn-sm" title="显示步骤与日志" onClick={() => setExpandedAutomationId(isExpanded ? null : automation.id)}>⌄</button>
+                        </div>
+                        {isExpanded && (
+                          <div style={{ padding: '0 12px 12px', borderTop: '1px solid var(--border)' }}>
+                            <ol style={{ margin: '10px 0', paddingLeft: 22, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                              {automation.steps.map(step => <li key={step.id}><strong style={{ color: 'var(--text-primary)' }}>{step.name}</strong><span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}> · {resolveAutomationCommand(step.command)}</span></li>)}
+                            </ol>
+                            {runLog && (
+                              <div className="terminal-output selectable" style={{ maxHeight: 220, fontSize: 11 }}>
+                                {runLog.results.map(result => `[${result.success ? '✓' : '✗'}] ${result.name}\n$ ${result.command}\n${result.output || result.error || ''}`).join('\n\n')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div style={{ padding: '12px', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                  暂无绑定到此工作空间的自动化流程。请在“自动化”页面新建流程并关联此工作空间。
+                </div>
+              )}
+            </div>
             <div className="card" style={{ borderColor: ws.buildStatus === 'failed' ? 'rgba(224,92,92,0.3)' : 'rgba(63,185,80,0.2)' }}>
               <div className="build-status-card">
                 <div className={`build-status-icon ${ws.buildStatus}`} style={{ width: 44, height: 44, fontSize: 20 }}>

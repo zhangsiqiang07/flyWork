@@ -313,7 +313,7 @@ export default function App() {
         )
       case 'workspace-detail':
         return selectedWorkspace ? (
-          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} onDeleteWorkspace={deleteWorkspace} />
+          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onUpdateAutomations={setAutomations} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} onDeleteWorkspace={deleteWorkspace} />
         ) : null
       case 'inbox':
         return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
