@@ -41,7 +41,7 @@ const formatDate = (value) => {
 }
 const normalizeMarkdown = (value) => String(value || '').replace(/\\r?\\n/g, '\n')
 
-function MarkdownImage({ src, alt = '', workitemId }) {
+function MarkdownImage({ src, alt = '', workitemId, style }) {
   const [imageSrc, setImageSrc] = useState(src)
   const [triedProxy, setTriedProxy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -70,7 +70,60 @@ function MarkdownImage({ src, alt = '', workitemId }) {
       </a>
     )
   }
-  return <img src={imageSrc} alt={alt} onError={loadWithYunxiaoToken} />
+  return <img src={imageSrc} alt={alt} style={style} onError={loadWithYunxiaoToken} />
+}
+
+function DescriptionContent({ description, formatType, workitemId }) {
+  const richTextHtml = useMemo(() => {
+    if (formatType !== 'RICHTEXT') return null
+    try {
+      const parsed = JSON.parse(description)
+      return typeof parsed?.htmlValue === 'string' ? parsed.htmlValue : null
+    } catch {
+      return /<\/?[a-z][\s\S]*>/i.test(description) ? description : null
+    }
+  }, [description, formatType])
+
+  const richTextNodes = useMemo(() => {
+    if (!richTextHtml) return null
+    const document = new DOMParser().parseFromString(richTextHtml, 'text/html')
+    const renderNode = (node, key) => {
+      if (node.nodeType === Node.TEXT_NODE) return node.textContent
+      if (node.nodeType !== Node.ELEMENT_NODE) return null
+      const tag = node.tagName.toLowerCase()
+      const children = Array.from(node.childNodes).map((child, index) => renderNode(child, index))
+      if (tag === 'img') {
+        const src = node.getAttribute('src') || ''
+        if (!/^https:\/\//i.test(src)) return null
+        const style = node.getAttribute('style') || ''
+        const width = Number.parseInt(node.getAttribute('width') || style.match(/width:\s*(\d+)px/i)?.[1] || '', 10)
+        const height = Number.parseInt(node.getAttribute('height') || style.match(/height:\s*(\d+)px/i)?.[1] || '', 10)
+        return (
+          <MarkdownImage
+            key={key}
+            src={src}
+            alt={node.getAttribute('alt') || node.getAttribute('name') || '工作项图片'}
+            workitemId={workitemId}
+            style={{ width: Number.isFinite(width) ? width : undefined, height: Number.isFinite(height) ? height : undefined }}
+          />
+        )
+      }
+      if (tag === 'br') return <br key={key} />
+      if (['p', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'strong', 'b', 'em', 'i', 'u', 's', 'h1', 'h2', 'h3', 'h4'].includes(tag)) {
+        const Tag = tag
+        return <Tag key={key}>{children}</Tag>
+      }
+      if (tag === 'a') {
+        const href = node.getAttribute('href') || ''
+        return /^https?:\/\//i.test(href) ? <a key={key} href={href} target="_blank" rel="noreferrer">{children}</a> : <span key={key}>{children}</span>
+      }
+      return <span key={key}>{children}</span>
+    }
+    return Array.from(document.body.childNodes).map((node, index) => renderNode(node, index))
+  }, [richTextHtml, workitemId])
+
+  if (richTextNodes) return <>{richTextNodes}</>
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} workitemId={workitemId} /> }}>{normalizeMarkdown(description)}</ReactMarkdown>
 }
 
 function Notice({ message }) {
@@ -858,16 +911,11 @@ export function WorkitemDetailPanel({ item, detail, loading, error, onClose, sta
             <section style={{ marginTop: 20 }}>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>描述</div>
               <div className="yunxiao-markdown">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    img: ({ src, alt }) => (
-                      <MarkdownImage src={src} alt={alt} workitemId={idOf(workitem)} />
-                    )
-                  }}
-                >
-                  {normalizeMarkdown(workitem.description)}
-                </ReactMarkdown>
+                <DescriptionContent
+                  description={workitem.description}
+                  formatType={workitem.formatType}
+                  workitemId={idOf(workitem)}
+                />
               </div>
             </section>
           )}

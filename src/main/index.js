@@ -10,11 +10,11 @@ import {
   Notification,
   dialog
 } from 'electron'
-import { basename, join } from 'path'
+import { join } from 'path'
 import { spawn, exec, execFileSync, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 
 // 云效服务模块
@@ -1079,157 +1079,100 @@ function setupIPC() {
         return { success: false, error: '没有需要提交的未提交改动 (Working tree clean)' }
       }
 
-      // Keep this context and prompt aligned with ~/bin/git-claude-commit.
-      // A file stat alone cannot describe what changed, particularly for new files.
-      const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
-      const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
-      let claudeBin = ''
-      try {
-        claudeBin = execFileSync('which', ['claude'], {
-          env: { ...process.env, PATH: pathEnv },
-          timeout: 1500,
-          encoding: 'utf-8'
-        }).trim()
-      } catch {
-        // Handled below so the UI gets the same actionable error as the local script.
-      }
-      if (!claudeBin) {
-        return { success: false, error: '未找到 Claude Code CLI，请先安装并登录 Claude。' }
-      }
-
+      const stagedDiff = git(['diff', '--cached', '--no-ext-diff', '--no-color', '--'], repoRoot)
+      const unstagedDiff = git(['diff', '--no-ext-diff', '--no-color', '--'], repoRoot)
       const untrackedFiles = git(['ls-files', '--others', '--exclude-standard'], repoRoot)
         .split('\n')
         .filter(Boolean)
-      const sections = [
-        '# 仓库',
-        basename(repoRoot),
-        '',
-        '# 当前分支',
-        git(['branch', '--show-current'], repoRoot).trim(),
-        '',
-        '# 改动概览',
-        status,
-        '',
-        '# 已暂存差异',
-        git(['diff', '--cached', '--no-ext-diff', '--no-color', '--'], repoRoot),
-        '',
-        '# 未暂存差异',
-        git(['diff', '--no-ext-diff', '--no-color', '--'], repoRoot),
-        '',
-        '# 未跟踪文件',
-        untrackedFiles.join('\n'),
-        '',
-        '# 未跟踪文本文件内容（已过滤敏感文件和大文件）'
-      ]
-
-      for (const file of untrackedFiles) {
+      const untrackedDiffs = untrackedFiles.flatMap((file) => {
         const isSensitive =
           file === '.env' ||
           file.startsWith('.env.') ||
           /\.(pem|key|p12|mobileprovision)$/i.test(file) ||
           /credentials|secret/i.test(file) ||
           /Secrets\./.test(file)
-        sections.push(`## ${file}`)
-        if (isSensitive) {
-          sections.push('[因可能包含敏感信息，未读取内容]')
-          continue
+        if (isSensitive) return []
+        try {
+          return [
+            git(['diff', '--no-index', '--no-ext-diff', '--no-color', '--', '/dev/null', file], repoRoot)
+          ]
+        } catch (err) {
+          // git diff --no-index returns code 1 when it successfully finds a difference.
+          if (err.status === 1 && typeof err.stdout === 'string') return [err.stdout]
+          throw err
         }
-
-        const filePath = join(repoRoot, file)
-        if (!existsSync(filePath) || !statSync(filePath).isFile()) continue
-        if (statSync(filePath).size > 50000) {
-          sections.push('[文件超过 50KB，未读取内容]')
-          continue
-        }
-
-        const contents = readFileSync(filePath)
-        if (contents.includes(0)) {
-          sections.push('[二进制文件，未读取内容]')
-          continue
-        }
-        sections.push(contents.toString('utf-8').split('\n').slice(0, 400).join('\n'), '')
-      }
-
-      const maxDiffBytes = Number.parseInt(process.env.MAX_DIFF_BYTES || '120000', 10) || 120000
-      let diffContext = Buffer.from(sections.join('\n'), 'utf-8')
-      if (diffContext.length > maxDiffBytes) {
-        diffContext = Buffer.concat([
-          diffContext.subarray(0, maxDiffBytes),
-          Buffer.from(`\n\n[上下文因超过 ${maxDiffBytes} 字节而被截断]\n`, 'utf-8')
-        ])
-      }
-
-      const prompt = `你是一名资深软件工程师。请根据标准输入中的 Git 改动生成一条准确的中文提交信息。
-
-要求：
-1. 使用 Conventional Commits，格式为 type(scope): 中文标题。
-2. type 只允许 feat、fix、refactor、perf、docs、test、build、ci、chore、style。
-3. scope 能明确判断时才填写；不能明确判断时省略 scope。
-4. 标题简洁，建议不超过 50 个中文字符。
-5. 改动较复杂时，在标题后空一行，再输出 2～5 条以 "- " 开头的说明。
-6. 只描述实际改动，不推测目的，不虚构未出现的功能。
-7. 不要使用 Markdown 代码块，不要输出分析过程，不要添加“提交信息：”等前缀。
-8. 最终只输出可以直接传给 git commit 的完整文本。`
-      const model = process.env.CLAUDE_MODEL || 'sonnet'
-      const result = await new Promise((resolve, reject) => {
-        const child = spawn(
-          claudeBin,
-          ['-p', prompt, '--model', model, '--output-format', 'text', '--max-turns', '1'],
-          {
-            cwd: repoRoot,
-            env: { ...process.env, PATH: pathEnv },
-            stdio: ['pipe', 'pipe', 'pipe']
-          }
-        )
-        let stdout = ''
-        let stderr = ''
-        let timedOut = false
-        const timeout = setTimeout(() => {
-          timedOut = true
-          child.kill('SIGTERM')
-        }, 120000)
-
-        child.stdout.on('data', (chunk) => {
-          stdout += chunk
-        })
-        child.stderr.on('data', (chunk) => {
-          stderr += chunk
-        })
-        child.once('error', (error) => {
-          clearTimeout(timeout)
-          reject(error)
-        })
-        child.once('close', (status) => {
-          clearTimeout(timeout)
-          resolve({
-            status,
-            stdout,
-            stderr,
-            error: timedOut ? new Error('Claude 生成超时（120 秒）。') : null
-          })
-        })
-        child.stdin.on('error', (error) => {
-          clearTimeout(timeout)
-          reject(error)
-        })
-        child.stdin.end(diffContext)
       })
-      if (result.error || result.status !== 0) {
+      const rawDiff = [stagedDiff, unstagedDiff, ...untrackedDiffs].filter(Boolean).join('\n')
+      // The API accepts at most 30,000 characters. A suffix makes truncation explicit to the service.
+      const diff =
+        rawDiff.length > 30000
+          ? `${rawDiff.slice(0, 29940)}\n\n[Diff truncated to 30,000 characters]`
+          : rawDiff
+      const omittedSensitiveFiles = untrackedFiles.filter(
+        (file) =>
+          file === '.env' ||
+          file.startsWith('.env.') ||
+          /\.(pem|key|p12|mobileprovision)$/i.test(file) ||
+          /credentials|secret/i.test(file) ||
+          /Secrets\./.test(file)
+      )
+      const context = [
+        `Git status:\n${status}`,
+        omittedSensitiveFiles.length
+          ? `未上传内容的敏感未跟踪文件：${omittedSensitiveFiles.join(', ')}`
+          : ''
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+        .slice(0, 2000)
+      if (!diff.trim()) {
         return {
           success: false,
-          error: result.stderr?.trim() || result.error?.message || 'Claude 生成提交信息失败。'
+          error: '没有可安全发送给 Commit API 的 Git diff。请检查改动后重试。'
         }
       }
 
-      const commitMessage = result.stdout.replace(/\s+$/, '')
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 60000)
+      let response
+      try {
+        const baseUrl = (process.env.BUG_AI_API_BASE_URL || 'https://dev.foresightx.com.cn/bug-ai').replace(
+          /\/$/,
+          ''
+        )
+        response = await fetch(`${baseUrl}/api/v1/commit/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ diff, context }),
+          signal: controller.signal
+        })
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return { success: false, error: 'Commit API 请求超时（60 秒）。' }
+        }
+        throw err
+      } finally {
+        clearTimeout(timeout)
+      }
+
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        const detail = Array.isArray(payload?.detail)
+          ? payload.detail.map((item) => item.msg).join('；')
+          : payload?.detail
+        return { success: false, error: detail || `Commit API 请求失败（HTTP ${response.status}）。` }
+      }
+
+      const commitMessage =
+        typeof payload?.data?.message === 'string' ? payload.data.message.replace(/\s+$/, '') : ''
       if (!commitMessage.trim()) {
-        return { success: false, error: 'Claude 返回了空提交信息。' }
+        return { success: false, error: 'Commit API 返回了空提交信息。' }
       }
       return {
         success: true,
         commitMessage,
         diffStat: status,
-        engine: `Claude Code CLI (${model})`
+        engine: 'Bug AI Commit API'
       }
     } catch (err) {
       return { success: false, error: err.message }
