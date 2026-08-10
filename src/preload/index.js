@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // flyWork secure API bridge
@@ -31,6 +31,10 @@ const flyworkAPI = {
   openPath: (path) => ipcRenderer.invoke('open-path', path),
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
+
+  // Resolve a file path from a drag-drop File object.
+  // Electron 32+ removed File.path in renderer; webUtils.getPathForFile is the replacement.
+  getPathForFile: webUtils.getPathForFile,
 
   // Local Agents Detection & Sessions
   detectLocalAgents: () => ipcRenderer.invoke('detect-local-agents'),
@@ -122,6 +126,20 @@ const flyworkAPI = {
 
   // Actions registry
   getActions: () => ipcRenderer.invoke('get-actions'),
+
+  // Crash Symbolication (iOS .plcrash + dSYM)
+  crashToolchainCheck: () => ipcRenderer.invoke('crash-toolchain-check'),
+  crashImport: (plcrashPaths) => ipcRenderer.invoke('crash-import', { plcrashPaths }),
+  crashSymbolicate: (reportId, plcrashPath, archivePath) =>
+    ipcRenderer.invoke('crash-symbolicate', { reportId, plcrashPath, archivePath }),
+  crashListReports: () => ipcRenderer.invoke('crash-list-reports'),
+  crashGetReport: (reportId) => ipcRenderer.invoke('crash-get-report', { reportId }),
+  crashDeleteReport: (reportId) => ipcRenderer.invoke('crash-delete-report', { reportId }),
+  onCrashLogChunk: (callback) => {
+    const handler = (_, chunk) => callback(chunk)
+    ipcRenderer.on('crash-log-chunk', handler)
+    return () => ipcRenderer.removeListener('crash-log-chunk', handler)
+  },
 
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),

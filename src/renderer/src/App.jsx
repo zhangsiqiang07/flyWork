@@ -22,6 +22,7 @@ const AutomationsView = lazy(() => import('./views/Automations'))
 const Activity = lazy(() => import('./views/Activity'))
 const YunxiaoSettings = lazy(() => import('./components/YunxiaoSettings'))
 const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
+const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
 
 function ViewSkeleton() {
   return (
@@ -322,6 +323,8 @@ export default function App() {
         return null
       case 'activity':
         return <Activity activityLog={activityLog} workspaces={workspaces} />
+      case 'crash':
+        return <CrashAnalysis />
       case 'yunxiao-settings':
         return <YunxiaoSettings onConfigChange={(config) => {
           setYunxiaoConfigured(config.configured)

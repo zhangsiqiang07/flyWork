@@ -14,8 +14,8 @@ import { join } from 'path'
 import { spawn, exec, execFileSync, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
-import { homedir } from 'os'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, mkdtempSync } from 'fs'
+import { homedir, tmpdir } from 'os'
 
 // 云效服务模块
 import {
@@ -61,6 +61,32 @@ import {
   createSprint,
   updateSprint
 } from './services/yunxiao/sprint.js'
+
+// 崩溃符号化服务模块
+import {
+  resolvePlcrashutil,
+  convertPlcrash,
+  extractMeta,
+  extractBinaryImages
+} from './services/crash/plcrash.js'
+import {
+  resolveArchive,
+  dsymUuids,
+  matchUuids,
+  cleanupTmpDir
+} from './services/crash/dsym.js'
+import {
+  findSymbolicatecrash,
+  symbolicate,
+  parseSymbolicatedCrash
+} from './services/crash/symbolicate.js'
+import {
+  listReports,
+  getReport,
+  saveReport,
+  deleteReport,
+  buildReport
+} from './services/crash/report.js'
 
 const execAsync = promisify(exec)
 
@@ -618,6 +644,141 @@ function setupIPC() {
       }
     )
     return result
+  })
+
+  // ===== Crash Symbolication =====
+  ipcMain.handle('crash-toolchain-check', async () => {
+    const plcrashutilPath = resolvePlcrashutil()
+    const symPath = await findSymbolicatecrash()
+    let dwarfdumpOk = false
+    try {
+      await execAsync('xcrun --find dwarfdump 2>/dev/null')
+      dwarfdumpOk = true
+    } catch {
+      /* ignore */
+    }
+    const plcrashutilOk = plcrashutilPath !== 'plcrashutil' && existsSync(plcrashutilPath)
+    writeAuditLog({
+      type: 'CRASH_TOOLCHAIN_CHECK',
+      plcrashutil: plcrashutilOk,
+      symbolicatecrash: !!symPath,
+      dwarfdump: dwarfdumpOk
+    })
+    return {
+      plcrashutil: plcrashutilOk ? plcrashutilPath : null,
+      symbolicatecrash: symPath,
+      dwarfdump: dwarfdumpOk,
+      ok: plcrashutilOk && !!symPath && dwarfdumpOk
+    }
+  })
+
+  ipcMain.handle('crash-import', async (_, { plcrashPaths }) => {
+    const metas = []
+    for (const p of plcrashPaths || []) {
+      try {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'flywork-crash-'))
+        const convertedPath = join(tmpDir, 'converted.crash')
+        const conv = await convertPlcrash(p, convertedPath, () => {})
+        if (conv.ok) {
+          const meta = extractMeta(conv.convertedText)
+          metas.push({ plcrashPath: p, ...meta })
+        } else {
+          metas.push({ plcrashPath: p, error: conv.error || '转换失败' })
+        }
+        cleanupTmpDir(tmpDir)
+      } catch (e) {
+        metas.push({ plcrashPath: p, error: e.message })
+      }
+    }
+    return { metas }
+  })
+
+  ipcMain.handle(
+    'crash-symbolicate',
+    async (event, { reportId, plcrashPath, archivePath }) => {
+      const sender = event.sender
+      const send = (step, type, text) => {
+        if (!sender.isDestroyed()) {
+          sender.send('crash-log-chunk', { reportId, step, type, text, ts: Date.now() })
+        }
+      }
+      writeAuditLog({ type: 'CRASH_SYMBOLICATE', plcrashPath, archivePath })
+      const tmpDirs = []
+      try {
+        // Step 1: convert .plcrash -> Apple .crash
+        send('convert', 'info', '① 格式转换：.plcrash → Apple .crash')
+        const tmpDir = mkdtempSync(join(tmpdir(), 'flywork-crash-'))
+        tmpDirs.push(tmpDir)
+        const convertedPath = join(tmpDir, 'converted.crash')
+        const conv = await convertPlcrash(plcrashPath, convertedPath, (type, text) =>
+          send('convert', type, text)
+        )
+        if (!conv.ok) {
+          send('convert', 'exit', '✗ 转换失败')
+          return { success: false, error: conv.error, step: 'convert' }
+        }
+        const images = extractBinaryImages(conv.convertedText)
+
+        // Step 2: UUID verification
+        send('uuid', 'info', '② UUID 核验：dSYM vs Binary Images')
+        const resolved = await resolveArchive(archivePath, (type, text) => send('uuid', type, text))
+        if (resolved.tmpDir) tmpDirs.push(resolved.tmpDir)
+        if (!resolved.dsymPath) {
+          send('uuid', 'exit', `✗ ${resolved.error || '无法解析符号文件'}`)
+          return { success: false, error: resolved.error, step: 'uuid' }
+        }
+        const { uuids } = await dsymUuids(resolved.dsymPath, (type, text) =>
+          send('uuid', type, text)
+        )
+        const matchedImages = matchUuids(images, uuids)
+        const hitCount = matchedImages.filter((i) => i.matched === 'hit').length
+        send('uuid', 'info', `镜像匹配：${hitCount}/${images.length} 命中`)
+
+        // Step 3: symbolicate
+        send('symbolicate', 'info', '③ 符号化执行：symbolicatecrash')
+        const sym = await symbolicate(convertedPath, resolved.dsymPath, (type, text) =>
+          send('symbolicate', type, text)
+        )
+        if (!sym.ok) {
+          send('symbolicate', 'exit', '✗ 符号化失败')
+          return { success: false, error: sym.error, step: 'symbolicate' }
+        }
+
+        // Step 4: parse & build report
+        send('parse', 'info', '④ 解析渲染：构建结构化报告')
+        const parsed = parseSymbolicatedCrash(sym.text)
+        const report = buildReport({
+          meta: parsed.meta,
+          images: matchedImages,
+          threads: parsed.threads,
+          rawSymbolicated: sym.text,
+          reportId
+        })
+        saveReport(report)
+        writeAuditLog({ type: 'CRASH_RESULT', reportId: report.id, success: true })
+        send('done', 'exit', '✓ 完成')
+        return { success: true, report }
+      } catch (e) {
+        writeAuditLog({ type: 'CRASH_RESULT', reportId, success: false, error: e.message })
+        send('error', 'stderr', `[异常] ${e.message}`)
+        return { success: false, error: e.message }
+      } finally {
+        for (const d of tmpDirs) cleanupTmpDir(d)
+      }
+    }
+  )
+
+  ipcMain.handle('crash-list-reports', async () => {
+    return listReports()
+  })
+
+  ipcMain.handle('crash-get-report', async (_, { reportId }) => {
+    return getReport(reportId)
+  })
+
+  ipcMain.handle('crash-delete-report', async (_, { reportId }) => {
+    writeAuditLog({ type: 'CRASH_DELETE', reportId })
+    return deleteReport(reportId)
   })
 
   // Get action registry (for UI display)

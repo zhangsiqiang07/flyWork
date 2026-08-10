@@ -6,6 +6,7 @@ export default function Sidebar({ currentView, selectedWorkspaceId, workspaces, 
     { id: 'inbox', label: '收件箱', icon: <InboxIcon />, badge: inboxCount > 0 ? inboxCount : null },
     { id: 'automations', label: '自动化', icon: <AutoIcon /> },
     { id: 'activity', label: '活动', icon: <ActivityIcon /> },
+    { id: 'crash', label: '崩溃分析', icon: <CrashIcon /> },
     { id: 'yunxiao', label: '云效', icon: <YunxiaoIcon />, badge: yunxiaoConfigured ? '✓' : null },
   ]
 
@@ -109,4 +110,7 @@ function ActivityIcon() {
 }
 function YunxiaoIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+}
+function CrashIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
 }
