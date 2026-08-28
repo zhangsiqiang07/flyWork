@@ -43,6 +43,16 @@ const flyworkAPI = {
   getNativeThreadMessages: (sessionId) =>
     ipcRenderer.invoke('get-native-thread-messages', { sessionId }),
 
+  // 周报 (Weekly Report) APIs
+  getWeeklyCommits: (options) => ipcRenderer.invoke('weekly-report-get-commits', options),
+  generateWeeklyReport: (params) => ipcRenderer.invoke('weekly-report-generate', params),
+  cancelWeeklyReport: (taskId) => ipcRenderer.invoke('weekly-report-cancel', taskId),
+  onWeeklyReportLogChunk: (callback) => {
+    const handler = (_, chunk) => callback(chunk)
+    ipcRenderer.on('weekly-report-log-chunk', handler)
+    return () => ipcRenderer.removeListener('weekly-report-log-chunk', handler)
+  },
+
   // Git info & Operations
   getGitInfo: (workdir) => ipcRenderer.invoke('get-git-info', workdir),
   gitGetBranches: (workdir) => ipcRenderer.invoke('git-get-branches', workdir),

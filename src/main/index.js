@@ -88,6 +88,14 @@ import {
   buildReport
 } from './services/crash/report.js'
 
+// 周报服务模块
+import {
+  detectLocalAgentsInfo,
+  getWeeklyCommits,
+  generateWeeklyReport,
+  cancelWeeklyReportGeneration
+} from './services/weeklyReport.js'
+
 const execAsync = promisify(exec)
 
 // Audit log path
@@ -953,30 +961,61 @@ function setupIPC() {
     }
   })
 
-  // Detect local CLI agents (Claude Code, Codex, OpenCode, Gemini, etc.)
+  // Detect local CLI agents (Claude Code, Codex, OpenCode, Gemini, Ollama, Built-in, etc.)
   ipcMain.handle('detect-local-agents', async () => {
-    const checkCli = (cmd) => {
+    return detectLocalAgentsInfo()
+  })
+
+  // ===== 周报 (Weekly Report) IPC Handlers =====
+  ipcMain.handle('weekly-report-get-commits', async (_, options) => {
+    try {
+      const results = await getWeeklyCommits(options || {})
+      return { success: true, results }
+    } catch (err) {
+      return { success: false, error: err.message, results: [] }
+    }
+  })
+
+  ipcMain.handle(
+    'weekly-report-generate',
+    async (event, { taskId, agentId, prompt, commits, repoNames, dateRange, workdir }) => {
+      const sender = event.sender
+      const sendChunk = (chunk) => {
+        if (!sender.isDestroyed()) {
+          sender.send('weekly-report-log-chunk', { taskId, ...chunk, ts: Date.now() })
+        }
+      }
+
+      writeAuditLog({
+        type: 'WEEKLY_REPORT_GENERATE',
+        agentId,
+        taskId,
+        repoCount: repoNames?.length || 0,
+        commitCount: commits?.length || 0
+      })
+
       try {
-        const { execSync } = require('child_process')
-        const extraPaths = `${homedir()}/.local/bin:${homedir()}/.opencode/bin:${homedir()}/.nvm/versions/node/v24.12.0/bin:/usr/local/bin`
-        const pathEnv = `${extraPaths}:${process.env.PATH || ''}`
-        const binPath = execSync(`which ${cmd} 2>/dev/null || command -v ${cmd} 2>/dev/null`, {
-          env: { ...process.env, PATH: pathEnv },
-          timeout: 2000,
-          encoding: 'utf-8'
-        }).trim()
-        return { installed: Boolean(binPath), path: binPath || null }
-      } catch {
-        return { installed: false, path: null }
+        const result = await generateWeeklyReport({
+          taskId,
+          agentId,
+          prompt,
+          commits,
+          repoNames,
+          dateRange,
+          workdir,
+          onChunk: sendChunk
+        })
+        return result
+      } catch (err) {
+        sendChunk({ type: 'stderr', text: `[异常] ${err.message}` })
+        return { success: false, error: err.message }
       }
     }
+  )
 
-    return {
-      claude: checkCli('claude'),
-      codex: checkCli('codex'),
-      opencode: checkCli('opencode'),
-      gemini: checkCli('gemini')
-    }
+  ipcMain.handle('weekly-report-cancel', async (_, taskId) => {
+    writeAuditLog({ type: 'WEEKLY_REPORT_CANCEL', taskId })
+    return cancelWeeklyReportGeneration(taskId)
   })
 
   // Get project sessions from native agent storage (Claude Code / Codex / ChatGPT)

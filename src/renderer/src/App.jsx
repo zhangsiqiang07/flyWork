@@ -23,6 +23,7 @@ const Activity = lazy(() => import('./views/Activity'))
 const YunxiaoSettings = lazy(() => import('./components/YunxiaoSettings'))
 const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
 const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
+const WeeklyReport = lazy(() => import('./views/WeeklyReport'))
 
 function ViewSkeleton() {
   return (
@@ -41,8 +42,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState('today')
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(null)
   const [commandCenterOpen, setCommandCenterOpen] = useState(false)
-  const [contextPanelOpen, setContextPanelOpen] = useState(true)
-  const [contextPanelContent, setContextPanelContent] = useState('ai')
+  const [contextPanelOpen, setContextPanelOpen] = useState(false)
+  const [activeSessionChat, setActiveSessionChat] = useState(null)
 
   const [isLoaded, setIsLoaded] = useState(false)
   const [workspaces, setWorkspaces] = useState([])
@@ -52,6 +53,10 @@ export default function App() {
   const [automations, setAutomations] = useState([])
   const [chatHistories, setChatHistories] = useState({})
   const [yunxiaoConfigured, setYunxiaoConfigured] = useState(false)
+  const [weeklyReports, setWeeklyReports] = useState([])
+  const [weeklyReportRepos, setWeeklyReportRepos] = useState([])
+  const [weeklyReportPrompt, setWeeklyReportPrompt] = useState('')
+  const [weeklyReportInitialRepoPath, setWeeklyReportInitialRepoPath] = useState(null)
 
   // 1. Initial Data Loading
   useEffect(() => {
@@ -100,6 +105,9 @@ export default function App() {
             setActivityLog(savedData.activityLog || [])
             setAutomations(repairedAutomations)
             setChatHistories(savedData.chatHistories || {})
+            setWeeklyReports(savedData.weeklyReports || [])
+            setWeeklyReportRepos(savedData.weeklyReportRepos || [])
+            setWeeklyReportPrompt(savedData.weeklyReportPrompt || '')
             setIsLoaded(true)
             return
           }
@@ -114,6 +122,9 @@ export default function App() {
       setActivityLog([])
       setAutomations([])
       setChatHistories({})
+      setWeeklyReports([])
+      setWeeklyReportRepos([])
+      setWeeklyReportPrompt('')
       setIsLoaded(true)
     }
     initData()
@@ -131,12 +142,15 @@ export default function App() {
           inboxItems,
           activityLog,
           automations,
-          chatHistories
+          chatHistories,
+          weeklyReports,
+          weeklyReportRepos,
+          weeklyReportPrompt
         })
       }
     }, 500)
     return () => clearTimeout(timer)
-  }, [workspaces, sessions, inboxItems, activityLog, automations, chatHistories, isLoaded])
+  }, [workspaces, sessions, inboxItems, activityLog, automations, chatHistories, weeklyReports, weeklyReportRepos, weeklyReportPrompt, isLoaded])
 
   useEffect(() => {
     if (window.flywork) {
@@ -154,15 +168,20 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const navigateTo = useCallback((view, workspaceId = null) => {
+  const navigateTo = useCallback((view, meta = null) => {
     setCurrentView(view)
-    if (workspaceId) setSelectedWorkspaceId(workspaceId)
+    if (view === 'workspace-detail' && meta) setSelectedWorkspaceId(meta)
+    if (view === 'weekly-report') setWeeklyReportInitialRepoPath(meta)
+    if (view !== 'workspace-detail') {
+      setContextPanelOpen(false)
+    }
     setCommandCenterOpen(false)
   }, [])
 
   const openWorkspace = useCallback((workspaceId) => {
     setSelectedWorkspaceId(workspaceId)
     setCurrentView('workspace-detail')
+    setContextPanelOpen(false)
     setCommandCenterOpen(false)
   }, [])
 
@@ -283,6 +302,15 @@ export default function App() {
     setCurrentView('workspace-detail')
   }, [])
 
+  const handleOpenSessionChat = useCallback((sessionInfo) => {
+    setActiveSessionChat(sessionInfo)
+    setContextPanelOpen(true)
+  }, [])
+
+  const handleCloseSessionChat = useCallback(() => {
+    setContextPanelOpen(false)
+  }, [])
+
   const handleAskAI = useCallback((promptText, workspaceId = null) => {
     const wsId = workspaceId || selectedWorkspaceId || 'global'
     const threadKey = `${wsId}_Claude Code`
@@ -293,14 +321,12 @@ export default function App() {
       ...prev,
       [threadKey]: [...(prev[threadKey] || []), newMsg, aiReply]
     }))
-    setContextPanelContent('ai')
-    setContextPanelOpen(true)
   }, [selectedWorkspaceId])
 
   const renderMainContent = () => {
     switch (currentView) {
       case 'today':
-        return <Today sessions={sessions} workspaces={workspaces} activityLog={activityLog} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onPauseSession={pauseSession} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} />
+        return <Today sessions={sessions} workspaces={workspaces} activityLog={activityLog} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onPauseSession={pauseSession} />
       case 'workspaces':
         return (
           <Workspaces
@@ -315,8 +341,39 @@ export default function App() {
         )
       case 'workspace-detail':
         return selectedWorkspace ? (
-          <WorkspaceDetail workspace={selectedWorkspace} sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)} activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)} automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)} onUpdateAutomations={setAutomations} onResumeSession={resumeSession} onPauseSession={pauseSession} onBack={() => setCurrentView('workspaces')} onSetContextPanel={(c) => { setContextPanelContent(c); setContextPanelOpen(true) }} onUpdateWorkspace={updateWorkspace} onDeleteWorkspace={deleteWorkspace} />
+          <WorkspaceDetail
+            workspace={selectedWorkspace}
+            sessions={sessions.filter((s) => s.workspaceId === selectedWorkspace.id)}
+            activityLog={activityLog.filter((a) => a.workspaceId === selectedWorkspace.id)}
+            automations={automations.filter((a) => a.workspaceId === selectedWorkspace.id)}
+            onUpdateAutomations={setAutomations}
+            onResumeSession={resumeSession}
+            onPauseSession={pauseSession}
+            onBack={() => {
+              setContextPanelOpen(false)
+              setCurrentView('workspaces')
+            }}
+            onOpenSessionChat={handleOpenSessionChat}
+            onSetContextPanel={handleOpenSessionChat}
+            activeSessionId={contextPanelOpen ? activeSessionChat?.sessionId : null}
+            onUpdateWorkspace={updateWorkspace}
+            onDeleteWorkspace={deleteWorkspace}
+            onNavigate={navigateTo}
+          />
         ) : null
+      case 'weekly-report':
+        return (
+          <WeeklyReport
+            workspaces={workspaces}
+            weeklyReports={weeklyReports}
+            setWeeklyReports={setWeeklyReports}
+            cachedRepos={weeklyReportRepos}
+            setCachedRepos={setWeeklyReportRepos}
+            cachedPrompt={weeklyReportPrompt}
+            setCachedPrompt={setWeeklyReportPrompt}
+            initialRepoPath={weeklyReportInitialRepoPath}
+          />
+        )
       case 'inbox':
         return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
       case 'automations':
@@ -367,9 +424,6 @@ export default function App() {
               {activeSessions} 个工作中
             </div>
           )}
-          <button className="btn btn-ghost btn-icon" onClick={() => setContextPanelOpen((p) => !p)} title="切换上下文面板">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
-          </button>
         </div>
       </div>
 
@@ -383,17 +437,18 @@ export default function App() {
                 automations={automations}
                 workspaces={workspaces}
                 setAutomations={setAutomations}
-                onSetContextPanel={(c) => {
-                  setContextPanelContent(c)
-                  setContextPanelOpen(true)
-                }}
                 onAskAI={handleAskAI}
               />
             </div>
             {currentView !== 'automations' && renderMainContent()}
           </Suspense>
         </div>
-        <ContextPanel isOpen={contextPanelOpen} activeTab={contextPanelContent} onTabChange={setContextPanelContent} currentView={currentView} selectedWorkspace={selectedWorkspace} sessions={sessions} activityLog={activityLog} chatHistories={chatHistories} onUpdateChatHistories={setChatHistories} />
+        <ContextPanel
+          isOpen={contextPanelOpen}
+          activeSession={activeSessionChat}
+          onClose={handleCloseSessionChat}
+          selectedWorkspace={selectedWorkspace}
+        />
       </div>
 
       <StatusBar workspaces={workspaces} sessions={sessions} />

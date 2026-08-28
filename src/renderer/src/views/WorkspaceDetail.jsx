@@ -23,7 +23,22 @@ const RISK_CONFIG = {
   high: { label: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, automations, onUpdateAutomations, onResumeSession, onPauseSession, onBack, onSetContextPanel, onUpdateWorkspace, onDeleteWorkspace }) {
+export default function WorkspaceDetail({
+  workspace: ws,
+  sessions,
+  activityLog,
+  automations,
+  onUpdateAutomations,
+  onResumeSession,
+  onPauseSession,
+  onBack,
+  onSetContextPanel,
+  onOpenSessionChat,
+  activeSessionId,
+  onUpdateWorkspace,
+  onDeleteWorkspace,
+  onNavigate
+}) {
   const [activeTab, setActiveTab] = useState('概览')
   const [runningAction, setRunningAction] = useState(null)
   const [newSessionTitle, setNewSessionTitle] = useState('')
@@ -322,9 +337,6 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
             ) : (
               <button className="btn btn-primary btn-sm" onClick={() => setShowNewSession(true)}>▶ 开始工作</button>
             )}
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => onSetContextPanel('context')}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </button>
           </div>
         </div>
 
@@ -410,9 +422,9 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
               </div>
               {currentBuildStatus === 'failed' && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => onSetContextPanel('log')}>查看日志</button>
-                  <button className="btn btn-sm" style={{ background: 'var(--accent-purple-dim)', color: 'var(--accent-purple)', border: '1px solid rgba(163,113,247,0.3)' }}>
-                    🤖 AI 分析
+                  <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('构建')}>查看构建</button>
+                  <button className="btn btn-sm" style={{ background: 'var(--accent-purple-dim)', color: 'var(--accent-purple)', border: '1px solid rgba(163,113,247,0.3)' }} onClick={() => setActiveTab('构建')}>
+                    🤖 查看详情
                   </button>
                 </div>
               )}
@@ -474,6 +486,16 @@ export default function WorkspaceDetail({ workspace: ws, sessions, activityLog, 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>分支与远程同步</div>
                 <div style={{ display: 'flex', gap: 6 }}>
+                  {onNavigate && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => onNavigate('weekly-report', ws.root)}
+                      style={{ color: 'var(--accent-purple)', borderColor: 'var(--accent-purple-dim)' }}
+                      title="使用当前工作区生成周报"
+                    >
+                      📊 生成周报
+                    </button>
+                  )}
                   <button className="btn btn-secondary btn-sm" onClick={handlePull} disabled={isGitOperating} title="git pull --rebase">
                     ⬇️ 拉取
                   </button>
@@ -804,6 +826,25 @@ Aborting
                               ? <button className="btn btn-secondary btn-sm" onClick={() => onPauseSession(session.id)}>⏸ 暂停</button>
                               : <button className="btn btn-primary btn-sm" onClick={() => onResumeSession(session.id)}>▶ 继续</button>
                             }
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11 }}
+                              onClick={() => {
+                                (onOpenSessionChat || onSetContextPanel)?.({
+                                  type: 'flydeck-session',
+                                  sessionId: session.id,
+                                  summary: session.title,
+                                  agent: 'FlyDeck Session',
+                                  updatedAt: formatRelTime(session.updatedAt),
+                                  messages: [
+                                    { role: 'user', content: `任务名称：${session.title}\n分支：${session.branch}\n状态：${session.status === 'active' ? '进行中' : '已暂停'}`, time: formatRelTime(session.updatedAt) },
+                                    session.notes ? { role: 'assistant', content: `任务备忘与记录：\n${session.notes}`, time: formatRelTime(session.updatedAt) } : null
+                                  ].filter(Boolean)
+                                })
+                              }}
+                            >
+                              💬 查看会话
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -858,42 +899,62 @@ Aborting
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {nativeAgentSessions.length > 0 ? (
                   <>
-                    {nativeAgentSessions.slice(0, currentPage * pageSize).map((nSess, idx) => (
-                      <div
-                        key={nSess.sessionId || idx}
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: 8,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justify: 'space-between',
-                          background: 'var(--bg-elevated)',
-                          border: '1px solid var(--border)',
-                          transition: 'border-color 150ms ease'
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: 'var(--accent-blue)' }}>💬</span>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nSess.summary}</span>
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 12 }}>
-                            <span>Session: <code style={{ fontSize: 10 }}>{nSess.sessionId.slice(0, 12)}</code></span>
-                            <span>更新时间: {nSess.updatedAt}</span>
-                            <span style={{ color: 'var(--accent-green)' }}>✓ 已匹配项目 {ws.name}</span>
-                          </div>
-                        </div>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: 11, marginLeft: 12 }}
+                    {nativeAgentSessions.slice(0, currentPage * pageSize).map((nSess, idx) => {
+                      const isSessionActive = activeSessionId === nSess.sessionId
+                      return (
+                        <div
+                          key={nSess.sessionId || idx}
                           onClick={() => {
-                            onSetContextPanel({ type: 'native-session', sessionId: nSess.sessionId, summary: nSess.summary, agent: selectedAgentTab })
+                            (onOpenSessionChat || onSetContextPanel)?.({
+                              type: 'native-session',
+                              sessionId: nSess.sessionId,
+                              summary: nSess.summary,
+                              agent: selectedAgentTab,
+                              updatedAt: nSess.updatedAt
+                            })
+                          }}
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: isSessionActive ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                            border: `1px solid ${isSessionActive ? 'var(--accent-blue)' : 'var(--border)'}`,
+                            transition: 'all 150ms ease',
+                            cursor: 'pointer'
                           }}
                         >
-                          对话 ➔
-                        </button>
-                      </div>
-                    ))}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ color: 'var(--accent-blue)' }}>💬</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nSess.summary}</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 12 }}>
+                              <span>Session: <code style={{ fontSize: 10 }}>{nSess.sessionId.slice(0, 12)}</code></span>
+                              <span>更新时间: {nSess.updatedAt}</span>
+                              <span style={{ color: 'var(--accent-green)' }}>✓ 已匹配项目 {ws.name}</span>
+                            </div>
+                          </div>
+                          <button
+                            className={isSessionActive ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
+                            style={{ fontSize: 11, marginLeft: 12 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              (onOpenSessionChat || onSetContextPanel)?.({
+                                type: 'native-session',
+                                sessionId: nSess.sessionId,
+                                summary: nSess.summary,
+                                agent: selectedAgentTab,
+                                updatedAt: nSess.updatedAt
+                              })
+                            }}
+                          >
+                            {isSessionActive ? '查看中 ➔' : '对话 ➔'}
+                          </button>
+                        </div>
+                      )
+                    })}
 
                     {/* Pagination / Load More Controls */}
                     {nativeAgentSessions.length > currentPage * pageSize ? (

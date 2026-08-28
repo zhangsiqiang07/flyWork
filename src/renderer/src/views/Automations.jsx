@@ -46,7 +46,6 @@ export default function AutomationsView({
   automations = [],
   workspaces = [],
   setAutomations,
-  onSetContextPanel,
   onAskAI
 }) {
   const [selectedAutomationId, setSelectedAutomationId] = useState(automations[0]?.id || null)
@@ -286,12 +285,10 @@ export default function AutomationsView({
   }
 
   const handleAskAIError = (stepName, cmd, log) => {
-    const errorDetails = log?.error || log?.output || '"知执行失败'
+    const errorDetails = log?.error || log?.output || '未知执行失败'
     const promptText = `请帮忙分析自动化步骤 「${stepName}」 的执行报错：\n\n执行命令：\`${cmd}\`\n退出状态码 (Exit Code)：${log?.exitCode}\n生效环境变量：\`\`\`json\n${JSON.stringify(log?.mergedEnv || {}, null, 2)}\n\`\`\`\n\n错误输出 (stderr / stdout)：\n\`\`\`\n${errorDetails}\n\`\`\``
     if (onAskAI) {
       onAskAI(promptText, selectedWorkspace?.id)
-    } else if (onSetContextPanel) {
-      onSetContextPanel('ai')
     }
   }
 

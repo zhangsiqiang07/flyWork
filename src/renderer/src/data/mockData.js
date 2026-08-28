@@ -404,7 +404,7 @@ export const COMMAND_SUGGESTIONS = [
   { type: 'ai', label: '分析 Jenkins 构建失败', icon: '🤖', action: 'ai:analyze-jenkins', agent: 'Claude Code' },
   { type: 'ai', label: '生成当前 Git Commit 信息', icon: '✍️', action: 'ai:generate-commit', agent: 'Claude Code' },
   { type: 'action', label: '同步 PetPal 远程代码', icon: '⬇️', action: 'action:git-pull', risk: 'modify' },
-  { type: 'inbox', label: '保存剪贴板到 Inbox', icon: '📥', action: 'inbox:clipboard' },
+  { type: 'navigation', label: '生成本周工作周报', icon: '📊', action: 'navigate:weekly-report' },
   { type: 'navigation', label: '查看今日活动', icon: '📅', action: 'navigate:today' },
   { type: 'navigation', label: '打开自动化管理', icon: '⚙️', action: 'navigate:automations' }
 ]

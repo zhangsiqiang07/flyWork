@@ -11,7 +11,7 @@ function formatRelTime(iso) {
   return `${Math.floor(diff / 86400000)} 天前`
 }
 
-export default function Today({ sessions, workspaces, activityLog, onOpenWorkspace, onResumeSession, onPauseSession, onSetContextPanel }) {
+export default function Today({ sessions, workspaces, activityLog, onOpenWorkspace, onResumeSession, onPauseSession }) {
   const [runningAction, setRunningAction] = useState(null)
   const [runningWorkspace, setRunningWorkspace] = useState(null)
 
@@ -137,7 +137,7 @@ export default function Today({ sessions, workspaces, activityLog, onOpenWorkspa
                           <div className="build-status-meta">耗时 {ws.buildDuration} · {ws.buildTime}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => { onOpenWorkspace(ws.id); onSetContextPanel('log') }}>查看日志</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => onOpenWorkspace(ws.id)}>查看工作区</button>
                           <button className="btn btn-secondary btn-sm" style={{ color: 'var(--accent-purple)', borderColor: 'rgba(163,113,247,0.3)', background: 'var(--accent-purple-dim)' }}>
                             🤖 AI 分析
                           </button>
