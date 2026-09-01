@@ -31,6 +31,7 @@ const flyworkAPI = {
   openPath: (path) => ipcRenderer.invoke('open-path', path),
   openUrl: (url) => ipcRenderer.invoke('open-url', url),
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
+  readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),
 
   // Resolve a file path from a drag-drop File object.
   // Electron 32+ removed File.path in renderer; webUtils.getPathForFile is the replacement.
@@ -177,6 +178,20 @@ const flyworkAPI = {
     ipcRenderer.invoke('jenkins-stop-build', { jobPath, buildNumber }),
   jenkinsGetParameterChoices: (jobPath, paramName, fullClass = '') =>
     ipcRenderer.invoke('jenkins-get-parameter-choices', { jobPath, paramName, fullClass }),
+
+  // Development Orchestrator (智能研发编排)
+  orchestratorGetMeta: () => ipcRenderer.invoke('orchestrator-get-meta'),
+  orchestratorGetPlans: () => ipcRenderer.invoke('orchestrator-get-plans'),
+  orchestratorSavePlans: (plans) => ipcRenderer.invoke('orchestrator-save-plans', plans),
+  orchestratorResolveDag: (tasks) => ipcRenderer.invoke('orchestrator-resolve-dag', tasks),
+  orchestratorRouteTask: (task, projectProfile) =>
+    ipcRenderer.invoke('orchestrator-route-task', { task, projectProfile }),
+  orchestratorBuildContext: (task, requirement, allTasks) =>
+    ipcRenderer.invoke('orchestrator-build-context', { task, requirement, allTasks }),
+  orchestratorReconcileAsset: (tasks, assetPayload) =>
+    ipcRenderer.invoke('orchestrator-reconcile-asset', { tasks, assetPayload }),
+  orchestratorDecomposePrd: (prdText, options) =>
+    ipcRenderer.invoke('orchestrator-decompose-prd', { prdText, options }),
 
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),

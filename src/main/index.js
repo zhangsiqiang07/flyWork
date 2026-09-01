@@ -10,11 +10,11 @@ import {
   Notification,
   dialog
 } from 'electron'
-import { join } from 'path'
+import { join, basename } from 'path'
 import { spawn, exec, execFileSync, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, mkdtempSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, mkdtempSync, statSync } from 'fs'
 import { homedir, tmpdir } from 'os'
 
 // 云效服务模块
@@ -117,6 +117,18 @@ import {
   openUrlInSimulator,
   generateAasaTemplate
 } from './services/universalLink.js'
+
+// Development Orchestrator (智能研发编排) 服务模块
+import {
+  AGENT_PROFILES,
+  MODEL_REGISTRY,
+  TaskDAGEngine,
+  AgentRouter,
+  ContextBuilder,
+  ChangeSetReconciler,
+  PlannerPromptEngine,
+  OrchestratorStore
+} from './services/orchestrator/orchestratorService.js'
 
 const execAsync = promisify(exec)
 
@@ -674,6 +686,25 @@ function setupIPC() {
       }
     )
     return result
+  })
+
+  // Read local text file content (for PRD documents, markdown, text)
+  ipcMain.handle('read-text-file', async (_, filePath) => {
+    try {
+      if (!filePath || !existsSync(filePath)) {
+        return { success: false, error: '文件不存在或路径无效' }
+      }
+      const content = readFileSync(filePath, 'utf-8')
+      const stats = statSync(filePath)
+      return {
+        success: true,
+        content,
+        fileName: basename(filePath),
+        size: stats.size
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
   })
 
   // ===== Crash Symbolication =====
@@ -2043,6 +2074,83 @@ function setupIPC() {
       return result
     } catch (err) {
       return { success: false, error: err.message, choices: [] }
+    }
+  })
+
+  // ==========================================
+  // Development Orchestrator (智能研发编排) IPC Handlers
+  // ==========================================
+  ipcMain.handle('orchestrator-get-meta', async () => {
+    return {
+      success: true,
+      agentProfiles: AGENT_PROFILES,
+      modelRegistry: MODEL_REGISTRY
+    }
+  })
+
+  ipcMain.handle('orchestrator-get-plans', async () => {
+    try {
+      const plans = OrchestratorStore.loadPlans()
+      return { success: true, plans: plans || [] }
+    } catch (err) {
+      return { success: false, error: err.message, plans: [] }
+    }
+  })
+
+  ipcMain.handle('orchestrator-save-plans', async (_, plans) => {
+    try {
+      const ok = OrchestratorStore.savePlans(plans)
+      return { success: ok }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-resolve-dag', async (_, tasks) => {
+    try {
+      const resolved = TaskDAGEngine.resolveGraphStatuses(tasks)
+      const levels = Array.from(TaskDAGEngine.computeTopologicalLevels(resolved).entries())
+      const cycleCheck = TaskDAGEngine.detectCycles(resolved)
+      return { success: true, tasks: resolved, levels, cycleCheck }
+    } catch (err) {
+      return { success: false, error: err.message, tasks }
+    }
+  })
+
+  ipcMain.handle('orchestrator-route-task', async (_, { task, projectProfile }) => {
+    try {
+      const routing = AgentRouter.routeTask(task, projectProfile)
+      return { success: true, routing }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-build-context', async (_, { task, requirement, allTasks }) => {
+    try {
+      const contextPackage = ContextBuilder.buildContextPackage(task, requirement, allTasks)
+      return { success: true, contextPackage }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-reconcile-asset', async (_, { tasks, assetPayload }) => {
+    try {
+      const { updatedTasks, changeSet } = ChangeSetReconciler.reconcileAsset(tasks, assetPayload)
+      return { success: true, updatedTasks, changeSet }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-decompose-prd', async (_, { prdText, options }) => {
+    try {
+      const result = PlannerPromptEngine.decomposePrd(prdText, options)
+      const prompt = PlannerPromptEngine.buildPlannerPrompt(prdText, options?.targetProjects)
+      return { success: true, plan: result, prompt }
+    } catch (err) {
+      return { success: false, error: err.message }
     }
   })
 }

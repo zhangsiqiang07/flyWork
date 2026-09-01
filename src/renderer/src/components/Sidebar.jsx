@@ -13,6 +13,7 @@ export default function Sidebar({
 
   const navItems = [
     { id: 'today', label: '今日', icon: <SunIcon /> },
+    { id: 'orchestrator', label: '智能编排', icon: <OrchestratorIcon />, badge: 'AI' },
     { id: 'weekly-report', label: '周报', icon: <ReportIcon /> },
     {
       id: 'inbox',
@@ -320,3 +321,22 @@ function JenkinsIcon() {
     </svg>
   )
 }
+
+function OrchestratorIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="12" r="3" />
+      <path d="M9 6h4a5 5 0 0 1 5 5v1M9 18h4a5 5 0 0 0 5-5v-1" />
+    </svg>
+  )
+}
+

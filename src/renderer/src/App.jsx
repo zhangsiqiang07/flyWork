@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import flyDeckSymbol from './assets/flydeck-symbol.svg'
 import { WORKSPACES, SESSIONS, INBOX_ITEMS, ACTIVITY_LOG, AUTOMATIONS } from './data/mockData'
+import { INITIAL_ORCHESTRATOR_PLANS } from './data/orchestratorMockData'
 import Sidebar from './components/Sidebar'
 import StatusBar from './components/StatusBar'
 import CommandCenter from './components/CommandCenter'
@@ -20,6 +21,8 @@ const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
 const WeeklyReport = lazy(() => import('./views/WeeklyReport'))
 const UniversalLink = lazy(() => import('./views/UniversalLink'))
 const JenkinsDashboard = lazy(() => import('./views/JenkinsDashboard'))
+const PrdIterationHub = lazy(() => import('./views/PrdIterationHub'))
+const Orchestrator = lazy(() => import('./views/Orchestrator'))
 
 function ViewSkeleton() {
   return (
@@ -89,6 +92,8 @@ export default function App() {
   const [weeklyReportRepos, setWeeklyReportRepos] = useState([])
   const [weeklyReportPrompt, setWeeklyReportPrompt] = useState('')
   const [weeklyReportInitialRepoPath, setWeeklyReportInitialRepoPath] = useState(null)
+  const [orchestratorPlans, setOrchestratorPlans] = useState(INITIAL_ORCHESTRATOR_PLANS)
+  const [activeOrchestratorPlanId, setActiveOrchestratorPlanId] = useState(null)
 
   // 1. Initial Data Loading
   useEffect(() => {
@@ -242,6 +247,10 @@ export default function App() {
     setCurrentView(view)
     if (view === 'workspace-detail' && meta) setSelectedWorkspaceId(meta)
     if (view === 'weekly-report') setWeeklyReportInitialRepoPath(meta)
+    if (view === 'orchestrator') {
+      if (meta) setActiveOrchestratorPlanId(meta)
+      else setActiveOrchestratorPlanId(null)
+    }
     if (view !== 'workspace-detail') {
       setContextPanelOpen(false)
     }
@@ -459,6 +468,50 @@ export default function App() {
             onNavigate={navigateTo}
           />
         ) : null
+      case 'orchestrator': {
+        const activePlan = orchestratorPlans.find((p) => p.id === activeOrchestratorPlanId)
+        if (activePlan) {
+          return (
+            <Orchestrator
+              activePlan={activePlan}
+              plans={orchestratorPlans}
+              onSelectPlan={(id) => setActiveOrchestratorPlanId(id)}
+              onBackToHub={() => setActiveOrchestratorPlanId(null)}
+              onUpdatePlan={(updatedPlan) => {
+                setOrchestratorPlans((prev) =>
+                  prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
+                )
+              }}
+              workspaces={workspaces}
+              onAddWorkspace={addWorkspaceFromFolder}
+            />
+          )
+        }
+        return (
+          <PrdIterationHub
+            plans={orchestratorPlans}
+            onSelectPlan={(id) => setActiveOrchestratorPlanId(id)}
+            onCreatePlan={(newPlan) => {
+              setOrchestratorPlans((prev) => [newPlan, ...prev])
+            }}
+            onRunReadyTasksForPlan={(planId) => {
+              setOrchestratorPlans((prev) =>
+                prev.map((p) => {
+                  if (p.id === planId) {
+                    const updatedTasks = (p.tasks || []).map((t) =>
+                      t.status === 'READY' ? { ...t, status: 'DONE' } : t
+                    )
+                    return { ...p, tasks: updatedTasks }
+                  }
+                  return p
+                })
+              )
+            }}
+            workspaces={workspaces}
+            onAddWorkspace={addWorkspaceFromFolder}
+          />
+        )
+      }
       case 'weekly-report':
         return (
           <WeeklyReport
