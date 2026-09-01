@@ -5,6 +5,7 @@ export default function Sidebar({
   sessions,
   inboxCount,
   yunxiaoConfigured,
+  jenkinsConfigured,
   onNavigate,
   onOpenWorkspace
 }) {
@@ -23,7 +24,13 @@ export default function Sidebar({
     { id: 'activity', label: '活动', icon: <ActivityIcon /> },
     { id: 'crash', label: '崩溃分析', icon: <CrashIcon /> },
     { id: 'universal-link', label: '通用链接', icon: <LinkIcon /> },
-    { id: 'yunxiao', label: '云效', icon: <YunxiaoIcon />, badge: yunxiaoConfigured ? '✓' : null }
+    { id: 'yunxiao', label: '云效', icon: <YunxiaoIcon />, badge: yunxiaoConfigured ? '✓' : null },
+    {
+      id: 'jenkins',
+      label: 'Jenkins',
+      icon: <JenkinsIcon />,
+      badge: jenkinsConfigured ? '✓' : null
+    }
   ]
 
   return (
@@ -295,6 +302,21 @@ function LinkIcon() {
     >
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  )
+}
+function JenkinsIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   )
 }

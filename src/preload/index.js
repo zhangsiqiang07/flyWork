@@ -161,6 +161,23 @@ const flyworkAPI = {
   universalLinkGenerateTemplate: (options) =>
     ipcRenderer.invoke('universal-link-generate-template', options),
 
+  // Jenkins CI APIs
+  jenkinsCheckAuth: () => ipcRenderer.invoke('jenkins-check-auth'),
+  jenkinsValidateConfig: (config) => ipcRenderer.invoke('jenkins-validate-config', config),
+  jenkinsLogout: () => ipcRenderer.invoke('jenkins-logout'),
+  jenkinsListJobs: () => ipcRenderer.invoke('jenkins-list-jobs'),
+  jenkinsGetJobDetail: (jobPath) => ipcRenderer.invoke('jenkins-get-job-detail', jobPath),
+  jenkinsBuildJob: (jobPath, parameters) =>
+    ipcRenderer.invoke('jenkins-build-job', { jobPath, parameters }),
+  jenkinsGetQueueItem: (queueId) => ipcRenderer.invoke('jenkins-get-queue-item', queueId),
+  jenkinsCancelQueueItem: (queueId) => ipcRenderer.invoke('jenkins-cancel-queue-item', queueId),
+  jenkinsGetBuildLog: (jobPath, buildNumber, start = 0) =>
+    ipcRenderer.invoke('jenkins-get-build-log', { jobPath, buildNumber, start }),
+  jenkinsStopBuild: (jobPath, buildNumber) =>
+    ipcRenderer.invoke('jenkins-stop-build', { jobPath, buildNumber }),
+  jenkinsGetParameterChoices: (jobPath, paramName, fullClass = '') =>
+    ipcRenderer.invoke('jenkins-get-parameter-choices', { jobPath, paramName, fullClass }),
+
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),
 

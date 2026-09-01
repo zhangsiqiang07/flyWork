@@ -19,6 +19,7 @@ const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
 const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
 const WeeklyReport = lazy(() => import('./views/WeeklyReport'))
 const UniversalLink = lazy(() => import('./views/UniversalLink'))
+const JenkinsDashboard = lazy(() => import('./views/JenkinsDashboard'))
 
 function ViewSkeleton() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
   const [automations, setAutomations] = useState([])
   const [chatHistories, setChatHistories] = useState({})
   const [yunxiaoConfigured, setYunxiaoConfigured] = useState(false)
+  const [jenkinsConfigured, setJenkinsConfigured] = useState(false)
   const [weeklyReports, setWeeklyReports] = useState([])
   const [weeklyReportRepos, setWeeklyReportRepos] = useState([])
   const [weeklyReportPrompt, setWeeklyReportPrompt] = useState('')
@@ -96,6 +98,12 @@ export default function App() {
         if (window.flywork?.yunxiaoCheckAuth) {
           const yunxiaoAuth = await window.flywork.yunxiaoCheckAuth()
           setYunxiaoConfigured(yunxiaoAuth.success && yunxiaoAuth.configured)
+        }
+
+        // Check Jenkins configuration status
+        if (window.flywork?.jenkinsCheckAuth) {
+          const jenkinsAuth = await window.flywork.jenkinsCheckAuth()
+          setJenkinsConfigured(jenkinsAuth.success && jenkinsAuth.configured)
         }
 
         if (window.flywork?.loadData) {
@@ -499,6 +507,8 @@ export default function App() {
         ) : (
           <YunxiaoSettings onConfigChange={(config) => setYunxiaoConfigured(config.configured)} />
         )
+      case 'jenkins':
+        return <JenkinsDashboard />
       default:
         return null
     }
@@ -570,9 +580,11 @@ export default function App() {
           sessions={sessions}
           inboxCount={inboxCount}
           yunxiaoConfigured={yunxiaoConfigured}
+          jenkinsConfigured={jenkinsConfigured}
           onNavigate={navigateTo}
           onOpenWorkspace={openWorkspace}
         />
+
         <div className="main-content">
           <Suspense fallback={<ViewSkeleton />}>
             {/* Keep automation runtime state and its IPC log subscription alive while users browse elsewhere. */}

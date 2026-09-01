@@ -62,6 +62,24 @@ import {
   updateSprint
 } from './services/yunxiao/sprint.js'
 
+// Jenkins 服务模块
+import {
+  hasStoredAuth as jenkinsHasStoredAuth,
+  getConfig as jenkinsGetConfig,
+  deleteStoredToken as jenkinsDeleteStoredToken,
+  validateConnection as jenkinsValidateConnection
+} from './services/jenkins/auth.js'
+import {
+  listJobs as jenkinsListJobs,
+  getJobDetail as jenkinsGetJobDetail,
+  buildJob as jenkinsBuildJob,
+  getQueueItem as jenkinsGetQueueItem,
+  cancelQueueItem as jenkinsCancelQueueItem,
+  getBuildLog as jenkinsGetBuildLog,
+  stopBuild as jenkinsStopBuild,
+  getParameterChoices as jenkinsGetParameterChoices
+} from './services/jenkins/jobs.js'
+
 // 崩溃符号化服务模块
 import {
   resolvePlcrashutil,
@@ -1907,6 +1925,124 @@ function setupIPC() {
       return { success: true, data }
     } catch (err) {
       return { success: false, error: err.message }
+    }
+  })
+
+  // ================= Jenkins 相关 IPC =================
+  ipcMain.handle('jenkins-check-auth', async () => {
+    try {
+      const configured = await jenkinsHasStoredAuth()
+      const config = jenkinsGetConfig()
+      return {
+        success: true,
+        configured,
+        baseUrl: config?.baseUrl || null,
+        username: config?.username || null
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-validate-config', async (_, { baseUrl, username, token }) => {
+    try {
+      const result = await jenkinsValidateConnection(baseUrl, username, token)
+      if (result.valid) {
+        writeAuditLog({ type: 'JENKINS_AUTH', action: 'CONFIG_VALIDATED', baseUrl })
+      }
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-logout', async () => {
+    try {
+      await jenkinsDeleteStoredToken()
+      writeAuditLog({ type: 'JENKINS_AUTH', action: 'LOGOUT' })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-list-jobs', async () => {
+    try {
+      const jobs = await jenkinsListJobs()
+      return { success: true, jobs }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-get-job-detail', async (_, jobPath) => {
+    try {
+      const job = await jenkinsGetJobDetail(jobPath)
+      return { success: true, job }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-build-job', async (_, { jobPath, parameters }) => {
+    try {
+      const result = await jenkinsBuildJob(jobPath, parameters)
+      writeAuditLog({
+        type: 'JENKINS_JOB',
+        action: 'TRIGGER_BUILD',
+        jobPath,
+        queueId: result.queueId
+      })
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-get-queue-item', async (_, queueId) => {
+    try {
+      const item = await jenkinsGetQueueItem(queueId)
+      return { success: true, item }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-cancel-queue-item', async (_, queueId) => {
+    try {
+      const result = await jenkinsCancelQueueItem(queueId)
+      writeAuditLog({ type: 'JENKINS_JOB', action: 'CANCEL_QUEUE', queueId })
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-get-build-log', async (_, { jobPath, buildNumber, start }) => {
+    try {
+      const logData = await jenkinsGetBuildLog(jobPath, buildNumber, start)
+      return { success: true, ...logData }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-stop-build', async (_, { jobPath, buildNumber }) => {
+    try {
+      const result = await jenkinsStopBuild(jobPath, buildNumber)
+      writeAuditLog({ type: 'JENKINS_JOB', action: 'STOP_BUILD', jobPath, buildNumber })
+      return { success: true, ...result }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('jenkins-get-parameter-choices', async (_, { jobPath, paramName, fullClass }) => {
+    try {
+      const result = await jenkinsGetParameterChoices(jobPath, paramName, fullClass)
+      return result
+    } catch (err) {
+      return { success: false, error: err.message, choices: [] }
     }
   })
 }

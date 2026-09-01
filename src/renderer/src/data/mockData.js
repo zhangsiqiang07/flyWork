@@ -61,9 +61,7 @@ export const WORKSPACES = [
     buildStatus: 'success',
     buildMessage: '最近同步成功',
     buildTime: '1小时前',
-    services: [
-      { name: 'Obsidian Sync', status: 'online' }
-    ],
+    services: [{ name: 'Obsidian Sync', status: 'online' }],
     integrations: {
       obsidian: 'KnowledgeOS'
     },
@@ -153,13 +151,23 @@ export const SESSIONS = [
     updatedAt: '2026-08-04T11:20:00+08:00',
     notes: '已定位到 UITabBarController 的 viewWillAppear 中强制刷新动画的问题，正在验证修复方案',
     resources: [
-      { type: 'xcode', name: 'PetPal.xcworkspace', path: '/Users/dimoo/Projects/PetPal/PetPal.xcworkspace' },
-      { type: 'doc', name: 'TabBar 技术调研', url: 'https://developer.apple.com/documentation/uikit/uitabbarcontroller' },
-      { type: 'url', name: 'Stack Overflow - TabBar flash fix', url: 'https://stackoverflow.com/questions/tabbar-flash' }
+      {
+        type: 'xcode',
+        name: 'PetPal.xcworkspace',
+        path: '/Users/dimoo/Projects/PetPal/PetPal.xcworkspace'
+      },
+      {
+        type: 'doc',
+        name: 'TabBar 技术调研',
+        url: 'https://developer.apple.com/documentation/uikit/uitabbarcontroller'
+      },
+      {
+        type: 'url',
+        name: 'Stack Overflow - TabBar flash fix',
+        url: 'https://stackoverflow.com/questions/tabbar-flash'
+      }
     ],
-    aiTasks: [
-      { id: 'ai-001', title: '分析 TabBar 闪烁根因', status: 'done', agent: 'Claude Code' }
-    ]
+    aiTasks: [{ id: 'ai-001', title: '分析 TabBar 闪烁根因', status: 'done', agent: 'Claude Code' }]
   },
   {
     id: 'session-002',
@@ -170,9 +178,7 @@ export const SESSIONS = [
     startedAt: '2026-08-03T14:00:00+08:00',
     updatedAt: '2026-08-03T18:30:00+08:00',
     notes: 'Docker Compose 文件已配置完成，需要测试服务间通信',
-    resources: [
-      { type: 'terminal', name: 'Server Terminal', path: '/Users/dimoo/Projects/Infra' }
-    ],
+    resources: [{ type: 'terminal', name: 'Server Terminal', path: '/Users/dimoo/Projects/Infra' }],
     aiTasks: []
   },
   {
@@ -216,7 +222,8 @@ export const INBOX_ITEMS = [
     id: 'inbox-003',
     type: 'bug',
     title: 'Bug: Jenkins checkout 被 report.xml 阻塞',
-    preview: 'Jenkins 日志显示 checkout 步骤因为工作目录中存在 report.xml 而失败，需要在 Jenkinsfile 中清理...',
+    preview:
+      'Jenkins 日志显示 checkout 步骤因为工作目录中存在 report.xml 而失败，需要在 Jenkinsfile 中清理...',
     source: 'manual',
     createdAt: '2026-08-04T08:00:00+08:00',
     workspaceId: 'petpal-ios',
@@ -226,7 +233,8 @@ export const INBOX_ITEMS = [
     id: 'inbox-004',
     type: 'clip',
     title: '剪贴板：Docker Compose 网络配置片段',
-    preview: 'networks:\n  app-network:\n    driver: bridge\n    ipam:\n      config:\n        - subnet: 172.20.0.0/16',
+    preview:
+      'networks:\n  app-network:\n    driver: bridge\n    ipam:\n      config:\n        - subnet: 172.20.0.0/16',
     source: 'clipboard',
     createdAt: '2026-08-04T07:45:00+08:00',
     workspaceId: 'server-infra',
@@ -349,9 +357,27 @@ export const AUTOMATIONS = [
       INSTALL_PODS: '1'
     },
     steps: [
-      { id: 's1', name: '检查工作区 Git 状态与分支', command: 'echo "Branch: $GIT_BRANCH, Commit: $GIT_SHORT_SHA ($GIT_COMMIT_MSG)"', risk: 'readonly', status: 'complete' },
-      { id: 's2', name: '同步远程代码', command: 'git pull origin $GIT_BRANCH --rebase', risk: 'modify', status: 'pending' },
-      { id: 's3', name: '执行 Packaging 构建脚本', command: './packaging/build.sh --env $BUILD_ENV --scheme $SCHEME', risk: 'high', status: 'pending' }
+      {
+        id: 's1',
+        name: '检查工作区 Git 状态与分支',
+        command: 'echo "Branch: $GIT_BRANCH, Commit: $GIT_SHORT_SHA ($GIT_COMMIT_MSG)"',
+        risk: 'readonly',
+        status: 'complete'
+      },
+      {
+        id: 's2',
+        name: '同步远程代码',
+        command: 'git pull origin $GIT_BRANCH --rebase',
+        risk: 'modify',
+        status: 'pending'
+      },
+      {
+        id: 's3',
+        name: '执行 Packaging 构建脚本',
+        command: './packaging/build.sh --env $BUILD_ENV --scheme $SCHEME',
+        risk: 'high',
+        status: 'pending'
+      }
     ]
   },
   {
@@ -365,10 +391,34 @@ export const AUTOMATIONS = [
       SYNC_BRANCH: 'main'
     },
     steps: [
-      { id: 's1', name: '扫描 Inbox 新文件', command: 'find 00_Inbox -newer .last_sync', risk: 'readonly', status: 'complete' },
-      { id: 's2', name: 'AI 分类建议', command: 'flywork ai classify --inbox', risk: 'normal', status: 'complete' },
-      { id: 's3', name: '提交变更', command: 'git add -A && git commit -m "sync: $GIT_AUTHOR on $GIT_BRANCH ($BUILD_DATE)"', risk: 'modify', status: 'pending' },
-      { id: 's4', name: '推送到远程', command: 'git push origin $SYNC_BRANCH', risk: 'modify', status: 'pending' }
+      {
+        id: 's1',
+        name: '扫描 Inbox 新文件',
+        command: 'find 00_Inbox -newer .last_sync',
+        risk: 'readonly',
+        status: 'complete'
+      },
+      {
+        id: 's2',
+        name: 'AI 分类建议',
+        command: 'flywork ai classify --inbox',
+        risk: 'normal',
+        status: 'complete'
+      },
+      {
+        id: 's3',
+        name: '提交变更',
+        command: 'git add -A && git commit -m "sync: $GIT_AUTHOR on $GIT_BRANCH ($BUILD_DATE)"',
+        risk: 'modify',
+        status: 'pending'
+      },
+      {
+        id: 's4',
+        name: '推送到远程',
+        command: 'git push origin $SYNC_BRANCH',
+        risk: 'modify',
+        status: 'pending'
+      }
     ]
   },
   {
@@ -380,9 +430,27 @@ export const AUTOMATIONS = [
     lastStatus: 'success',
     env: {},
     steps: [
-      { id: 's1', name: '检查 Docker 容器', command: 'docker ps --format table', risk: 'readonly', status: 'complete' },
-      { id: 's2', name: '检查 Nginx 状态', command: 'nginx -t && systemctl status nginx', risk: 'readonly', status: 'complete' },
-      { id: 's3', name: '检查 SSL 证书', command: 'certbot certificates', risk: 'readonly', status: 'complete' },
+      {
+        id: 's1',
+        name: '检查 Docker 容器',
+        command: 'docker ps --format table',
+        risk: 'readonly',
+        status: 'complete'
+      },
+      {
+        id: 's2',
+        name: '检查 Nginx 状态',
+        command: 'nginx -t && systemctl status nginx',
+        risk: 'readonly',
+        status: 'complete'
+      },
+      {
+        id: 's3',
+        name: '检查 SSL 证书',
+        command: 'certbot certificates',
+        risk: 'readonly',
+        status: 'complete'
+      },
       { id: 's4', name: '检查磁盘空间', command: 'df -h', risk: 'readonly', status: 'complete' }
     ]
   }
@@ -390,7 +458,13 @@ export const AUTOMATIONS = [
 
 export const AGENTS = [
   { id: 'opencode', name: 'OpenCode', role: '编码主控', icon: '⚡', color: 'var(--accent-blue)' },
-  { id: 'claude-code', name: 'Claude Code', role: '代码审查 / CI 分析', icon: '🧠', color: 'var(--accent-purple)' },
+  {
+    id: 'claude-code',
+    name: 'Claude Code',
+    role: '代码审查 / CI 分析',
+    icon: '🧠',
+    color: 'var(--accent-purple)'
+  },
   { id: 'codex', name: 'Codex', role: '复杂实现 / 测试', icon: '🔬', color: 'var(--accent-teal)' },
   { id: 'deepseek', name: 'DeepSeek', role: '文档整理', icon: '📚', color: 'var(--accent-amber)' },
   { id: 'chatgpt', name: 'ChatGPT', role: '需求分析', icon: '💬', color: 'var(--accent-green)' }
@@ -399,13 +473,48 @@ export const AGENTS = [
 export const COMMAND_SUGGESTIONS = [
   { type: 'navigation', label: '打开 PetPal iOS', icon: '🐾', action: 'navigate:petpal-ios' },
   { type: 'navigation', label: '打开 KnowledgeOS', icon: '🧠', action: 'navigate:knowledge-os' },
-  { type: 'session', label: '继续 TabBar 修复会话', icon: '▶️', action: 'resume-session:session-001' },
-  { type: 'action', label: '查看 Jenkins 失败日志', icon: '🔍', action: 'action:view-jenkins-log', risk: 'readonly' },
-  { type: 'ai', label: '分析 Jenkins 构建失败', icon: '🤖', action: 'ai:analyze-jenkins', agent: 'Claude Code' },
-  { type: 'ai', label: '生成当前 Git Commit 信息', icon: '✍️', action: 'ai:generate-commit', agent: 'Claude Code' },
-  { type: 'action', label: '同步 PetPal 远程代码', icon: '⬇️', action: 'action:git-pull', risk: 'modify' },
+  {
+    type: 'session',
+    label: '继续 TabBar 修复会话',
+    icon: '▶️',
+    action: 'resume-session:session-001'
+  },
+  {
+    type: 'action',
+    label: '查看 Jenkins 失败日志',
+    icon: '🔍',
+    action: 'action:view-jenkins-log',
+    risk: 'readonly'
+  },
+  {
+    type: 'ai',
+    label: '分析 Jenkins 构建失败',
+    icon: '🤖',
+    action: 'ai:analyze-jenkins',
+    agent: 'Claude Code'
+  },
+  {
+    type: 'ai',
+    label: '生成当前 Git Commit 信息',
+    icon: '✍️',
+    action: 'ai:generate-commit',
+    agent: 'Claude Code'
+  },
+  {
+    type: 'action',
+    label: '同步 PetPal 远程代码',
+    icon: '⬇️',
+    action: 'action:git-pull',
+    risk: 'modify'
+  },
   { type: 'navigation', label: '生成本周工作周报', icon: '📊', action: 'navigate:weekly-report' },
-  { type: 'navigation', label: '验证 Apple Universal Links', icon: '🔗', action: 'navigate:universal-link' },
+  {
+    type: 'navigation',
+    label: '验证 Apple Universal Links',
+    icon: '🔗',
+    action: 'navigate:universal-link'
+  },
   { type: 'navigation', label: '查看今日活动', icon: '📅', action: 'navigate:today' },
+  { type: 'navigation', label: '打开 Jenkins 控制中心', icon: '⚙️', action: 'navigate:jenkins' },
   { type: 'navigation', label: '打开自动化管理', icon: '⚙️', action: 'navigate:automations' }
 ]
