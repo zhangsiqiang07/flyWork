@@ -137,13 +137,6 @@ export default function JenkinsDashboard() {
 
     let cancelled = false
     async function load() {
-      await Promise.resolve()
-      setLoadingDetail(true)
-      setConsoleLog('')
-      setLogTextSize(0)
-      setHasMoreLog(false)
-      setSelectedBuildNumber(null)
-
       try {
         const res = await window.flywork?.jenkinsGetJobDetail(selectedJobPath)
         if (!cancelled && res?.success) {
@@ -237,6 +230,13 @@ export default function JenkinsDashboard() {
           setConsoleLog(res.text || '')
           setLogTextSize(res.textSize)
           setHasMoreLog(res.hasMore)
+
+          if (res.hasMore) {
+            setJobDetail((prev) => (prev ? { ...prev, status: 'BUILDING' } : prev))
+            setJobs((prevJobs) =>
+              prevJobs.map((j) => (j.path === selectedJobPath ? { ...j, status: 'BUILDING' } : j))
+            )
+          }
 
           if (autoScroll && terminalEndRef.current) {
             terminalEndRef.current.scrollIntoView({ behavior: 'smooth' })
@@ -407,19 +407,23 @@ export default function JenkinsDashboard() {
         return (
           <span
             style={{
-              display: 'inline-block',
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: 'var(--accent-blue)',
-              animation: 'spin 1.2s linear infinite',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 14,
+              height: 14,
+              fontSize: 13,
+              fontWeight: 'bold',
+              color: 'var(--accent-blue)',
+              animation: 'spin 1s linear infinite',
               flexShrink: 0
             }}
-            title="构建中"
+            title="正在构建中..."
           >
-            ●
+            ⟳
           </span>
         )
+
       case 'UNSTABLE':
         return (
           <span
@@ -654,8 +658,20 @@ export default function JenkinsDashboard() {
               ) : (
                 filteredJobs.map((j) => {
                   const isSelected = selectedJobPath === j.path
-                  const itemStatus =
-                    isSelected && jobDetail?.path === j.path ? jobDetail.status : j.status
+                  const isSelectedJobBuilding = Boolean(
+                    activeQueueId !== null ||
+                    jobDetail?.status === 'BUILDING' ||
+                    (hasMoreLog &&
+                      isLogStreaming &&
+                      selectedBuildNumber === jobDetail?.lastBuild?.number)
+                  )
+                  const isThisJobBuilding =
+                    j.status === 'BUILDING' || (isSelected && isSelectedJobBuilding)
+                  const itemStatus = isThisJobBuilding
+                    ? 'BUILDING'
+                    : isSelected && jobDetail?.path === j.path
+                      ? jobDetail.status
+                      : j.status
                   const itemLastBuild =
                     isSelected && jobDetail?.path === j.path && jobDetail.lastBuild
                       ? jobDetail.lastBuild
@@ -664,7 +680,16 @@ export default function JenkinsDashboard() {
                   return (
                     <div
                       key={j.path}
-                      onClick={() => setSelectedJobPath(j.path)}
+                      onClick={() => {
+                        if (selectedJobPath !== j.path) {
+                          setSelectedJobPath(j.path)
+                          setJobDetail(null)
+                          setConsoleLog('')
+                          setLoadingDetail(true)
+                          setActiveQueueId(null)
+                          setQueueStatusText(null)
+                        }
+                      }}
                       style={{
                         padding: '9px 12px',
                         borderRadius: 6,
@@ -721,7 +746,32 @@ export default function JenkinsDashboard() {
 
           {/* 右侧：任务详情与日志 */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {!jobDetail ? (
+            {loadingDetail ||
+            (Boolean(selectedJobPath) && (!jobDetail || jobDetail.path !== selectedJobPath)) ? (
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-muted)',
+                  gap: 12
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 24,
+                    animation: 'spin 1.2s linear infinite',
+                    display: 'inline-block',
+                    color: 'var(--accent-blue)'
+                  }}
+                >
+                  ⟳
+                </span>
+                <span style={{ fontSize: 13 }}>正在加载任务详情...</span>
+              </div>
+            ) : !jobDetail ? (
               <div
                 style={{
                   flex: 1,
@@ -732,7 +782,7 @@ export default function JenkinsDashboard() {
                   fontSize: 13
                 }}
               >
-                {loadingDetail ? '正在加载任务详情...' : '请在左侧选择一个 Jenkins 任务'}
+                请在左侧选择一个 Jenkins 任务
               </div>
             ) : (
               <>
@@ -754,16 +804,50 @@ export default function JenkinsDashboard() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {renderStatusBadge(jobDetail.status)}
+                        {renderStatusBadge(
+                          activeQueueId !== null ||
+                            jobDetail.status === 'BUILDING' ||
+                            (hasMoreLog &&
+                              isLogStreaming &&
+                              selectedBuildNumber === jobDetail.lastBuild?.number)
+                            ? 'BUILDING'
+                            : jobDetail.status
+                        )}
                         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
                           {jobDetail.fullName || jobDetail.name}
                         </h2>
+                        {(activeQueueId !== null ||
+                          jobDetail.status === 'BUILDING' ||
+                          (hasMoreLog &&
+                            isLogStreaming &&
+                            selectedBuildNumber === jobDetail.lastBuild?.number)) && (
+                          <span
+                            className="badge badge-blue"
+                            style={{
+                              fontSize: 11,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <span
+                              style={{
+                                animation: 'spin 1s linear infinite',
+                                display: 'inline-block'
+                              }}
+                            >
+                              ⟳
+                            </span>
+                            正在构建中
+                          </span>
+                        )}
                         {jobDetail.isParameterized && (
                           <span className="badge badge-purple" style={{ fontSize: 11 }}>
                             参数化构建
                           </span>
                         )}
                       </div>
+
                       {jobDetail.description && (
                         <p
                           style={{
@@ -906,11 +990,23 @@ export default function JenkinsDashboard() {
                           onChange={(e) => setSelectedBuildNumber(Number(e.target.value))}
                           style={{ fontSize: 12, padding: '3px 8px', height: 26 }}
                         >
-                          {jobDetail.builds?.map((b) => (
-                            <option key={b.number} value={b.number}>
-                              #{b.number} ({b.result || 'BUILDING'})
-                            </option>
-                          ))}
+                          {jobDetail.builds?.map((b) => {
+                            const isThisBuildRunning =
+                              b.result === 'BUILDING' ||
+                              b.building ||
+                              (activeQueueId !== null && b.number === selectedBuildNumber) ||
+                              (hasMoreLog && isLogStreaming && b.number === selectedBuildNumber)
+                            const displayResult = isThisBuildRunning
+                              ? 'BUILDING'
+                              : b.result || 'UNKNOWN'
+
+                            return (
+                              <option key={b.number} value={b.number}>
+                                #{b.number} (
+                                {displayResult === 'BUILDING' ? '构建中' : displayResult})
+                              </option>
+                            )
+                          })}
                         </select>
 
                         {hasMoreLog && (
@@ -1027,68 +1123,110 @@ export default function JenkinsDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {jobDetail.builds.map((b) => (
-                            <tr
-                              key={b.number}
-                              style={{
-                                borderBottom: '1px solid var(--border)',
-                                transition: 'background 120ms ease'
-                              }}
-                            >
-                              <td style={{ padding: '10px 12px', fontWeight: 600 }}>#{b.number}</td>
-                              <td style={{ padding: '10px 12px' }}>
-                                {b.result === 'SUCCESS' && (
-                                  <span className="badge badge-green" style={{ fontSize: 11 }}>
-                                    成功
-                                  </span>
-                                )}
-                                {b.result === 'FAILURE' && (
-                                  <span className="badge badge-red" style={{ fontSize: 11 }}>
-                                    失败
-                                  </span>
-                                )}
-                                {b.result === 'ABORTED' && (
-                                  <span className="badge" style={{ fontSize: 11 }}>
-                                    已中止
-                                  </span>
-                                )}
-                                {b.result === 'BUILDING' && (
-                                  <span className="badge badge-blue" style={{ fontSize: 11 }}>
-                                    构建中
-                                  </span>
-                                )}
-                                {!['SUCCESS', 'FAILURE', 'ABORTED', 'BUILDING'].includes(
-                                  b.result
-                                ) && (
-                                  <span className="badge" style={{ fontSize: 11 }}>
-                                    {b.result}
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
-                                {formatDuration(b.duration)}
-                              </td>
-                              <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
-                                {formatRelTime(b.timestamp)}
-                              </td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                                <button
-                                  className="btn btn-ghost"
-                                  onClick={() => {
-                                    setSelectedBuildNumber(b.number)
-                                    setActiveTab('console')
-                                  }}
-                                  style={{
-                                    fontSize: 11,
-                                    padding: '3px 8px',
-                                    color: 'var(--accent-blue)'
-                                  }}
+                          {jobDetail.builds.map((b) => {
+                            const isThisBuildRunning =
+                              b.result === 'BUILDING' ||
+                              b.building ||
+                              (activeQueueId !== null && b.number === selectedBuildNumber) ||
+                              (hasMoreLog && isLogStreaming && b.number === selectedBuildNumber)
+                            const displayResult = isThisBuildRunning
+                              ? 'BUILDING'
+                              : b.result || 'NOT_BUILT'
+
+                            return (
+                              <tr
+                                key={b.number}
+                                style={{
+                                  borderBottom: '1px solid var(--border)',
+                                  transition: 'background 120ms ease'
+                                }}
+                              >
+                                <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                                  #{b.number}
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                  {displayResult === 'BUILDING' && (
+                                    <span
+                                      className="badge badge-blue"
+                                      style={{
+                                        fontSize: 11,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          animation: 'spin 1s linear infinite',
+                                          display: 'inline-block'
+                                        }}
+                                      >
+                                        ⟳
+                                      </span>
+                                      构建中
+                                    </span>
+                                  )}
+                                  {displayResult === 'SUCCESS' && (
+                                    <span className="badge badge-green" style={{ fontSize: 11 }}>
+                                      成功
+                                    </span>
+                                  )}
+                                  {displayResult === 'FAILURE' && (
+                                    <span className="badge badge-red" style={{ fontSize: 11 }}>
+                                      失败
+                                    </span>
+                                  )}
+                                  {displayResult === 'ABORTED' && (
+                                    <span className="badge" style={{ fontSize: 11 }}>
+                                      已中止
+                                    </span>
+                                  )}
+                                  {displayResult === 'UNSTABLE' && (
+                                    <span className="badge badge-amber" style={{ fontSize: 11 }}>
+                                      不稳定
+                                    </span>
+                                  )}
+                                  {![
+                                    'SUCCESS',
+                                    'FAILURE',
+                                    'ABORTED',
+                                    'BUILDING',
+                                    'UNSTABLE'
+                                  ].includes(displayResult) && (
+                                    <span className="badge" style={{ fontSize: 11 }}>
+                                      {displayResult}
+                                    </span>
+                                  )}
+                                </td>
+                                <td
+                                  style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}
                                 >
-                                  查看日志
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
+                                  {formatDuration(b.duration)}
+                                </td>
+                                <td
+                                  style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}
+                                >
+                                  {formatRelTime(b.timestamp)}
+                                </td>
+                                <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                                  <button
+                                    className="btn btn-ghost"
+                                    onClick={() => {
+                                      setSelectedBuildNumber(b.number)
+                                      setActiveTab('console')
+                                    }}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '3px 8px',
+                                      color: 'var(--accent-blue)'
+                                    }}
+                                  >
+                                    查看日志
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     )}

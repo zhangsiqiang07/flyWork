@@ -29,8 +29,14 @@ export function formatJobPath(jobPath) {
 /**
  * 将 Jenkins 状态颜色转换为统一状态字符串
  */
-export function mapColorToStatus(color, lastBuild = null) {
-  if (lastBuild?.building || (color && color.endsWith('_anime'))) {
+export function mapColorToStatus(color, lastBuild = null, inQueue = false) {
+  if (
+    inQueue ||
+    (color && color.endsWith('_anime')) ||
+    lastBuild?.building === true ||
+    lastBuild?.result === 'BUILDING' ||
+    (lastBuild && !lastBuild.result)
+  ) {
     return 'BUILDING'
   }
   if (lastBuild?.result && lastBuild.result !== 'UNKNOWN') {
@@ -71,15 +77,24 @@ function parseJobNode(rawJob, parentPath = '') {
         rawJob._class.includes('OrganizationFolder') ||
         rawJob._class.includes('WorkflowMultiBranchProject')))
 
+  const isBuilding = Boolean(
+    rawJob.inQueue ||
+    (rawJob.color && rawJob.color.endsWith('_anime')) ||
+    rawJob.lastBuild?.building ||
+    (rawJob.lastBuild && !rawJob.lastBuild.result)
+  )
+
   const lastBuild = rawJob.lastBuild
     ? {
         number: rawJob.lastBuild.number,
-        result: rawJob.lastBuild.result || (rawJob.lastBuild.building ? 'BUILDING' : 'UNKNOWN'),
+        result: isBuilding ? 'BUILDING' : rawJob.lastBuild.result || 'NOT_BUILT',
         timestamp: rawJob.lastBuild.timestamp,
         duration: rawJob.lastBuild.duration,
-        building: !!rawJob.lastBuild.building
+        building: isBuilding
       }
     : null
+
+  const status = isBuilding ? 'BUILDING' : mapColorToStatus(rawJob.color, lastBuild, rawJob.inQueue)
 
   const job = {
     name,
@@ -87,7 +102,7 @@ function parseJobNode(rawJob, parentPath = '') {
     path: currentPath,
     url: rawJob.url || '',
     color: rawJob.color || '',
-    status: mapColorToStatus(rawJob.color, lastBuild),
+    status,
     isFolder: !!isFolder,
     buildable: rawJob.buildable !== false,
     inQueue: !!rawJob.inQueue,
@@ -300,15 +315,44 @@ export async function getJobDetail(jobPath) {
 
   const parameters = extractParameterDefinitions(data)
 
+  const isJobBuilding = Boolean(
+    data.inQueue ||
+    (data.color && data.color.endsWith('_anime')) ||
+    data.lastBuild?.building ||
+    (data.lastBuild && !data.lastBuild.result) ||
+    (Array.isArray(data.builds) &&
+      data.builds.some((b) => b.building || !b.result || b.result === 'BUILDING'))
+  )
+
   const builds = Array.isArray(data.builds)
-    ? data.builds.map((b) => ({
-        number: b.number,
-        result: b.result || (b.building ? 'BUILDING' : 'UNKNOWN'),
-        timestamp: b.timestamp,
-        duration: b.duration,
-        building: !!b.building
-      }))
+    ? data.builds.map((b) => {
+        const isThisBuildBuilding = Boolean(
+          b.building ||
+          b.result === 'BUILDING' ||
+          !b.result ||
+          (isJobBuilding && data.lastBuild && b.number === data.lastBuild.number)
+        )
+        return {
+          number: b.number,
+          result: isThisBuildBuilding ? 'BUILDING' : b.result || 'NOT_BUILT',
+          timestamp: b.timestamp,
+          duration: b.duration,
+          building: isThisBuildBuilding
+        }
+      })
     : []
+
+  const lastBuild = data.lastBuild
+    ? {
+        number: data.lastBuild.number,
+        result: isJobBuilding ? 'BUILDING' : data.lastBuild.result || 'NOT_BUILT',
+        timestamp: data.lastBuild.timestamp,
+        duration: data.lastBuild.duration,
+        building: isJobBuilding
+      }
+    : null
+
+  const status = isJobBuilding ? 'BUILDING' : mapColorToStatus(data.color, lastBuild, data.inQueue)
 
   return {
     name: data.name,
@@ -316,20 +360,11 @@ export async function getJobDetail(jobPath) {
     path: jobPath,
     url: data.url,
     color: data.color,
-    status: mapColorToStatus(data.color, data.lastBuild),
+    status,
     description: data.description || '',
-
     inQueue: !!data.inQueue,
     nextBuildNumber: data.nextBuildNumber,
-    lastBuild: data.lastBuild
-      ? {
-          number: data.lastBuild.number,
-          result: data.lastBuild.result || (data.lastBuild.building ? 'BUILDING' : 'UNKNOWN'),
-          timestamp: data.lastBuild.timestamp,
-          duration: data.lastBuild.duration,
-          building: !!data.lastBuild.building
-        }
-      : null,
+    lastBuild,
     lastSuccessfulBuild: data.lastSuccessfulBuild,
     lastFailedBuild: data.lastFailedBuild,
     parameters,
