@@ -69,12 +69,7 @@ import {
   extractMeta,
   extractBinaryImages
 } from './services/crash/plcrash.js'
-import {
-  resolveArchive,
-  dsymUuids,
-  matchUuids,
-  cleanupTmpDir
-} from './services/crash/dsym.js'
+import { resolveArchive, dsymUuids, matchUuids, cleanupTmpDir } from './services/crash/dsym.js'
 import {
   findSymbolicatecrash,
   symbolicate,
@@ -95,6 +90,15 @@ import {
   generateWeeklyReport,
   cancelWeeklyReportGeneration
 } from './services/weeklyReport.js'
+
+// 通用链接 (Apple Universal Links) 服务模块
+import {
+  verifyUniversalLink,
+  matchUrlAgainstAasa,
+  checkWorkspaceAssociatedDomains,
+  openUrlInSimulator,
+  generateAasaTemplate
+} from './services/universalLink.js'
 
 const execAsync = promisify(exec)
 
@@ -701,80 +705,75 @@ function setupIPC() {
     return { metas }
   })
 
-  ipcMain.handle(
-    'crash-symbolicate',
-    async (event, { reportId, plcrashPath, archivePath }) => {
-      const sender = event.sender
-      const send = (step, type, text) => {
-        if (!sender.isDestroyed()) {
-          sender.send('crash-log-chunk', { reportId, step, type, text, ts: Date.now() })
-        }
-      }
-      writeAuditLog({ type: 'CRASH_SYMBOLICATE', plcrashPath, archivePath })
-      const tmpDirs = []
-      try {
-        // Step 1: convert .plcrash -> Apple .crash
-        send('convert', 'info', '① 格式转换：.plcrash → Apple .crash')
-        const tmpDir = mkdtempSync(join(tmpdir(), 'flywork-crash-'))
-        tmpDirs.push(tmpDir)
-        const convertedPath = join(tmpDir, 'converted.crash')
-        const conv = await convertPlcrash(plcrashPath, convertedPath, (type, text) =>
-          send('convert', type, text)
-        )
-        if (!conv.ok) {
-          send('convert', 'exit', '✗ 转换失败')
-          return { success: false, error: conv.error, step: 'convert' }
-        }
-        const images = extractBinaryImages(conv.convertedText)
-
-        // Step 2: UUID verification
-        send('uuid', 'info', '② UUID 核验：dSYM vs Binary Images')
-        const resolved = await resolveArchive(archivePath, (type, text) => send('uuid', type, text))
-        if (resolved.tmpDir) tmpDirs.push(resolved.tmpDir)
-        if (!resolved.dsymPath) {
-          send('uuid', 'exit', `✗ ${resolved.error || '无法解析符号文件'}`)
-          return { success: false, error: resolved.error, step: 'uuid' }
-        }
-        const { uuids } = await dsymUuids(resolved.dsymPath, (type, text) =>
-          send('uuid', type, text)
-        )
-        const matchedImages = matchUuids(images, uuids)
-        const hitCount = matchedImages.filter((i) => i.matched === 'hit').length
-        send('uuid', 'info', `镜像匹配：${hitCount}/${images.length} 命中`)
-
-        // Step 3: symbolicate
-        send('symbolicate', 'info', '③ 符号化执行：symbolicatecrash')
-        const sym = await symbolicate(convertedPath, resolved.dsymPath, (type, text) =>
-          send('symbolicate', type, text)
-        )
-        if (!sym.ok) {
-          send('symbolicate', 'exit', '✗ 符号化失败')
-          return { success: false, error: sym.error, step: 'symbolicate' }
-        }
-
-        // Step 4: parse & build report
-        send('parse', 'info', '④ 解析渲染：构建结构化报告')
-        const parsed = parseSymbolicatedCrash(sym.text)
-        const report = buildReport({
-          meta: parsed.meta,
-          images: matchedImages,
-          threads: parsed.threads,
-          rawSymbolicated: sym.text,
-          reportId
-        })
-        saveReport(report)
-        writeAuditLog({ type: 'CRASH_RESULT', reportId: report.id, success: true })
-        send('done', 'exit', '✓ 完成')
-        return { success: true, report }
-      } catch (e) {
-        writeAuditLog({ type: 'CRASH_RESULT', reportId, success: false, error: e.message })
-        send('error', 'stderr', `[异常] ${e.message}`)
-        return { success: false, error: e.message }
-      } finally {
-        for (const d of tmpDirs) cleanupTmpDir(d)
+  ipcMain.handle('crash-symbolicate', async (event, { reportId, plcrashPath, archivePath }) => {
+    const sender = event.sender
+    const send = (step, type, text) => {
+      if (!sender.isDestroyed()) {
+        sender.send('crash-log-chunk', { reportId, step, type, text, ts: Date.now() })
       }
     }
-  )
+    writeAuditLog({ type: 'CRASH_SYMBOLICATE', plcrashPath, archivePath })
+    const tmpDirs = []
+    try {
+      // Step 1: convert .plcrash -> Apple .crash
+      send('convert', 'info', '① 格式转换：.plcrash → Apple .crash')
+      const tmpDir = mkdtempSync(join(tmpdir(), 'flywork-crash-'))
+      tmpDirs.push(tmpDir)
+      const convertedPath = join(tmpDir, 'converted.crash')
+      const conv = await convertPlcrash(plcrashPath, convertedPath, (type, text) =>
+        send('convert', type, text)
+      )
+      if (!conv.ok) {
+        send('convert', 'exit', '✗ 转换失败')
+        return { success: false, error: conv.error, step: 'convert' }
+      }
+      const images = extractBinaryImages(conv.convertedText)
+
+      // Step 2: UUID verification
+      send('uuid', 'info', '② UUID 核验：dSYM vs Binary Images')
+      const resolved = await resolveArchive(archivePath, (type, text) => send('uuid', type, text))
+      if (resolved.tmpDir) tmpDirs.push(resolved.tmpDir)
+      if (!resolved.dsymPath) {
+        send('uuid', 'exit', `✗ ${resolved.error || '无法解析符号文件'}`)
+        return { success: false, error: resolved.error, step: 'uuid' }
+      }
+      const { uuids } = await dsymUuids(resolved.dsymPath, (type, text) => send('uuid', type, text))
+      const matchedImages = matchUuids(images, uuids)
+      const hitCount = matchedImages.filter((i) => i.matched === 'hit').length
+      send('uuid', 'info', `镜像匹配：${hitCount}/${images.length} 命中`)
+
+      // Step 3: symbolicate
+      send('symbolicate', 'info', '③ 符号化执行：symbolicatecrash')
+      const sym = await symbolicate(convertedPath, resolved.dsymPath, (type, text) =>
+        send('symbolicate', type, text)
+      )
+      if (!sym.ok) {
+        send('symbolicate', 'exit', '✗ 符号化失败')
+        return { success: false, error: sym.error, step: 'symbolicate' }
+      }
+
+      // Step 4: parse & build report
+      send('parse', 'info', '④ 解析渲染：构建结构化报告')
+      const parsed = parseSymbolicatedCrash(sym.text)
+      const report = buildReport({
+        meta: parsed.meta,
+        images: matchedImages,
+        threads: parsed.threads,
+        rawSymbolicated: sym.text,
+        reportId
+      })
+      saveReport(report)
+      writeAuditLog({ type: 'CRASH_RESULT', reportId: report.id, success: true })
+      send('done', 'exit', '✓ 完成')
+      return { success: true, report }
+    } catch (e) {
+      writeAuditLog({ type: 'CRASH_RESULT', reportId, success: false, error: e.message })
+      send('error', 'stderr', `[异常] ${e.message}`)
+      return { success: false, error: e.message }
+    } finally {
+      for (const d of tmpDirs) cleanupTmpDir(d)
+    }
+  })
 
   ipcMain.handle('crash-list-reports', async () => {
     return listReports()
@@ -787,6 +786,27 @@ function setupIPC() {
   ipcMain.handle('crash-delete-report', async (_, { reportId }) => {
     writeAuditLog({ type: 'CRASH_DELETE', reportId })
     return deleteReport(reportId)
+  })
+
+  // Apple Universal Links 验证与调试
+  ipcMain.handle('universal-link-verify', async (_, { target }) => {
+    return verifyUniversalLink(target)
+  })
+
+  ipcMain.handle('universal-link-test-url', async (_, { aasaData, testUrl, targetAppId }) => {
+    return matchUrlAgainstAasa(aasaData, testUrl, targetAppId)
+  })
+
+  ipcMain.handle('universal-link-check-workspace', async (_, { workspaceRoot }) => {
+    return checkWorkspaceAssociatedDomains(workspaceRoot)
+  })
+
+  ipcMain.handle('universal-link-simulator-open', async (_, { url }) => {
+    return openUrlInSimulator(url)
+  })
+
+  ipcMain.handle('universal-link-generate-template', async (_, options) => {
+    return generateAasaTemplate(options)
   })
 
   // Get action registry (for UI display)
@@ -1294,7 +1314,10 @@ function setupIPC() {
         if (isSensitive) return []
         try {
           return [
-            git(['diff', '--no-index', '--no-ext-diff', '--no-color', '--', '/dev/null', file], repoRoot)
+            git(
+              ['diff', '--no-index', '--no-ext-diff', '--no-color', '--', '/dev/null', file],
+              repoRoot
+            )
           ]
         } catch (err) {
           // git diff --no-index returns code 1 when it successfully finds a difference.
@@ -1336,10 +1359,9 @@ function setupIPC() {
       const timeout = setTimeout(() => controller.abort(), 60000)
       let response
       try {
-        const baseUrl = (process.env.BUG_AI_API_BASE_URL || 'https://dev.foresightx.com.cn/bug-ai').replace(
-          /\/$/,
-          ''
-        )
+        const baseUrl = (
+          process.env.BUG_AI_API_BASE_URL || 'https://dev.foresightx.com.cn/bug-ai'
+        ).replace(/\/$/, '')
         response = await fetch(`${baseUrl}/api/v1/commit/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -1360,7 +1382,10 @@ function setupIPC() {
         const detail = Array.isArray(payload?.detail)
           ? payload.detail.map((item) => item.msg).join('；')
           : payload?.detail
-        return { success: false, error: detail || `Commit API 请求失败（HTTP ${response.status}）。` }
+        return {
+          success: false,
+          error: detail || `Commit API 请求失败（HTTP ${response.status}）。`
+        }
       }
 
       const commitMessage =
@@ -1749,16 +1774,19 @@ function setupIPC() {
     }
   })
 
-  ipcMain.handle('yunxiao-get-workitem-image', async (_, { imageUrl, workitemId, organizationId }) => {
-    try {
-      return {
-        success: true,
-        dataUrl: await getWorkitemImage(imageUrl, workitemId, organizationId)
+  ipcMain.handle(
+    'yunxiao-get-workitem-image',
+    async (_, { imageUrl, workitemId, organizationId }) => {
+      try {
+        return {
+          success: true,
+          dataUrl: await getWorkitemImage(imageUrl, workitemId, organizationId)
+        }
+      } catch (err) {
+        return { success: false, error: err.message }
       }
-    } catch (err) {
-      return { success: false, error: err.message }
     }
-  })
+  )
 
   ipcMain.handle('yunxiao-create-workitem', async (_, { workitem, organizationId }) => {
     try {

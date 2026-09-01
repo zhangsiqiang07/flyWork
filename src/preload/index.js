@@ -151,6 +151,16 @@ const flyworkAPI = {
     return () => ipcRenderer.removeListener('crash-log-chunk', handler)
   },
 
+  // Apple Universal Links
+  universalLinkVerify: (target) => ipcRenderer.invoke('universal-link-verify', { target }),
+  universalLinkTestUrl: (aasaData, testUrl, targetAppId) =>
+    ipcRenderer.invoke('universal-link-test-url', { aasaData, testUrl, targetAppId }),
+  universalLinkCheckWorkspace: (workspaceRoot) =>
+    ipcRenderer.invoke('universal-link-check-workspace', { workspaceRoot }),
+  universalLinkSimulatorOpen: (url) => ipcRenderer.invoke('universal-link-simulator-open', { url }),
+  universalLinkGenerateTemplate: (options) =>
+    ipcRenderer.invoke('universal-link-generate-template', options),
+
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),
 

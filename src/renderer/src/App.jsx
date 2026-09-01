@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import flyDeckSymbol from './assets/flydeck-symbol.svg'
-import {
-  WORKSPACES,
-  SESSIONS,
-  INBOX_ITEMS,
-  ACTIVITY_LOG,
-  AUTOMATIONS
-} from './data/mockData'
+import { WORKSPACES, SESSIONS, INBOX_ITEMS, ACTIVITY_LOG, AUTOMATIONS } from './data/mockData'
 import Sidebar from './components/Sidebar'
 import StatusBar from './components/StatusBar'
 import CommandCenter from './components/CommandCenter'
@@ -24,15 +18,51 @@ const YunxiaoSettings = lazy(() => import('./components/YunxiaoSettings'))
 const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
 const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
 const WeeklyReport = lazy(() => import('./views/WeeklyReport'))
+const UniversalLink = lazy(() => import('./views/UniversalLink'))
 
 function ViewSkeleton() {
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 150ms ease' }}>
-      <div style={{ width: 180, height: 24, background: 'var(--bg-elevated)', borderRadius: 6, opacity: 0.6 }} />
-      <div style={{ width: 320, height: 16, background: 'var(--bg-elevated)', borderRadius: 4, opacity: 0.4 }} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginTop: 16 }}>
-        <div style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }} />
-        <div style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }} />
+    <div
+      style={{
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        animation: 'fadeIn 150ms ease'
+      }}
+    >
+      <div
+        style={{
+          width: 180,
+          height: 24,
+          background: 'var(--bg-elevated)',
+          borderRadius: 6,
+          opacity: 0.6
+        }}
+      />
+      <div
+        style={{
+          width: 320,
+          height: 16,
+          background: 'var(--bg-elevated)',
+          borderRadius: 4,
+          opacity: 0.4
+        }}
+      />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 16,
+          marginTop: 16
+        }}
+      >
+        <div
+          style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }}
+        />
+        <div
+          style={{ height: 140, background: 'var(--bg-elevated)', borderRadius: 10, opacity: 0.3 }}
+        />
       </div>
     </div>
   )
@@ -72,27 +102,49 @@ export default function App() {
           const savedData = await window.flywork.loadData()
           if (savedData && Array.isArray(savedData.workspaces)) {
             const loadedWorkspaces = savedData.workspaces || []
-            const wsIds = new Set(loadedWorkspaces.map(w => w.id))
+            const wsIds = new Set(loadedWorkspaces.map((w) => w.id))
 
             // Auto-repair: if automation.workspaceId doesn't match any workspace ID,
             // try to find the workspace by name/root similarity (prevents stale ID mismatches)
             const LEGACY_ID_MAP = {
-              'petpal-ios': (ws) => ws.some(w => w.root?.toLowerCase().includes('petpal') || w.name?.toLowerCase().includes('petpal')),
-              'knowledge-os': (ws) => ws.some(w => w.root?.toLowerCase().includes('knowledge') || w.name?.toLowerCase().includes('knowledge')),
-              'server-infra': (ws) => ws.some(w => w.name?.toLowerCase().includes('server') || w.name?.toLowerCase().includes('infra'))
+              'petpal-ios': (ws) =>
+                ws.some(
+                  (w) =>
+                    w.root?.toLowerCase().includes('petpal') ||
+                    w.name?.toLowerCase().includes('petpal')
+                ),
+              'knowledge-os': (ws) =>
+                ws.some(
+                  (w) =>
+                    w.root?.toLowerCase().includes('knowledge') ||
+                    w.name?.toLowerCase().includes('knowledge')
+                ),
+              'server-infra': (ws) =>
+                ws.some(
+                  (w) =>
+                    w.name?.toLowerCase().includes('server') ||
+                    w.name?.toLowerCase().includes('infra')
+                )
             }
 
-            const repairedAutomations = (savedData.automations || []).map(a => {
+            const repairedAutomations = (savedData.automations || []).map((a) => {
               if (!a.workspaceId || wsIds.has(a.workspaceId)) return a
               // Try to find a matching workspace by legacy alias
               const matchFn = LEGACY_ID_MAP[a.workspaceId]
               if (matchFn) {
-                const matched = loadedWorkspaces.find(w =>
-                  w.root?.toLowerCase().includes(a.workspaceId.replace('-ios', '').replace('-', '')) ||
-                  w.name?.toLowerCase().includes(a.workspaceId.replace('-ios', '').replace('-', ''))
+                const matched = loadedWorkspaces.find(
+                  (w) =>
+                    w.root
+                      ?.toLowerCase()
+                      .includes(a.workspaceId.replace('-ios', '').replace('-', '')) ||
+                    w.name
+                      ?.toLowerCase()
+                      .includes(a.workspaceId.replace('-ios', '').replace('-', ''))
                 )
                 if (matched) {
-                  console.log(`[flyWork] Repaired automation workspaceId: ${a.workspaceId} -> ${matched.id} (${matched.name})`)
+                  console.log(
+                    `[flyWork] Repaired automation workspaceId: ${a.workspaceId} -> ${matched.id} (${matched.name})`
+                  )
                   return { ...a, workspaceId: matched.id }
                 }
               }
@@ -130,7 +182,6 @@ export default function App() {
     initData()
   }, [])
 
-
   // 2. Data Auto-Persistence
   useEffect(() => {
     if (!isLoaded) return
@@ -150,7 +201,18 @@ export default function App() {
       }
     }, 500)
     return () => clearTimeout(timer)
-  }, [workspaces, sessions, inboxItems, activityLog, automations, chatHistories, weeklyReports, weeklyReportRepos, weeklyReportPrompt, isLoaded])
+  }, [
+    workspaces,
+    sessions,
+    inboxItems,
+    activityLog,
+    automations,
+    chatHistories,
+    weeklyReports,
+    weeklyReportRepos,
+    weeklyReportPrompt,
+    isLoaded
+  ])
 
   useEffect(() => {
     if (window.flywork) {
@@ -225,18 +287,19 @@ export default function App() {
   }, [])
 
   const updateWorkspace = useCallback((workspaceId, updates) => {
-    setWorkspaces((prev) =>
-      prev.map((w) => (w.id === workspaceId ? { ...w, ...updates } : w))
-    )
+    setWorkspaces((prev) => prev.map((w) => (w.id === workspaceId ? { ...w, ...updates } : w)))
   }, [])
 
-  const deleteWorkspace = useCallback((workspaceId) => {
-    setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId))
-    if (selectedWorkspaceId === workspaceId) {
-      setSelectedWorkspaceId(null)
-      setCurrentView('workspaces')
-    }
-  }, [selectedWorkspaceId])
+  const deleteWorkspace = useCallback(
+    (workspaceId) => {
+      setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId))
+      if (selectedWorkspaceId === workspaceId) {
+        setSelectedWorkspaceId(null)
+        setCurrentView('workspaces')
+      }
+    },
+    [selectedWorkspaceId]
+  )
 
   const resumeSession = useCallback((sessionId) => {
     setSessions((prev) =>
@@ -256,7 +319,10 @@ export default function App() {
   }, [])
 
   const addInboxItem = useCallback((item) => {
-    setInboxItems((prev) => [{ id: `inbox-${Date.now()}`, createdAt: new Date().toISOString(), ...item }, ...prev])
+    setInboxItems((prev) => [
+      { id: `inbox-${Date.now()}`, createdAt: new Date().toISOString(), ...item },
+      ...prev
+    ])
   }, [])
 
   const deleteInboxItem = useCallback((id) => {
@@ -267,40 +333,43 @@ export default function App() {
   const inboxCount = inboxItems.length
   const activeSessions = sessions.filter((s) => s.status === 'active').length
 
-  const importWorkspaceByPath = useCallback((rootPath, customName, defaultAgent = 'Claude Code') => {
-    if (!rootPath) return
-    const folderName = customName || rootPath.split('/').pop() || 'Unassigned Project'
-    const newId = `ws-${Date.now()}`
-    const newWs = {
-      id: newId,
-      name: folderName,
-      description: `自动关联的 ${defaultAgent} 本地项目`,
-      root: rootPath,
-      gitBranch: 'main',
-      gitStatus: 'clean',
-      gitModifiedCount: 0,
-      icon: defaultAgent.includes('Claude') ? '🤖' : '🧠',
-      bgColor: 'var(--accent-purple-dim)',
-      defaultAgent,
-      gitModifiedFiles: [],
-      lastCommit: '已关联原生 CLI 存储',
-      lastCommitHash: '',
-      lastCommitTime: '刚刚',
-      buildStatus: 'success',
-      buildMessage: '同步就绪',
-      services: [],
-      actions: [
-        { id: 'open-finder', name: '打开 Finder', risk: 'readonly', icon: '📁' },
-        { id: 'open-terminal', name: '打开终端', risk: 'readonly', icon: '💻' },
-        { id: 'git-status', name: '查看 Git 状态', risk: 'readonly', icon: '📊' }
-      ],
-      tags: ['Native Agent', defaultAgent]
-    }
+  const importWorkspaceByPath = useCallback(
+    (rootPath, customName, defaultAgent = 'Claude Code') => {
+      if (!rootPath) return
+      const folderName = customName || rootPath.split('/').pop() || 'Unassigned Project'
+      const newId = `ws-${Date.now()}`
+      const newWs = {
+        id: newId,
+        name: folderName,
+        description: `自动关联的 ${defaultAgent} 本地项目`,
+        root: rootPath,
+        gitBranch: 'main',
+        gitStatus: 'clean',
+        gitModifiedCount: 0,
+        icon: defaultAgent.includes('Claude') ? '🤖' : '🧠',
+        bgColor: 'var(--accent-purple-dim)',
+        defaultAgent,
+        gitModifiedFiles: [],
+        lastCommit: '已关联原生 CLI 存储',
+        lastCommitHash: '',
+        lastCommitTime: '刚刚',
+        buildStatus: 'success',
+        buildMessage: '同步就绪',
+        services: [],
+        actions: [
+          { id: 'open-finder', name: '打开 Finder', risk: 'readonly', icon: '📁' },
+          { id: 'open-terminal', name: '打开终端', risk: 'readonly', icon: '💻' },
+          { id: 'git-status', name: '查看 Git 状态', risk: 'readonly', icon: '📊' }
+        ],
+        tags: ['Native Agent', defaultAgent]
+      }
 
-    setWorkspaces((prev) => [newWs, ...prev])
-    setSelectedWorkspaceId(newId)
-    setCurrentView('workspace-detail')
-  }, [])
+      setWorkspaces((prev) => [newWs, ...prev])
+      setSelectedWorkspaceId(newId)
+      setCurrentView('workspace-detail')
+    },
+    []
+  )
 
   const handleOpenSessionChat = useCallback((sessionInfo) => {
     setActiveSessionChat(sessionInfo)
@@ -311,22 +380,43 @@ export default function App() {
     setContextPanelOpen(false)
   }, [])
 
-  const handleAskAI = useCallback((promptText, workspaceId = null) => {
-    const wsId = workspaceId || selectedWorkspaceId || 'global'
-    const threadKey = `${wsId}_Claude Code`
-    const newMsg = { role: 'user', content: promptText, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }
-    const aiReply = { role: 'assistant', content: "🔍 已接收到自动化分析请求。\n\n**诊断定位**：\n已拦截到命令异常输出，建议进行以下排查：\n1. 检查命令行可执行工具与环境变量配置 (PATH)。\n2. 在自动化步骤编辑中尝试使用 ${root} 动态注入工作区绝对路径。\n3. 可对关键修改命令执行 Dry Run 预演验证。", time: '刚刚' }
+  const handleAskAI = useCallback(
+    (promptText, workspaceId = null) => {
+      const wsId = workspaceId || selectedWorkspaceId || 'global'
+      const threadKey = `${wsId}_Claude Code`
+      const newMsg = {
+        role: 'user',
+        content: promptText,
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      }
+      const aiReply = {
+        role: 'assistant',
+        content:
+          '🔍 已接收到自动化分析请求。\n\n**诊断定位**：\n已拦截到命令异常输出，建议进行以下排查：\n1. 检查命令行可执行工具与环境变量配置 (PATH)。\n2. 在自动化步骤编辑中尝试使用 ${root} 动态注入工作区绝对路径。\n3. 可对关键修改命令执行 Dry Run 预演验证。',
+        time: '刚刚'
+      }
 
-    setChatHistories((prev) => ({
-      ...prev,
-      [threadKey]: [...(prev[threadKey] || []), newMsg, aiReply]
-    }))
-  }, [selectedWorkspaceId])
+      setChatHistories((prev) => ({
+        ...prev,
+        [threadKey]: [...(prev[threadKey] || []), newMsg, aiReply]
+      }))
+    },
+    [selectedWorkspaceId]
+  )
 
   const renderMainContent = () => {
     switch (currentView) {
       case 'today':
-        return <Today sessions={sessions} workspaces={workspaces} activityLog={activityLog} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onPauseSession={pauseSession} />
+        return (
+          <Today
+            sessions={sessions}
+            workspaces={workspaces}
+            activityLog={activityLog}
+            onOpenWorkspace={openWorkspace}
+            onResumeSession={resumeSession}
+            onPauseSession={pauseSession}
+          />
+        )
       case 'workspaces':
         return (
           <Workspaces
@@ -375,23 +465,40 @@ export default function App() {
           />
         )
       case 'inbox':
-        return <Inbox items={inboxItems} workspaces={workspaces} onAddItem={addInboxItem} onDeleteItem={deleteInboxItem} />
+        return (
+          <Inbox
+            items={inboxItems}
+            workspaces={workspaces}
+            onAddItem={addInboxItem}
+            onDeleteItem={deleteInboxItem}
+          />
+        )
       case 'automations':
         return null
       case 'activity':
         return <Activity activityLog={activityLog} workspaces={workspaces} />
       case 'crash':
         return <CrashAnalysis />
+      case 'universal-link':
+        return <UniversalLink workspaces={workspaces} selectedWorkspaceId={selectedWorkspaceId} />
       case 'yunxiao-settings':
-        return <YunxiaoSettings onConfigChange={(config) => {
-          setYunxiaoConfigured(config.configured)
-          if (config.configured) {
-            // 配置完成后自动切换到仪表板
-            setCurrentView('yunxiao')
-          }
-        }} />
+        return (
+          <YunxiaoSettings
+            onConfigChange={(config) => {
+              setYunxiaoConfigured(config.configured)
+              if (config.configured) {
+                // 配置完成后自动切换到仪表板
+                setCurrentView('yunxiao')
+              }
+            }}
+          />
+        )
       case 'yunxiao':
-        return yunxiaoConfigured ? <YunxiaoDashboard /> : <YunxiaoSettings onConfigChange={(config) => setYunxiaoConfigured(config.configured)} />
+        return yunxiaoConfigured ? (
+          <YunxiaoDashboard />
+        ) : (
+          <YunxiaoSettings onConfigChange={(config) => setYunxiaoConfigured(config.configured)} />
+        )
       default:
         return null
     }
@@ -412,15 +519,43 @@ export default function App() {
         </button>
         <div className="titlebar-search">
           <button className="titlebar-search-btn" onClick={() => setCommandCenterOpen(true)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
             <span>搜索、执行动作、询问 AI...</span>
             <span className="shortcut">⌘K</span>
           </button>
         </div>
         <div className="titlebar-actions">
           {activeSessions > 0 && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--accent-green)', background:'var(--accent-green-dim)', padding:'3px 10px', borderRadius:'var(--radius-full)' }}>
-              <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent-green)' }} />
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                color: 'var(--accent-green)',
+                background: 'var(--accent-green-dim)',
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-full)'
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: 'var(--accent-green)'
+                }}
+              />
               {activeSessions} 个工作中
             </div>
           )}
@@ -428,11 +563,22 @@ export default function App() {
       </div>
 
       <div className="main-body">
-        <Sidebar currentView={currentView} selectedWorkspaceId={selectedWorkspaceId} workspaces={workspaces} sessions={sessions} inboxCount={inboxCount} yunxiaoConfigured={yunxiaoConfigured} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} />
+        <Sidebar
+          currentView={currentView}
+          selectedWorkspaceId={selectedWorkspaceId}
+          workspaces={workspaces}
+          sessions={sessions}
+          inboxCount={inboxCount}
+          yunxiaoConfigured={yunxiaoConfigured}
+          onNavigate={navigateTo}
+          onOpenWorkspace={openWorkspace}
+        />
         <div className="main-content">
           <Suspense fallback={<ViewSkeleton />}>
             {/* Keep automation runtime state and its IPC log subscription alive while users browse elsewhere. */}
-            <div style={{ display: currentView === 'automations' ? 'block' : 'none', height: '100%' }}>
+            <div
+              style={{ display: currentView === 'automations' ? 'block' : 'none', height: '100%' }}
+            >
               <AutomationsView
                 automations={automations}
                 workspaces={workspaces}
@@ -454,7 +600,16 @@ export default function App() {
       <StatusBar workspaces={workspaces} sessions={sessions} />
 
       {commandCenterOpen && (
-        <CommandCenter workspaces={workspaces} sessions={sessions} automations={automations} onClose={() => setCommandCenterOpen(false)} onNavigate={navigateTo} onOpenWorkspace={openWorkspace} onResumeSession={resumeSession} onAddInboxItem={addInboxItem} />
+        <CommandCenter
+          workspaces={workspaces}
+          sessions={sessions}
+          automations={automations}
+          onClose={() => setCommandCenterOpen(false)}
+          onNavigate={navigateTo}
+          onOpenWorkspace={openWorkspace}
+          onResumeSession={resumeSession}
+          onAddInboxItem={addInboxItem}
+        />
       )}
     </div>
   )
