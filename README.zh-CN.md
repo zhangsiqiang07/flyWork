@@ -29,6 +29,12 @@
 - 查看原生智能体存储中的项目特定会话
 - 访问对话历史和线程消息
 
+### 移动端与 iOS 专业工具
+- **iOS 模拟器控制箱**：设备运行监控与电源管理、一键 APNs 推送模拟、GPS 地理位置 Mock（预设与自定义经纬度）、App 沙盒数据目录 Finder 一键穿透打开、应用安装包拖拽即装
+- **描述文件与证书查看器**：解析本地与拖拽外部 `.mobileprovision` 描述文件、粘贴设备 UDID 瞬时过滤、到期倒计时预警、Entitlements 权限清单、macOS Keychain 代码签名证书与指纹检视
+- **iOS 崩溃分析**：支持导入 PLCrash 日志与 .dSYM 符号表，一键调用 `symbolicatecrash` 导出完整堆栈报告
+- **通用链接 (Universal Links)**：Apple AASA 验证、Path 模式匹配自检与模拟器直接唤起
+
 ### 命令中心
 - 通过 **⌥ Space**（Alt+Space）全局快捷键快速访问
 - 执行常用操作：打开 Xcode、终端、Finder
@@ -36,8 +42,7 @@
 
 ### 其他特性
 - 系统集成托盘，快速访问
-- 活动日志，完整审计追踪
-- 收件箱，收集待办事项
+- 设置与工具：环境医生 (Environment Doctor) 本地体检、系统操作审计日志（Audit Logs）、云效与 Jenkins 企业服务集成
 - 今日视图，专注当日任务
 - 深色模式，支持 macOS 毛玻璃效果
 

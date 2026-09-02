@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import flyDeckSymbol from './assets/flydeck-symbol.svg'
-import { WORKSPACES, SESSIONS, INBOX_ITEMS, ACTIVITY_LOG, AUTOMATIONS } from './data/mockData'
+import { WORKSPACES, SESSIONS, ACTIVITY_LOG, AUTOMATIONS } from './data/mockData'
 import { INITIAL_ORCHESTRATOR_PLANS } from './data/orchestratorMockData'
 import Sidebar from './components/Sidebar'
 import StatusBar from './components/StatusBar'
@@ -12,14 +12,11 @@ import './styles/index.css'
 const Today = lazy(() => import('./views/Today'))
 const Workspaces = lazy(() => import('./views/Workspaces'))
 const WorkspaceDetail = lazy(() => import('./views/WorkspaceDetail'))
-const Inbox = lazy(() => import('./views/Inbox'))
 const AutomationsView = lazy(() => import('./views/Automations'))
-const Activity = lazy(() => import('./views/Activity'))
-const YunxiaoSettings = lazy(() => import('./components/YunxiaoSettings'))
+const SettingsAndTools = lazy(() => import('./views/SettingsAndTools'))
 const YunxiaoDashboard = lazy(() => import('./views/YunxiaoDashboard'))
-const CrashAnalysis = lazy(() => import('./views/CrashAnalysis'))
 const WeeklyReport = lazy(() => import('./views/WeeklyReport'))
-const UniversalLink = lazy(() => import('./views/UniversalLink'))
+const IOSToolbox = lazy(() => import('./views/iOSToolbox'))
 const JenkinsDashboard = lazy(() => import('./views/JenkinsDashboard'))
 const PrdIterationHub = lazy(() => import('./views/PrdIterationHub'))
 const Orchestrator = lazy(() => import('./views/Orchestrator'))
@@ -82,7 +79,6 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [workspaces, setWorkspaces] = useState([])
   const [sessions, setSessions] = useState([])
-  const [inboxItems, setInboxItems] = useState([])
   const [activityLog, setActivityLog] = useState([])
   const [automations, setAutomations] = useState([])
   const [chatHistories, setChatHistories] = useState({})
@@ -94,6 +90,8 @@ export default function App() {
   const [weeklyReportInitialRepoPath, setWeeklyReportInitialRepoPath] = useState(null)
   const [orchestratorPlans, setOrchestratorPlans] = useState(INITIAL_ORCHESTRATOR_PLANS)
   const [activeOrchestratorPlanId, setActiveOrchestratorPlanId] = useState(null)
+  const [settingsInitialTab, setSettingsInitialTab] = useState('audit-log')
+  const [iosToolsInitialTab, setIosToolsInitialTab] = useState('simulator')
 
   // 1. Initial Data Loading
   useEffect(() => {
@@ -166,7 +164,6 @@ export default function App() {
 
             setWorkspaces(loadedWorkspaces)
             setSessions(savedData.sessions || [])
-            setInboxItems(savedData.inboxItems || [])
             setActivityLog(savedData.activityLog || [])
             setAutomations(repairedAutomations)
             setChatHistories(savedData.chatHistories || {})
@@ -183,7 +180,6 @@ export default function App() {
       // Default to empty arrays
       setWorkspaces([])
       setSessions([])
-      setInboxItems([])
       setActivityLog([])
       setAutomations([])
       setChatHistories({})
@@ -203,7 +199,6 @@ export default function App() {
         window.flywork.saveData({
           workspaces,
           sessions,
-          inboxItems,
           activityLog,
           automations,
           chatHistories,
@@ -217,7 +212,6 @@ export default function App() {
   }, [
     workspaces,
     sessions,
-    inboxItems,
     activityLog,
     automations,
     chatHistories,
@@ -250,6 +244,14 @@ export default function App() {
     if (view === 'orchestrator') {
       if (meta) setActiveOrchestratorPlanId(meta)
       else setActiveOrchestratorPlanId(null)
+    }
+    if (view === 'settings') {
+      if (meta) setSettingsInitialTab(meta)
+      else setSettingsInitialTab('audit-log')
+    }
+    if (view === 'ios-tools') {
+      if (meta) setIosToolsInitialTab(meta)
+      else setIosToolsInitialTab('simulator')
     }
     if (view !== 'workspace-detail') {
       setContextPanelOpen(false)
@@ -335,19 +337,7 @@ export default function App() {
     )
   }, [])
 
-  const addInboxItem = useCallback((item) => {
-    setInboxItems((prev) => [
-      { id: `inbox-${Date.now()}`, createdAt: new Date().toISOString(), ...item },
-      ...prev
-    ])
-  }, [])
-
-  const deleteInboxItem = useCallback((id) => {
-    setInboxItems((prev) => prev.filter((item) => item.id !== id))
-  }, [])
-
   const selectedWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId)
-  const inboxCount = inboxItems.length
   const activeSessions = sessions.filter((s) => s.status === 'active').length
 
   const importWorkspaceByPath = useCallback(
@@ -544,33 +534,57 @@ export default function App() {
             initialRepoPath={weeklyReportInitialRepoPath}
           />
         )
-      case 'inbox':
-        return (
-          <Inbox
-            items={inboxItems}
-            workspaces={workspaces}
-            onAddItem={addInboxItem}
-            onDeleteItem={deleteInboxItem}
-          />
-        )
       case 'automations':
         return null
+      case 'settings':
+      case 'audit-log':
       case 'activity':
-        return <Activity activityLog={activityLog} workspaces={workspaces} />
-      case 'crash':
-        return <CrashAnalysis />
-      case 'universal-link':
-        return <UniversalLink workspaces={workspaces} selectedWorkspaceId={selectedWorkspaceId} />
+      case 'doctor':
+      case 'environment':
+      case 'jenkins-settings':
       case 'yunxiao-settings':
         return (
-          <YunxiaoSettings
-            onConfigChange={(config) => {
+          <SettingsAndTools
+            initialTab={
+              currentView === 'yunxiao-settings'
+                ? 'yunxiao'
+                : currentView === 'jenkins-settings'
+                  ? 'jenkins'
+                  : currentView === 'doctor' || currentView === 'environment'
+                    ? 'doctor'
+                    : settingsInitialTab
+            }
+            onYunxiaoConfigChange={(config) => {
               setYunxiaoConfigured(config.configured)
-              if (config.configured) {
-                // 配置完成后自动切换到仪表板
+              if (config.configured && currentView === 'yunxiao-settings') {
                 setCurrentView('yunxiao')
               }
             }}
+            onJenkinsConfigChange={(config) => {
+              setJenkinsConfigured(config.configured)
+              if (config.configured && currentView === 'jenkins-settings') {
+                setCurrentView('jenkins')
+              }
+            }}
+          />
+        )
+      case 'ios-tools':
+      case 'simulator':
+      case 'provisioning':
+      case 'profiles':
+      case 'crash':
+      case 'universal-link':
+        return (
+          <IOSToolbox
+            initialTab={
+              ['simulator', 'provisioning', 'profiles', 'crash', 'universal-link'].includes(
+                currentView
+              )
+                ? currentView
+                : iosToolsInitialTab
+            }
+            workspaces={workspaces}
+            selectedWorkspaceId={selectedWorkspaceId}
           />
         )
       case 'yunxiao':
@@ -653,7 +667,6 @@ export default function App() {
           selectedWorkspaceId={selectedWorkspaceId}
           workspaces={workspaces}
           sessions={sessions}
-          inboxCount={inboxCount}
           yunxiaoConfigured={yunxiaoConfigured}
           jenkinsConfigured={jenkinsConfigured}
           onNavigate={navigateTo}
@@ -695,7 +708,6 @@ export default function App() {
           onNavigate={navigateTo}
           onOpenWorkspace={openWorkspace}
           onResumeSession={resumeSession}
-          onAddInboxItem={addInboxItem}
         />
       )}
     </div>

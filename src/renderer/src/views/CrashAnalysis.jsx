@@ -24,7 +24,7 @@ const getFilePath = (file) => {
   }
 }
 
-export default function CrashAnalysis() {
+export default function CrashAnalysis({ hideHeader = false }) {
   const [toolchain, setToolchain] = useState(null)
   const [metas, setMetas] = useState([])
   const [selectedPath, setSelectedPath] = useState(null)
@@ -181,25 +181,53 @@ export default function CrashAnalysis() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div
-        style={{
-          padding: '14px 20px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-            崩溃分析
+      {!hideHeader ? (
+        <div
+          style={{
+            padding: '14px 20px',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+              崩溃分析
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              iOS .plcrash + dSYM 符号化 · 本地优先，dSYM 不外发
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-            iOS .plcrash + dSYM 符号化 · 本地优先，dSYM 不外发
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {toolchain === null ? (
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>工具链检测中…</span>
+            ) : (
+              <>
+                <ToolchainBadge ok={!!toolchain?.plcrashutil} label="plcrashutil" />
+                <ToolchainBadge ok={!!toolchain?.symbolicatecrash} label="symbolicatecrash" />
+                <ToolchainBadge ok={!!toolchain?.dwarfdump} label="dwarfdump" />
+              </>
+            )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      ) : (
+        <div
+          style={{
+            padding: '6px 20px',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--bg-elevated)',
+            flexShrink: 0
+          }}
+        >
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto' }}>
+            PLCrash 符号化工具链状态:
+          </span>
           {toolchain === null ? (
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>工具链检测中…</span>
           ) : (
@@ -210,7 +238,7 @@ export default function CrashAnalysis() {
             </>
           )}
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div

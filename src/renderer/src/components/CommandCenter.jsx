@@ -6,7 +6,6 @@ const RESULT_TYPE_CONFIG = {
   action: { label: '动作', color: 'var(--accent-amber)', bg: 'var(--accent-amber-dim)' },
   session: { label: '会话', color: 'var(--accent-green)', bg: 'var(--accent-green-dim)' },
   ai: { label: 'AI', color: 'var(--accent-purple)', bg: 'var(--accent-purple-dim)' },
-  inbox: { label: '收件箱', color: 'var(--accent-teal)', bg: 'var(--accent-teal-dim)' },
   workspace: { label: '工作空间', color: 'var(--accent-blue)', bg: 'var(--accent-blue-dim)' }
 }
 
@@ -17,10 +16,9 @@ const RISK_LABELS = {
   high: { text: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function CommandCenter({ workspaces, sessions, automations = [], onClose, onNavigate, onOpenWorkspace, onResumeSession, onAddInboxItem }) {
+export default function CommandCenter({ workspaces, sessions, automations = [], onClose, onNavigate, onOpenWorkspace, onResumeSession }) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [inboxSaved, setInboxSaved] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -84,10 +82,6 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
       onResumeSession(action.replace('resume-session:', ''))
     } else if (action.startsWith('automation:')) {
       onNavigate('automations')
-    } else if (action === 'inbox:clipboard') {
-      onAddInboxItem({ type: 'clip', title: '剪贴板内容', preview: '从命令中心快速保存', source: 'clipboard', workspaceId: null, tags: [] })
-      setInboxSaved(true)
-      setTimeout(onClose, 800)
     } else if (action.startsWith('ai:')) {
       // Simulate AI task
       onClose()
@@ -118,8 +112,6 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
     return acc
   }, {})
 
-  let flatIdx = 0
-
   return (
     <div className="overlay-backdrop" onClick={onClose}>
       <div className="command-center" onClick={(e) => e.stopPropagation()}>
@@ -137,7 +129,6 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          {inboxSaved && <span style={{ color:'var(--accent-green)', fontSize:12 }}>✓ 已保存</span>}
           {query && (
             <button onClick={() => setQuery('')} style={{ color:'var(--text-muted)', padding:'2px' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>

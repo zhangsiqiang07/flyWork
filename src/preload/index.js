@@ -26,6 +26,46 @@ const flyworkAPI = {
 
   // Audit log
   getAuditLog: () => ipcRenderer.invoke('get-audit-log'),
+  getAuditLogPath: () => ipcRenderer.invoke('get-audit-log-path'),
+  openAuditLog: () => ipcRenderer.invoke('open-audit-log'),
+  clearAuditLog: () => ipcRenderer.invoke('clear-audit-log'),
+
+  // Environment Doctor
+  runEnvironmentDoctor: (options) => ipcRenderer.invoke('run-environment-doctor', options),
+
+  // Mobile Tools: Provisioning & Certificates
+  mobileListProfiles: () => ipcRenderer.invoke('mobile-list-profiles'),
+  mobileParseProfile: (filePath) => ipcRenderer.invoke('mobile-parse-profile', filePath),
+  mobileDeleteProfile: (filePath) => ipcRenderer.invoke('mobile-delete-profile', filePath),
+  mobileListKeychainCerts: () => ipcRenderer.invoke('mobile-list-keychain-certs'),
+  mobileRevealFile: (filePath) => ipcRenderer.invoke('mobile-reveal-file', filePath),
+  mobileOpenProfilesDir: () => ipcRenderer.invoke('mobile-open-profiles-dir'),
+
+  // Mobile Tools: Simulator Toolbox
+  simulatorList: () => ipcRenderer.invoke('simulator-list'),
+  simulatorBoot: (udid) => ipcRenderer.invoke('simulator-boot', udid),
+  simulatorShutdown: (udid) => ipcRenderer.invoke('simulator-shutdown', udid),
+  simulatorRestart: (udid) => ipcRenderer.invoke('simulator-restart', udid),
+  simulatorOpenApp: () => ipcRenderer.invoke('simulator-open-app'),
+  simulatorSetAppearance: (udid, appearance) =>
+    ipcRenderer.invoke('simulator-set-appearance', { udid, appearance }),
+  simulatorPush: (udid, bundleId, payload) =>
+    ipcRenderer.invoke('simulator-push', { udid, bundleId, payload }),
+  simulatorSetLocation: (udid, lat, lon) =>
+    ipcRenderer.invoke('simulator-set-location', { udid, lat, lon }),
+  simulatorClearLocation: (udid) => ipcRenderer.invoke('simulator-clear-location', udid),
+  simulatorOpenUrl: (udid, url) => ipcRenderer.invoke('simulator-open-url', { udid, url }),
+  simulatorInstallApp: (udid, appPath, isPhysical = false) =>
+    ipcRenderer.invoke('simulator-install-app', { udid, appPath, isPhysical }),
+  deviceLaunchApp: (udid, bundleId, isPhysical = false) =>
+    ipcRenderer.invoke('device-launch-app', { udid, bundleId, isPhysical }),
+  simulatorGetAppContainer: (udid, bundleId) =>
+    ipcRenderer.invoke('simulator-get-app-container', { udid, bundleId }),
+  simulatorSetClipboard: (udid, text) =>
+    ipcRenderer.invoke('simulator-set-clipboard', { udid, text }),
+  apnsSendPush: (options) => ipcRenderer.invoke('apns-send-push', options),
+  apnsValidateP12: (p12Path, password) =>
+    ipcRenderer.invoke('apns-validate-p12', { p12Path, password }),
 
   // File/URL
   openPath: (path) => ipcRenderer.invoke('open-path', path),

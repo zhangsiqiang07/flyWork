@@ -133,6 +133,39 @@ import {
   OrchestratorStore
 } from './services/orchestrator/orchestratorService.js'
 
+// Environment Doctor 服务模块
+import { runDiagnostics } from './services/doctor/doctorService.js'
+
+// Mobile Tools (Provisioning & Simulator)
+import {
+  listInstalledProfiles,
+  parseCustomProfile,
+  deleteProfile,
+  listKeychainCertificates
+} from './services/mobile/provisioningService.js'
+import {
+  listSimulators,
+  listPhysicalDevices,
+  listAllDevices,
+  bootSimulator,
+  shutdownSimulator,
+  restartSimulator,
+  openSimulatorApp,
+  setAppearance,
+  sendPushNotification,
+  setLocation,
+  clearLocation,
+  openUrl as simOpenUrl,
+  installApp as simInstallApp,
+  launchApp as deviceLaunchApp,
+  getAppContainer,
+  setClipboard as simSetClipboard
+} from './services/mobile/simulatorService.js'
+import {
+  sendRealApnsPush,
+  validateP12Certificate
+} from './services/mobile/apnsService.js'
+
 const execAsync = promisify(exec)
 
 // Audit log path
@@ -635,7 +668,160 @@ function setupIPC() {
     }
   })
 
-  // Persist app data (workspaces, sessions, inbox, etc.)
+  // Get audit log path
+  ipcMain.handle('get-audit-log-path', () => {
+    return AUDIT_LOG_PATH
+  })
+
+  // Open audit log file in system default application / Finder
+  ipcMain.handle('open-audit-log', async () => {
+    ensureDataDir()
+    try {
+      if (!existsSync(AUDIT_LOG_PATH)) {
+        writeFileSync(AUDIT_LOG_PATH, '')
+      }
+      await shell.openPath(AUDIT_LOG_PATH)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // Clear audit log
+  ipcMain.handle('clear-audit-log', async () => {
+    ensureDataDir()
+    try {
+      writeFileSync(AUDIT_LOG_PATH, '')
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // Environment Doctor diagnosis
+  ipcMain.handle('run-environment-doctor', async () => {
+    try {
+      const jenkinsConfig = jenkinsGetConfig()
+      const jenkinsBaseUrl = jenkinsConfig?.baseUrl || null
+      return await runDiagnostics({ jenkinsBaseUrl })
+    } catch (err) {
+      console.error('Environment doctor diagnosis error:', err)
+      return []
+    }
+  })
+
+  // Mobile Tools: Provisioning & Certificates
+  ipcMain.handle('mobile-list-profiles', async () => {
+    return await listInstalledProfiles()
+  })
+
+  ipcMain.handle('mobile-parse-profile', async (_, filePath) => {
+    return await parseCustomProfile(filePath)
+  })
+
+  ipcMain.handle('mobile-delete-profile', async (_, filePath) => {
+    return await deleteProfile(filePath)
+  })
+
+  ipcMain.handle('mobile-list-keychain-certs', async () => {
+    return await listKeychainCertificates()
+  })
+
+  ipcMain.handle('mobile-reveal-file', async (_, filePath) => {
+    if (filePath && existsSync(filePath)) {
+      shell.showItemInFolder(filePath)
+      return { success: true }
+    }
+    return { success: false, error: '文件不存在' }
+  })
+
+  ipcMain.handle('mobile-open-profiles-dir', async () => {
+    try {
+      const dir = join(homedir(), 'Library', 'MobileDevice', 'Provisioning Profiles')
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+      const err = await shell.openPath(dir)
+      if (err) {
+        exec(`open "${dir}"`)
+      }
+      return { success: true, path: dir }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // Mobile Tools: Simulator & Physical Devices Toolbox
+  ipcMain.handle('simulator-list', async () => {
+    return await listAllDevices()
+  })
+
+  ipcMain.handle('simulator-boot', async (_, udid) => {
+    return await bootSimulator(udid)
+  })
+
+  ipcMain.handle('simulator-shutdown', async (_, udid) => {
+    return await shutdownSimulator(udid)
+  })
+
+  ipcMain.handle('simulator-restart', async (_, udid) => {
+    return await restartSimulator(udid)
+  })
+
+  ipcMain.handle('simulator-open-app', async () => {
+    return await openSimulatorApp()
+  })
+
+  ipcMain.handle('simulator-set-appearance', async (_, { udid, appearance }) => {
+    return await setAppearance(udid, appearance)
+  })
+
+  ipcMain.handle('simulator-push', async (_, { udid, bundleId, payload }) => {
+    return await sendPushNotification(udid, bundleId, payload)
+  })
+
+  ipcMain.handle('simulator-set-location', async (_, { udid, lat, lon }) => {
+    return await setLocation(udid, lat, lon)
+  })
+
+  ipcMain.handle('simulator-clear-location', async (_, udid) => {
+    return await clearLocation(udid)
+  })
+
+  ipcMain.handle('simulator-open-url', async (_, { udid, url }) => {
+    return await simOpenUrl(udid, url)
+  })
+
+  ipcMain.handle('simulator-install-app', async (_, { udid, appPath, isPhysical }) => {
+    return await simInstallApp(udid, appPath, isPhysical)
+  })
+
+  ipcMain.handle('device-launch-app', async (_, { udid, bundleId, isPhysical }) => {
+    return await deviceLaunchApp(udid, bundleId, isPhysical)
+  })
+
+  ipcMain.handle('simulator-get-app-container', async (_, { udid, bundleId }) => {
+    const res = await getAppContainer(udid, bundleId)
+    if (res.success && res.path) {
+      await shell.openPath(res.path)
+    }
+    return res
+  })
+
+  ipcMain.handle('simulator-set-clipboard', async (_, { udid, text }) => {
+    return await simSetClipboard(udid, text)
+  })
+
+  // Real APNs Push (SmartPush mode)
+  ipcMain.handle('apns-send-push', async (_, options) => {
+    return await sendRealApnsPush(options)
+  })
+
+  ipcMain.handle('apns-validate-p12', async (_, { p12Path, password }) => {
+    return validateP12Certificate(p12Path, password)
+  })
+
+  // Persist app data (workspaces, sessions, etc.)
   ipcMain.handle('save-data', async (_, data) => {
     ensureDataDir()
     try {
@@ -659,9 +845,16 @@ function setupIPC() {
   })
 
   // Open file/folder
-  ipcMain.handle('open-path', async (_, path) => {
+  ipcMain.handle('open-path', async (_, filePath) => {
     try {
-      await shell.openPath(path)
+      if (!filePath) return { success: false, error: '路径为空' }
+      const resolved = filePath.startsWith('~')
+        ? join(homedir(), filePath.slice(1))
+        : filePath
+      const err = await shell.openPath(resolved)
+      if (err) {
+        exec(`open "${resolved}"`)
+      }
       return { success: true }
     } catch (err) {
       return { success: false, error: err.message }

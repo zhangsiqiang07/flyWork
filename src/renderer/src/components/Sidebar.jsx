@@ -3,7 +3,6 @@ export default function Sidebar({
   selectedWorkspaceId,
   workspaces,
   sessions,
-  inboxCount,
   yunxiaoConfigured,
   jenkinsConfigured,
   onNavigate,
@@ -15,16 +14,8 @@ export default function Sidebar({
     { id: 'today', label: '今日', icon: <SunIcon /> },
     { id: 'orchestrator', label: '智能编排', icon: <OrchestratorIcon />, badge: 'AI' },
     { id: 'weekly-report', label: '周报', icon: <ReportIcon /> },
-    {
-      id: 'inbox',
-      label: '收件箱',
-      icon: <InboxIcon />,
-      badge: inboxCount > 0 ? inboxCount : null
-    },
     { id: 'automations', label: '自动化', icon: <AutoIcon /> },
-    { id: 'activity', label: '活动', icon: <ActivityIcon /> },
-    { id: 'crash', label: '崩溃分析', icon: <CrashIcon /> },
-    { id: 'universal-link', label: '通用链接', icon: <LinkIcon /> },
+    { id: 'ios-tools', label: 'iOS 工具箱', icon: <AppleToolboxIcon /> },
     { id: 'yunxiao', label: '云效', icon: <YunxiaoIcon />, badge: yunxiaoConfigured ? '✓' : null },
     {
       id: 'jenkins',
@@ -95,19 +86,32 @@ export default function Sidebar({
 
       {/* Main Navigation */}
       <div className="sidebar-section">
-        {navItems.map((item) => (
-          <div
-            key={item.id}
-            className={`sidebar-item ${currentView === item.id ? 'active' : ''}`}
-            onClick={() => onNavigate(item.id)}
-          >
-            <span className="sidebar-item-icon">{item.icon}</span>
-            <span style={{ flex: 1 }}>{item.label}</span>
-            {item.badge && (
-              <span className="sidebar-item-badge">{item.badge > 99 ? '99+' : item.badge}</span>
-            )}
-          </div>
-        ))}
+        {navItems.map((item) => {
+          const isActive =
+            item.id === 'ios-tools'
+              ? [
+                  'ios-tools',
+                  'simulator',
+                  'provisioning',
+                  'profiles',
+                  'crash',
+                  'universal-link'
+                ].includes(currentView)
+              : currentView === item.id
+          return (
+            <div
+              key={item.id}
+              className={`sidebar-item ${isActive ? 'active' : ''}`}
+              onClick={() => onNavigate(item.id)}
+            >
+              <span className="sidebar-item-icon">{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && (
+                <span className="sidebar-item-badge">{item.badge > 99 ? '99+' : item.badge}</span>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="sidebar-section">
@@ -181,6 +185,28 @@ export default function Sidebar({
           <span>添加工作空间</span>
         </div>
       </div>
+
+      {/* Settings & Tools Footer */}
+      <div
+        className="sidebar-section"
+        style={{
+          marginTop: 'auto',
+          paddingTop: 10,
+          borderTop: '1px solid var(--border)',
+          marginBottom: 0
+        }}
+      >
+        <div className="sidebar-section-label">设置与工具</div>
+        <div
+          className={`sidebar-item ${currentView === 'settings' || currentView === 'audit-log' || currentView === 'yunxiao-settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
+        >
+          <span className="sidebar-item-icon">
+            <SettingsIcon />
+          </span>
+          <span style={{ flex: 1 }}>设置与工具</span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -218,7 +244,7 @@ function ReportIcon() {
     </svg>
   )
 }
-function InboxIcon() {
+function SettingsIcon() {
   return (
     <svg
       width="14"
@@ -227,9 +253,11 @@ function InboxIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   )
 }
@@ -244,20 +272,6 @@ function AutoIcon() {
       strokeWidth="2"
     >
       <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-    </svg>
-  )
-}
-function ActivityIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   )
 }
@@ -336,6 +350,24 @@ function OrchestratorIcon() {
       <circle cx="6" cy="18" r="3" />
       <circle cx="18" cy="12" r="3" />
       <path d="M9 6h4a5 5 0 0 1 5 5v1M9 18h4a5 5 0 0 0 5-5v-1" />
+    </svg>
+  )
+}
+
+function AppleToolboxIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+      <path d="M12 18h.01" />
     </svg>
   )
 }

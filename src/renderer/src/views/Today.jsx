@@ -1276,9 +1276,14 @@ export default function Today({
 
             {/* Today's activity */}
             <div>
-              <div className="section-header">
+              <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span className="section-title">今日活动</span>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{todayActivity.length} 条</span>
+                <span
+                  style={{ fontSize: 11, color: 'var(--accent-blue)', cursor: 'pointer' }}
+                  onClick={() => onNavigate && onNavigate('settings')}
+                >
+                  审计日志 →
+                </span>
               </div>
               <div className="timeline">
                 {todayActivity.slice(0, 6).map((item) => (

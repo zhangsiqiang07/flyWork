@@ -8,7 +8,11 @@ const PRESET_DOMAINS = [
   { label: 'GitHub', domain: 'github.com' }
 ]
 
-export default function UniversalLink({ workspaces = [], selectedWorkspaceId = null }) {
+export default function UniversalLink({
+  workspaces = [],
+  selectedWorkspaceId = null,
+  hideHeader = false
+}) {
   const [targetInput, setTargetInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [verifyResult, setVerifyResult] = useState(null)
@@ -352,36 +356,38 @@ export default function UniversalLink({ workspaces = [], selectedWorkspaceId = n
       }}
     >
       {/* Header Banner */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>🔗</span>
-              <h1
-                style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}
-              >
-                Apple Universal Links (通用链接) 验证工具
-              </h1>
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--accent-blue-dim)',
-                  color: 'var(--accent-blue)',
-                  fontWeight: 600
-                }}
-              >
-                iOS 9 ~ 18 全面支持
-              </span>
+      {!hideHeader && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>🔗</span>
+                <h1
+                  style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}
+                >
+                  Apple Universal Links (通用链接) 验证工具
+                </h1>
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--accent-blue-dim)',
+                    color: 'var(--accent-blue)',
+                    fontWeight: 600
+                  }}
+                >
+                  iOS 9 ~ 18 全面支持
+                </span>
+              </div>
+              <p style={{ margin: '6px 0 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+                一站式诊断域名 HTTPS 规范、Apple CDN 缓存同步、AASA 路由匹配与本地 Xcode 工程
+                entitlements 配置
+              </p>
             </div>
-            <p style={{ margin: '6px 0 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
-              一站式诊断域名 HTTPS 规范、Apple CDN 缓存同步、AASA 路由匹配与本地 Xcode 工程
-              entitlements 配置
-            </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Domain Input & Presets Bar */}
       <div

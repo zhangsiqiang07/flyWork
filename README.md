@@ -29,6 +29,12 @@ A desktop productivity app for developers, built with Electron and React. Manage
 - View project-specific sessions from native agent storage
 - Access conversation history and thread messages
 
+### Mobile & iOS Developer Tools
+- **iOS Simulator Control Box**: Device state monitoring and power controls, one-click APNs push notification testing, simulated GPS location mock (presets & custom coordinates), instant Finder container sandbox opening, and drag-and-drop .app installation.
+- **Provisioning Profiles & Certificates Inspector**: Parse local & external .mobileprovision files, instant device UDID inclusion search, expiration countdown alerts, Entitlements capability breakdown, and macOS Keychain code signing identities.
+- **Crash Analysis**: Import PLCrash logs and .dSYM symbols, symbolicate stacks with `symbolicatecrash`.
+- **Universal Links**: AASA validation and deep link testing in iOS Simulator.
+
 ### Command Center
 - Quick access via **⌥ Space** (Alt+Space) global shortcut
 - Execute common actions: open Xcode, terminal, Finder
@@ -36,8 +42,7 @@ A desktop productivity app for developers, built with Electron and React. Manage
 
 ### Additional Features
 - System tray integration for quick access
-- Activity log with audit trail
-- Inbox for collecting items
+- Settings & Tools: Environment Doctor diagnosis, system audit log (Audit Logs), and enterprise integrations (Yunxiao & Jenkins)
 - Today view for daily focus
 - Dark mode with macOS vibrancy effects
 
