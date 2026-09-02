@@ -421,6 +421,21 @@ export default function App() {
     [selectedWorkspaceId]
   )
 
+  const handleOrchestrateBugs = useCallback(
+    ({ mode, targetPlanId, updatedPlan, newPlan }) => {
+      if (mode === 'bind' && updatedPlan) {
+        setOrchestratorPlans((prev) =>
+          prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
+        )
+        navigateTo('orchestrator', updatedPlan.id)
+      } else if (mode === 'standalone' && newPlan) {
+        setOrchestratorPlans((prev) => [newPlan, ...prev])
+        navigateTo('orchestrator', newPlan.id)
+      }
+    },
+    [navigateTo]
+  )
+
   const renderMainContent = () => {
     switch (currentView) {
       case 'today':
@@ -432,6 +447,10 @@ export default function App() {
             onOpenWorkspace={openWorkspace}
             onResumeSession={resumeSession}
             onPauseSession={pauseSession}
+            yunxiaoConfigured={yunxiaoConfigured}
+            plans={orchestratorPlans}
+            onOrchestrateBugs={handleOrchestrateBugs}
+            onNavigate={navigateTo}
           />
         )
       case 'workspaces':
@@ -555,10 +574,13 @@ export default function App() {
           />
         )
       case 'yunxiao':
-        return yunxiaoConfigured ? (
-          <YunxiaoDashboard />
-        ) : (
-          <YunxiaoSettings onConfigChange={(config) => setYunxiaoConfigured(config.configured)} />
+        return (
+          <YunxiaoDashboard
+            plans={orchestratorPlans}
+            workspaces={workspaces}
+            onOrchestrateBugs={handleOrchestrateBugs}
+            onNavigate={navigateTo}
+          />
         )
       case 'jenkins':
         return <JenkinsDashboard />

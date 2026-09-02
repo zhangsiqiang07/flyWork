@@ -33,7 +33,57 @@ function detectImageContentType(content, declaredType) {
 
 export async function listWorkitems(options = {}) {
   const organizationId = organizationIdOrThrow(options.organizationId)
-  if (!options.projectId) throw new Error('请选择项目后再查看工作项')
+  const projectId = options.projectId
+
+  if (!projectId) {
+    const { listProjects } = await import('./project.js')
+    const projects = await listProjects(organizationId)
+    if (!projects || projects.length === 0) {
+      return { workitems: [], totalCount: 0, hasMore: false }
+    }
+    const perPage = Math.min(Math.max(Number(options.perPage || 30), 1), 200)
+    const targetProjects = projects.slice(0, 10)
+    const results = await Promise.allSettled(
+      targetProjects.map(async (project) => {
+        const pId = project.identifier || project.id || project.projectId
+        if (!pId) return []
+        const response = await yunxiaoPost(
+          `/oapi/v1/projex/organizations/${encodeURIComponent(organizationId)}/workitems:search`,
+          {
+            category: options.category || 'Bug,Task,Req,Risk',
+            conditions: options.conditions || '',
+            orderBy: 'gmtCreate',
+            page: Number(options.page || 1),
+            perPage,
+            sort: 'desc',
+            spaceId: String(pId),
+            spaceType: 'Project'
+          }
+        )
+        const items = extractList(response, ['workitems', 'items', 'data'])
+        return items.map((item) => ({
+          ...item,
+          projectId: pId,
+          projectName: project.name || project.title || pId
+        }))
+      })
+    )
+    const allItems = []
+    for (const r of results) {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        allItems.push(...r.value)
+      }
+    }
+    const unique = Array.from(
+      new Map(allItems.map((item) => [item.identifier || item.id, item])).values()
+    )
+    return {
+      workitems: unique,
+      totalCount: unique.length,
+      hasMore: false
+    }
+  }
+
   const perPage = Math.min(Math.max(Number(options.perPage || 100), 1), 200)
   const response = await yunxiaoPost(
     `/oapi/v1/projex/organizations/${encodeURIComponent(organizationId)}/workitems:search`,
@@ -44,7 +94,7 @@ export async function listWorkitems(options = {}) {
       page: Number(options.page || 1),
       perPage,
       sort: 'desc',
-      spaceId: String(options.projectId),
+      spaceId: String(projectId),
       spaceType: 'Project'
     }
   )

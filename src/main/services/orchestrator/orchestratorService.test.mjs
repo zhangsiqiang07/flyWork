@@ -5,7 +5,8 @@ import {
   AgentRouter,
   ContextBuilder,
   ChangeSetReconciler,
-  PlannerPromptEngine
+  PlannerPromptEngine,
+  BugOrchestratorEngine
 } from './orchestratorService.js'
 
 describe('Development Orchestrator Engine Tests', () => {
@@ -119,5 +120,44 @@ describe('Development Orchestrator Engine Tests', () => {
     })
     assert.ok(plan.tasks.length >= 6)
     assert.strictEqual(plan.tasks[0].status, 'READY')
+  })
+
+  it('7. BugOrchestratorEngine binds bugs to existing plan and computes statuses', () => {
+    const mockPlan = {
+      id: 'PLAN-TEST',
+      title: '现有需求迭代计划',
+      projects: [{ id: 'PetPal-iOS' }],
+      tasks: [...sampleTasks]
+    }
+    const mockBugs = [
+      { identifier: 'YX-BUG-001', serialNumber: 'PROJ-101', subject: '视频 Tab 页离线闪退问题', severity: 'urgent' },
+      { identifier: 'YX-BUG-002', serialNumber: 'PROJ-102', subject: '健康报告图表偶现白屏', severity: 'normal' }
+    ]
+
+    const updatedPlan = BugOrchestratorEngine.bindBugsToPlan(mockPlan, mockBugs, { policy: 'parallel' })
+    assert.strictEqual(updatedPlan.tasks.length, sampleTasks.length + 2)
+
+    const bugTask1 = updatedPlan.tasks.find((t) => t.sources?.bug?.id === 'YX-BUG-001')
+    assert.ok(bugTask1)
+    assert.strictEqual(bugTask1.status, 'READY')
+    assert.strictEqual(bugTask1.type, 'bugfix')
+    assert.strictEqual(bugTask1.execution.recommended.agent_id, 'claude-code')
+  })
+
+  it('8. BugOrchestratorEngine creates standalone bug plan with 3-stage DAG', () => {
+    const mockBugs = [
+      { identifier: 'YX-BUG-003', serialNumber: 'PROJ-103', subject: '网络重试拦截死循环' }
+    ]
+    const standalonePlan = BugOrchestratorEngine.createStandaloneBugPlan(mockBugs, { project: 'PetPal-iOS' })
+    assert.ok(standalonePlan.id.startsWith('PLAN-BUG-'))
+    assert.strictEqual(standalonePlan.tasks.length, 3)
+
+    const [diagTask, fixTask, verifyTask] = standalonePlan.tasks
+    assert.strictEqual(diagTask.status, 'READY')
+    assert.strictEqual(diagTask.execution.recommended.agent_id, 'claude-code')
+    assert.strictEqual(fixTask.status, 'BLOCKED')
+    assert.strictEqual(fixTask.execution.recommended.agent_id, 'antigravity')
+    assert.strictEqual(verifyTask.status, 'BLOCKED')
+    assert.strictEqual(verifyTask.execution.recommended.agent_id, 'chatgpt')
   })
 })

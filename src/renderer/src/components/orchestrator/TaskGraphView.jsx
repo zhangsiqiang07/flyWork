@@ -374,6 +374,26 @@ export default function TaskGraphView({
                         >
                           {task.layer}
                         </span>
+                        {(task.sources?.bug || task.type === 'bugfix' || task.type === 'bug-diagnosis') && (
+                          <span
+                            style={{
+                              color: 'var(--accent-red)',
+                              fontWeight: 600,
+                              fontSize: 10,
+                              background: 'rgba(224,92,92,0.12)',
+                              border: '1px solid rgba(224,92,92,0.3)',
+                              padding: '1px 5px',
+                              borderRadius: 3,
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2
+                            }}
+                          >
+                            <span>🐛</span>
+                            <span>{task.sources?.bug?.serialNumber ? `${task.sources.bug.serialNumber}` : '云效Bug'}</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Right: Status badge & Quick Run */}

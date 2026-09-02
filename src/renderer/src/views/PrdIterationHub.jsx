@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import PrdDecomposeModal from '../components/orchestrator/PrdDecomposeModal'
+import BugOrchestrateModal from '../components/orchestrator/BugOrchestrateModal'
+import { MOCK_YUNXIAO_BUGS } from '../data/mockYunxiaoBugs'
 
 export default function PrdIterationHub({
   plans = [],
@@ -13,7 +15,25 @@ export default function PrdIterationHub({
   const [projectFilter, setProjectFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [isDecomposeOpen, setIsDecomposeOpen] = useState(false)
+  const [isBugModalOpen, setIsBugModalOpen] = useState(false)
+  const [yunxiaoBugs, setYunxiaoBugs] = useState([])
   const [selectedPrdPreview, setSelectedPrdPreview] = useState(null)
+
+  useEffect(() => {
+    async function loadBugs() {
+      try {
+        if (window.flywork?.yunxiaoListWorkitems) {
+          const res = await window.flywork.yunxiaoListWorkitems({ category: 'Bug', perPage: 20 })
+          if (res.success && res.workitems?.length > 0) {
+            setYunxiaoBugs(res.workitems)
+            return
+          }
+        }
+      } catch (e) {}
+      setYunxiaoBugs(MOCK_YUNXIAO_BUGS)
+    }
+    loadBugs()
+  }, [])
 
   // Filtered plans
   const filteredPlans = useMemo(() => {
@@ -87,6 +107,17 @@ export default function PrdIterationHub({
     }
     onCreatePlan(enrichedPlan)
     onSelectPlan(enrichedPlan.id)
+  }
+
+  const handleBugOrchestrateConfirm = ({ mode, updatedPlan, newPlan }) => {
+    setIsBugModalOpen(false)
+    if (mode === 'bind' && updatedPlan) {
+      if (onCreatePlan) onCreatePlan(updatedPlan)
+      onSelectPlan(updatedPlan.id)
+    } else if (mode === 'standalone' && newPlan) {
+      if (onCreatePlan) onCreatePlan(newPlan)
+      onSelectPlan(newPlan.id)
+    }
   }
 
   return (
@@ -165,6 +196,25 @@ export default function PrdIterationHub({
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => setIsBugModalOpen(true)}
+              style={{
+                background: 'rgba(224,92,92,0.1)',
+                border: '1px solid rgba(224,92,92,0.3)',
+                color: 'var(--accent-red)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span>🐛</span> 导入云效 Bug 编排
+            </button>
+
             <button
               onClick={() => setIsDecomposeOpen(true)}
               style={{
@@ -781,6 +831,18 @@ export default function PrdIterationHub({
         workspaces={workspaces}
         onAddWorkspace={onAddWorkspace}
       />
+
+      {/* Bug Orchestrate Modal */}
+      {isBugModalOpen && (
+        <BugOrchestrateModal
+          isOpen={isBugModalOpen}
+          bugs={yunxiaoBugs}
+          plans={plans}
+          workspaces={workspaces}
+          onClose={() => setIsBugModalOpen(false)}
+          onConfirm={handleBugOrchestrateConfirm}
+        />
+      )}
     </div>
   )
 }

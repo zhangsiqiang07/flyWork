@@ -288,6 +288,8 @@ export class AgentRouter {
         typeScore = agent.capabilities.review || 80
       } else if (type.includes('refactor')) {
         typeScore = agent.capabilities.refactoring || 85
+      } else if (type.includes('bug') || type.includes('diag')) {
+        typeScore = agent.capabilities.debugging || agent.capabilities.testing || 90
       }
 
       // 2. Layer capability
@@ -740,6 +742,289 @@ Please output the complete task graph JSON.`
       feature: featureName,
       targetProjects,
       tasks: TaskDAGEngine.resolveGraphStatuses(tasks)
+    }
+  }
+}
+
+// ============================================================================
+// Bug Orchestration Engine (Bind to Plan or Create Standalone Bug Plan)
+// ============================================================================
+
+export class BugOrchestratorEngine {
+  /**
+   * Convert a Yunxiao bug into a standardized bugfix task for an existing plan
+   */
+  static createBugTaskForPlan(bug, options = {}) {
+    const bugId = bug.identifier || bug.id || bug.serialNumber || `BUG-${Date.now().toString().slice(-4)}`
+    const bugSerial = bug.serialNumber || bugId
+    const bugTitle = bug.subject || bug.title || bug.name || '缺陷修复'
+    const project = options.project || 'PetPal-iOS'
+    const feature = options.feature || 'BugFix'
+    const policy = options.policy || 'parallel' // 'parallel' | 'gate'
+    const taskId = `BUG-${String(bugSerial).replace(/[^a-zA-Z0-9_-]/g, '') || Date.now().toString().slice(-4)}`
+
+    const dependencies = Array.isArray(options.dependOnTaskIds) ? [...options.dependOnTaskIds] : []
+
+    const bugTask = {
+      id: taskId,
+      title: `[修复] ${bugSerial}: ${bugTitle}`,
+      project,
+      feature,
+      page_or_domain: 'BugFix',
+      layer: 'domain',
+      type: 'bugfix',
+      complexity: bug.severity === 'urgent' || bug.priority === 'urgent' ? 'high' : 'medium',
+      risk: 'medium',
+      status: dependencies.length > 0 ? 'BLOCKED' : 'READY',
+      dependencies,
+      sources: {
+        bug: {
+          id: bug.identifier || bug.id || '',
+          serialNumber: bugSerial,
+          title: bugTitle,
+          status: typeof bug.status === 'object' ? (bug.status?.name || '待修复') : (bug.status || '待修复'),
+          assignedTo: typeof bug.assignedTo === 'object' ? (bug.assignedTo?.name || '') : (bug.assignedTo || ''),
+          description: bug.description || '',
+          gmtCreate: bug.gmtCreate || '',
+          url: bug.url || ''
+        }
+      },
+      files: {
+        expected: options.expectedFiles || [`Sources/Fixes/${bugSerial}.swift`]
+      },
+      acceptance_criteria: [
+        `精准定位缺陷根因：${bugTitle}`,
+        `编写单元测试复现缺陷并验证修复结果`,
+        `回归关联调用链路，确保无破坏性副效应`
+      ],
+      execution: {
+        mode: 'assisted',
+        recommended: {
+          agent_id: 'claude-code',
+          model_id: 'claude-3-5-sonnet',
+          score: 96,
+          reason: '强项为代码库深度检索、测试用例编写与精准 Bug 溯源'
+        },
+        selected: {
+          agent_id: 'claude-code',
+          model_id: 'claude-3-5-sonnet'
+        }
+      }
+    }
+
+    return bugTask
+  }
+
+  /**
+   * Bind one or multiple bugs to an existing plan
+   */
+  static bindBugsToPlan(targetPlan, bugs = [], options = {}) {
+    if (!targetPlan) throw new Error('Target plan is required')
+    const existingTasks = Array.isArray(targetPlan.tasks) ? [...targetPlan.tasks] : []
+    const newTasks = []
+
+    bugs.forEach((bug, idx) => {
+      const task = this.createBugTaskForPlan(bug, {
+        project: options.project || (targetPlan.projects?.[0]?.id || targetPlan.projects?.[0]?.name || targetPlan.projects?.[0] || 'PetPal-iOS'),
+        feature: options.feature || 'BugFix',
+        policy: options.policy || 'parallel',
+        dependOnTaskIds: options.dependOnTaskIds || []
+      })
+      if (existingTasks.some((t) => t.id === task.id)) {
+        task.id = `${task.id}-${idx + 1}`
+      }
+      newTasks.push(task)
+    })
+
+    let allTasks = [...existingTasks, ...newTasks]
+
+    // If policy is 'gate', make downstream test/review tasks depend on these bug tasks
+    if (options.policy === 'gate' && newTasks.length > 0) {
+      const bugTaskIds = newTasks.map((t) => t.id)
+      allTasks = allTasks.map((t) => {
+        if (t.layer === 'test' || t.layer === 'review' || t.type === 'test') {
+          const currentDeps = t.dependencies || []
+          const combined = Array.from(new Set([...currentDeps, ...bugTaskIds]))
+          return { ...t, dependencies: combined }
+        }
+        return t
+      })
+    }
+
+    const resolvedTasks = TaskDAGEngine.resolveGraphStatuses(allTasks)
+
+    return {
+      ...targetPlan,
+      tasks: resolvedTasks,
+      updatedAt: '刚刚'
+    }
+  }
+
+  /**
+   * Create a standalone bug fix plan with closed-loop DAG tasks
+   */
+  static createStandaloneBugPlan(bugs = [], options = {}) {
+    if (!bugs.length) throw new Error('At least one bug is required')
+    const primaryBug = bugs[0]
+    const primarySerial = primaryBug.serialNumber || primaryBug.identifier || 'BUG'
+    const targetProject = options.project || 'PetPal-iOS'
+    const planId = `PLAN-BUG-${Date.now().toString().slice(-6)}`
+    const title =
+      options.title ||
+      (bugs.length === 1
+        ? `[Bug专项] ${primarySerial}: ${primaryBug.subject || primaryBug.title || '缺陷修复'}`
+        : `[Bug专项] ${primarySerial} 等 ${bugs.length} 项云效缺陷集中修复与验证`)
+
+    const baseTaskId = `BUG-${Date.now().toString().slice(-4)}`
+    const task1Id = `${baseTaskId}-1-DIAG`
+    const task2Id = `${baseTaskId}-2-FIX`
+    const task3Id = `${baseTaskId}-3-VERIFY`
+
+    const bugSummaries = bugs
+      .map((b) => `• [${b.serialNumber || b.identifier || 'BUG'}] ${b.subject || b.title || ''}`)
+      .join('\n')
+
+    const tasks = [
+      {
+        id: task1Id,
+        title:
+          bugs.length === 1
+            ? `诊断与根因溯源: ${primaryBug.subject || primaryBug.title}`
+            : `多缺陷根因排查与复现测试`,
+        project: targetProject,
+        feature: 'BugFix',
+        page_or_domain: 'BugDiagnosis',
+        layer: 'test',
+        type: 'bug-diagnosis',
+        complexity: 'medium',
+        risk: 'low',
+        status: 'READY',
+        dependencies: [],
+        sources: {
+          bug: {
+            id: primaryBug.identifier || primaryBug.id || '',
+            serialNumber: primarySerial,
+            title: primaryBug.subject || primaryBug.title || '',
+            allBugs: bugs.map((b) => ({
+              id: b.identifier || b.id || '',
+              serialNumber: b.serialNumber || '',
+              title: b.subject || b.title || ''
+            }))
+          }
+        },
+        files: { expected: ['Tests/BugReproductionTests.swift'] },
+        acceptance_criteria: [
+          '精准定位缺陷触发场景并编写可复现的自动化单测',
+          '输出根因分析摘要，明确缺陷所在的代码行与生命周期时序'
+        ],
+        execution: {
+          mode: 'assisted',
+          recommended: {
+            agent_id: 'claude-code',
+            model_id: 'claude-3-5-sonnet',
+            score: 96,
+            reason: '强项为代码库深度检索、测试用例编写与精准 Bug 溯源'
+          },
+          selected: { agent_id: 'claude-code', model_id: 'claude-3-5-sonnet' }
+        }
+      },
+      {
+        id: task2Id,
+        title:
+          bugs.length === 1
+            ? `补丁修复与工程落地: ${primaryBug.subject || primaryBug.title}`
+            : `核心代码补丁编写与容错兜底`,
+        project: targetProject,
+        feature: 'BugFix',
+        page_or_domain: 'BugFix',
+        layer: 'domain',
+        type: 'bugfix',
+        complexity: 'medium',
+        risk: 'medium',
+        status: 'BLOCKED',
+        dependencies: [task1Id],
+        sources: {
+          bug: {
+            id: primaryBug.identifier || primaryBug.id || '',
+            serialNumber: primarySerial,
+            title: primaryBug.subject || primaryBug.title || ''
+          }
+        },
+        files: { expected: ['Sources/Core/Fix.swift'] },
+        acceptance_criteria: [
+          '依据根因分析完成补丁编写，消除异常分支',
+          '补丁通过已编写的复现单元测试，无破坏性影响'
+        ],
+        execution: {
+          mode: 'assisted',
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 95,
+            reason: '强项为跨文件重构、精准补丁编写与本地工作区协同执行'
+          },
+          selected: { agent_id: 'antigravity', model_id: 'auto' }
+        }
+      },
+      {
+        id: task3Id,
+        title: '集成回归与 Code Review 质量验收',
+        project: targetProject,
+        feature: 'BugFix',
+        page_or_domain: 'BugVerify',
+        layer: 'review',
+        type: 'review',
+        complexity: 'low',
+        risk: 'low',
+        status: 'BLOCKED',
+        dependencies: [task2Id],
+        sources: {
+          bug: {
+            id: primaryBug.identifier || primaryBug.id || '',
+            serialNumber: primarySerial,
+            title: primaryBug.subject || primaryBug.title || ''
+          }
+        },
+        files: { expected: ['ReviewReport.md'] },
+        acceptance_criteria: [
+          '执行全局构建与测试套件，确认 100% 通过',
+          '完成代码审查并同步更新云效工作项状态为已修复'
+        ],
+        execution: {
+          mode: 'assisted',
+          recommended: {
+            agent_id: 'chatgpt',
+            model_id: 'gpt-4o',
+            score: 95,
+            reason: '具备顶尖的架构推理、领域契约定义与全局 Code Review 能力'
+          },
+          selected: { agent_id: 'chatgpt', model_id: 'gpt-4o' }
+        }
+      }
+    ]
+
+    const resolvedTasks = TaskDAGEngine.resolveGraphStatuses(tasks)
+
+    return {
+      id: planId,
+      title,
+      version: 'v1.0-fix',
+      status: 'IN_PROGRESS',
+      isDemo: false,
+      leadPm: '云效缺陷协同',
+      techLead: 'Multi-Agent Team',
+      updatedAt: '刚刚',
+      description: `来自云效工作台缺陷集中修复计划，包含 ${bugs.length} 个缺陷：\n${bugSummaries}`,
+      requirement: {
+        id: `REQ-BUG-${Date.now().toString().slice(-4)}`,
+        title,
+        version: 'v1.0',
+        author: '云效系统',
+        status: 'ACTIVE',
+        prdSnippet: `## 云效缺陷详情\n${bugSummaries}`
+      },
+      projects: [{ id: targetProject, name: targetProject }],
+      tasks: resolvedTasks
     }
   }
 }

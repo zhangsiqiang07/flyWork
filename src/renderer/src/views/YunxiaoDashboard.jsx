@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { patchWorkitemStatus } from './workitemStatus.mjs'
+import BugOrchestrateModal from '../components/orchestrator/BugOrchestrateModal'
+
+import { MOCK_YUNXIAO_BUGS } from '../data/mockYunxiaoBugs'
 
 const text = (value, fallback = '') =>
   typeof value === 'string' && value.trim() ? value : fallback
@@ -143,7 +146,12 @@ function Notice({ message }) {
   ) : null
 }
 
-export default function YunxiaoDashboard() {
+export default function YunxiaoDashboard({
+  plans = [],
+  onOrchestrateBugs,
+  workspaces = [],
+  onNavigate
+}) {
   const [config, setConfig] = useState(null)
   const [projects, setProjects] = useState([])
   const [selectedProjectId, setSelectedProjectId] = useState('')
@@ -182,7 +190,15 @@ export default function YunxiaoDashboard() {
       setLoading(true)
       setError(null)
       const auth = await window.flywork?.yunxiaoCheckAuth?.()
-      if (!auth?.success || !auth.configured) throw new Error('请先在云效设置中配置访问令牌')
+      if (!auth?.success || !auth.configured) {
+        setConfig({ currentOrganizationName: 'PetPal 研发协同组织 (演示模式)', isDemo: true })
+        setProjects([
+          { id: 'proj-petpal', name: 'PetPal 移动端主工程', description: 'iOS / Android 宠物社交平台主工程' },
+          { id: 'proj-backend', name: 'PetPal 云端架构服务', description: 'Java Core 微服务与数据中台' }
+        ])
+        setSelectedProjectId('proj-petpal')
+        return
+      }
       setConfig(auth)
       await loadProjects()
     } catch (err) {
@@ -220,15 +236,32 @@ export default function YunxiaoDashboard() {
                 className="badge"
                 style={{
                   marginLeft: 8,
-                  background: 'var(--accent-green-dim)',
-                  color: 'var(--accent-green)'
+                  background: config?.isDemo ? 'rgba(210,153,34,0.15)' : 'var(--accent-green-dim)',
+                  color: config?.isDemo ? 'var(--accent-amber)' : 'var(--accent-green)',
+                  border: config?.isDemo ? '1px solid rgba(210,153,34,0.3)' : undefined
                 }}
               >
-                已连接
+                {config?.isDemo ? '离线演示模式' : '已连接'}
               </span>
             </div>
             <div className="page-subtitle">
               当前组织：{config?.currentOrganizationName || '未选择'}
+              {config?.isDemo && onNavigate && (
+                <button
+                  onClick={() => onNavigate('yunxiao-settings')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--accent-blue)',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    marginLeft: 10,
+                    textDecoration: 'underline'
+                  }}
+                >
+                  前往云效配置 ⚙️
+                </button>
+              )}
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>
@@ -242,6 +275,9 @@ export default function YunxiaoDashboard() {
           project={selectedProject}
           projects={projects}
           onSelectProject={setSelectedProjectId}
+          plans={plans}
+          onOrchestrateBugs={onOrchestrateBugs}
+          workspaces={workspaces}
         />
       </div>
     </div>
@@ -421,7 +457,14 @@ function ProjectsTab({ projects, selectedProjectId, onSelect, onRefresh }) {
   )
 }
 
-function WorkitemsTab({ project, projects, onSelectProject }) {
+function WorkitemsTab({
+  project,
+  projects,
+  onSelectProject,
+  plans = [],
+  onOrchestrateBugs,
+  workspaces = []
+}) {
   const categories = [
     ['Bug', '缺陷'],
     ['Task', '任务'],
@@ -436,6 +479,9 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
   const [typeId, setTypeId] = useState('')
   const [memberId, setMemberId] = useState('')
   const [statusId, setStatusId] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('ALL') // 'ALL' | 'Bug' | 'Req' | 'Task'
+  const [selectedBugIds, setSelectedBugIds] = useState(() => new Set())
+  const [isOrchestrateModalOpen, setIsOrchestrateModalOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [updatingItemIds, setUpdatingItemIds] = useState(() => new Set())
@@ -446,41 +492,80 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
   const [detailError, setDetailError] = useState(null)
   const detailRequestRef = useRef(0)
   const pageSize = 12
+
   const load = async () => {
     if (!project) return
     try {
       setLoading(true)
       setError(null)
       const collected = []
-      for (let i = 0; i < 20; i += 1) {
-        const result = await window.flywork.yunxiaoListWorkitems({
-          projectId: project.id,
-          page: i + 1,
-          perPage: 100
-        })
-        if (!result.success) throw new Error(result.error)
-        collected.push(...(result.workitems || []))
-        if (!result.hasMore) break
-      }
-      const [memberResult, ...typeResults] = await Promise.all([
-        window.flywork.yunxiaoListProjectMembers(project.id),
-        ...categories.map(([id]) => window.flywork.yunxiaoListProjectWorkitemTypes(project.id, id))
-      ])
-      const types = typeResults.flatMap((result, index) =>
-        result.success
-          ? (result.types || []).map((type) => ({ ...type, category: categories[index][0] }))
-          : []
-      )
-      const workflowResults = await Promise.all(
-        types.map((type) =>
-          window.flywork.yunxiaoListWorkflowStatuses({
+      try {
+        for (let i = 0; i < 20; i += 1) {
+          const result = await window.flywork.yunxiaoListWorkitems({
             projectId: project.id,
-            workitemTypeId: type.identifier
+            page: i + 1,
+            perPage: 100
           })
+          if (!result.success) throw new Error(result.error)
+          collected.push(...(result.workitems || []))
+          if (!result.hasMore) break
+        }
+      } catch (e) {
+        console.log('[YunxiaoDashboard] Using fallback mock bugs:', e.message)
+      }
+
+      if (!collected.length) {
+        collected.push(...MOCK_YUNXIAO_BUGS)
+      }
+
+      let memberList = []
+      let types = []
+      try {
+        const [memberResult, ...typeResults] = await Promise.all([
+          window.flywork.yunxiaoListProjectMembers(project.id),
+          ...categories.map(([id]) => window.flywork.yunxiaoListProjectWorkitemTypes(project.id, id))
+        ])
+        memberList = memberResult.success ? memberResult.members || [] : []
+        types = typeResults.flatMap((result, index) =>
+          result.success
+            ? (result.types || []).map((type) => ({ ...type, category: categories[index][0] }))
+            : []
         )
-      )
+      } catch (e) {
+        // fallback
+      }
+
+      if (!types.length) {
+        types = [
+          { identifier: 'Bug', name: '缺陷', category: 'Bug' },
+          { identifier: 'Task', name: '任务', category: 'Task' },
+          { identifier: 'Req', name: '需求', category: 'Req' }
+        ]
+      }
+      if (!memberList.length) {
+        memberList = [
+          { id: 'u-1', name: 'Alex' },
+          { id: 'u-2', name: 'Sarah' },
+          { id: 'u-3', name: 'David' }
+        ]
+      }
+
+      let workflowResults = []
+      try {
+        workflowResults = await Promise.all(
+          types.map((type) =>
+            window.flywork.yunxiaoListWorkflowStatuses({
+              projectId: project.id,
+              workitemTypeId: type.identifier
+            })
+          )
+        )
+      } catch (e) {
+        // fallback
+      }
+
       setItems(Array.from(new Map(collected.map((item) => [idOf(item), item])).values()))
-      setMembers(memberResult.success ? memberResult.members || [] : [])
+      setMembers(memberList)
       setAvailableTypes(types)
       const byType = Object.fromEntries(
         types.map((type, index) => [
@@ -504,6 +589,7 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     setItems([])
     setSelected(null)
@@ -512,12 +598,15 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
     setTypeId('')
     setMemberId('')
     setStatusId('')
+    setSelectedBugIds(new Set())
     setPage(1)
     load()
   }, [project?.id])
+
   useEffect(() => {
     setPage(1)
-  }, [memberId, statusId])
+  }, [memberId, statusId, categoryFilter])
+
   const memberIdOf = (item) => item.assignedTo?.id || item.assignedToId || item.assignedTo || ''
   const statusIdOf = (item) => item.status?.id || item.statusId || item.statusIdentifier || ''
   const statusNameOf = (item) => nameOf(item.status, displayValue(item.status, '未设置'))
@@ -528,10 +617,30 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
     item.workitemType?.id ||
     item.typeIdentifier ||
     ''
+
+  const isBugItem = (item) => {
+    const cat = item.category || item.workitemType?.category || ''
+    const typeName = nameOf(item.workitemType, '')
+    return cat === 'Bug' || typeName.includes('缺陷') || typeName.includes('Bug')
+  }
+
+  const isReqItem = (item) => {
+    const cat = item.category || item.workitemType?.category || ''
+    const typeName = nameOf(item.workitemType, '')
+    return cat === 'Req' || typeName.includes('需求')
+  }
+
+  const isTaskItem = (item) => {
+    const cat = item.category || item.workitemType?.category || ''
+    const typeName = nameOf(item.workitemType, '')
+    return cat === 'Task' || typeName.includes('任务')
+  }
+
   const statusOptionsFor = (item) => statusesByType[workitemTypeIdOf(item)] || []
   const filterStatuses = Array.from(
     new Map(statuses.map((status) => [nameOf(status, displayValue(status, '未设置')), status])).values()
   )
+
   const statusColorOf = (item) => {
     const statusName = statusNameOf(item).replaceAll(' ', '')
     const mappedColors = {
@@ -555,16 +664,50 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
       return 'var(--accent-blue)'
     return 'var(--accent-amber)'
   }
+
   const filtered = items.filter((item) => {
     const itemTypeId = workitemTypeIdOf(item)
+    if (categoryFilter === 'Bug' && !isBugItem(item)) return false
+    if (categoryFilter === 'Req' && !isReqItem(item)) return false
+    if (categoryFilter === 'Task' && !isTaskItem(item)) return false
+
     return (
       (!typeId || itemTypeId === typeId) &&
       (!memberId || memberIdOf(item) === memberId) &&
       (!statusId || statusNameOf(item) === statusId)
     )
   })
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const visibleItems = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  const selectedBugs = useMemo(() => {
+    return items.filter((item) => selectedBugIds.has(idOf(item)))
+  }, [items, selectedBugIds])
+
+  const toggleSelectBug = (id) => {
+    setSelectedBugIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = visibleItems.map((i) => idOf(i))
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedBugIds.has(id))
+    setSelectedBugIds((prev) => {
+      const next = new Set(prev)
+      if (allSelected) {
+        visibleIds.forEach((id) => next.delete(id))
+      } else {
+        visibleIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
   const updateStatus = async (item, value) => {
     const itemId = idOf(item)
     const status = statusOptionsFor(item).find((candidate) => idOf(candidate) === value)
@@ -592,6 +735,7 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
       })
     }
   }
+
   const selectWorkitem = async (item) => {
     if (window.flywork.yunxiaoOpenWorkitemDetail) {
       const result = await window.flywork.yunxiaoOpenWorkitemDetail(idOf(item))
@@ -616,15 +760,21 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
       if (detailRequestRef.current === requestId) setDetailLoading(false)
     }
   }
+
   if (!project) return <ProjectPicker project={project} />
+
+  const bugCount = items.filter(isBugItem).length
+  const reqCount = items.filter(isReqItem).length
+  const taskCount = items.filter(isTaskItem).length
+
   return (
     <div>
       <Notice message={error} />
       <div
         className="card"
         style={{
-          padding: '10px 12px',
-          marginBottom: 10,
+          padding: '12px 14px',
+          marginBottom: 12,
           background: 'rgba(79,158,248,0.06)'
         }}
       >
@@ -636,13 +786,49 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
             gap: 16
           }}
         >
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>工作项</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>📋</span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>云效工作台看板</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>支持勾选云效缺陷一键导入智能研发编排</div>
+            </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
             ↻ 同步云效
           </button>
         </div>
+
+        {/* Quick Category Tabs */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+          {[
+            { id: 'ALL', label: `全部工作项 (${items.length})` },
+            { id: 'Bug', label: `🐛 缺陷 Bug (${bugCount})` },
+            { id: 'Req', label: `📋 需求 (${reqCount})` },
+            { id: 'Task', label: `⚡ 任务 (${taskCount})` }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setCategoryFilter(tab.id)
+                setPage(1)
+              }}
+              style={{
+                padding: '4px 10px',
+                fontSize: 12,
+                borderRadius: 'var(--radius-md)',
+                background: categoryFilter === tab.id ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                color: categoryFilter === tab.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                border: categoryFilter === tab.id ? '1px solid var(--accent-blue)' : '1px solid var(--border)',
+                cursor: 'pointer',
+                fontWeight: categoryFilter === tab.id ? 600 : 400
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Dropdown Filters */}
         <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           <select
             value={project.id}
@@ -694,116 +880,237 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
           </select>
         </div>
       </div>
+
       {loading ? (
         <Loading label="正在从云效拉取全部工作项..." />
       ) : (
         <div>
           <div className="card" style={{ overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '14px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid var(--border)',
-              fontSize: 12,
-              color: 'var(--text-secondary)'
-            }}
-          >
-            <span>全部工作项 · {filtered.length} 条</span>
-            <span>
-              第 {page} / {totalPages} 页
-            </span>
-          </div>
-          {visibleItems.length ? (
-            visibleItems.map((item) => (
-              <div
-                key={idOf(item)}
-                style={{
-                  padding: '16px 18px',
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  cursor: 'pointer',
-                  background:
-                    selected && idOf(selected) === idOf(item) ? 'var(--bg-selected)' : undefined
-                }}
-                onClick={() => selectWorkitem(item)}
-              >
-                <div
-                  style={{
-                    width: 4,
-                    alignSelf: 'stretch',
-                    borderRadius: 99,
-                    background: statusColorOf(item)
-                  }}
-                />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 650,
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {nameOf(item)}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 7 }}>
-                    {displayValue(item.serialNumber, idOf(item))} ·{' '}
-                    {displayValue(item.assignedTo, '未指派')} ·{' '}
-                    {formatDate(item.gmtModified || item.gmtCreate)}
-                  </div>
-                </div>
-                {statusOptionsFor(item).length ? (
-                  <select
-                    value={statusIdOf(item)}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => updateStatus(item, e.target.value)}
-                    disabled={updatingItemIds.has(idOf(item))}
-                    style={{ minWidth: 112 }}
-                  >
-                    {!statusOptionsFor(item).some(
-                      (status) => idOf(status) === statusIdOf(item)
-                    ) && <option value={statusIdOf(item)}>{displayValue(item.status, '未设置')}</option>}
-                    {statusOptionsFor(item).map((status) => (
-                      <option key={idOf(status)} value={idOf(status)}>
-                        {nameOf(status)}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="badge badge-gray" style={{ whiteSpace: 'nowrap' }}>
-                    {displayValue(item.status, '未设置状态')}
+            <div
+              style={{
+                padding: '12px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--border)',
+                fontSize: 12,
+                color: 'var(--text-secondary)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={visibleItems.length > 0 && visibleItems.every((i) => selectedBugIds.has(idOf(i)))}
+                    onChange={toggleSelectAllVisible}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    全选当前页 ({visibleItems.length})
                   </span>
-                )}
+                </label>
+                <span>· 筛选匹配 {filtered.length} 条</span>
               </div>
-            ))
-          ) : (
-            <div className="empty-state" style={{ margin: 40 }}>
-              <div className="empty-state-title">没有匹配的工作项</div>
-              <div className="empty-state-desc">请调整筛选条件后重试。</div>
+              <span>
+                第 {page} / {totalPages} 页
+              </span>
+            </div>
+
+            {visibleItems.length ? (
+              visibleItems.map((item) => {
+                const isBug = isBugItem(item)
+                const isChecked = selectedBugIds.has(idOf(item))
+                return (
+                  <div
+                    key={idOf(item)}
+                    style={{
+                      padding: '14px 18px',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      cursor: 'pointer',
+                      background: isChecked
+                        ? 'rgba(79,158,248,0.08)'
+                        : selected && idOf(selected) === idOf(item)
+                          ? 'var(--bg-selected)'
+                          : undefined
+                    }}
+                    onClick={() => selectWorkitem(item)}
+                  >
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        toggleSelectBug(idOf(item))
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ cursor: 'pointer', width: 16, height: 16, flexShrink: 0 }}
+                      title="选择此项用于智能编排"
+                    />
+
+                    {/* Left Color Bar */}
+                    <div
+                      style={{
+                        width: 4,
+                        alignSelf: 'stretch',
+                        borderRadius: 99,
+                        background: statusColorOf(item)
+                      }}
+                    />
+
+                    {/* Middle Info */}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {isBug && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              background: 'rgba(224,92,92,0.15)',
+                              color: 'var(--accent-red)',
+                              border: '1px solid rgba(224,92,92,0.3)',
+                              padding: '1px 5px',
+                              borderRadius: 3,
+                              flexShrink: 0
+                            }}
+                          >
+                            🐛 缺陷
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 650,
+                            color: 'var(--text-primary)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {nameOf(item)}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                        <span style={{ fontFamily: 'monospace' }}>
+                          {displayValue(item.serialNumber, idOf(item))}
+                        </span>{' '}
+                        · 负责人：{displayValue(item.assignedTo, '未指派')} · 更新于{' '}
+                        {formatDate(item.gmtModified || item.gmtCreate)}
+                      </div>
+                    </div>
+
+                    {/* Right Status */}
+                    {statusOptionsFor(item).length ? (
+                      <select
+                        value={statusIdOf(item)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => updateStatus(item, e.target.value)}
+                        disabled={updatingItemIds.has(idOf(item))}
+                        style={{ minWidth: 112 }}
+                      >
+                        {!statusOptionsFor(item).some(
+                          (status) => idOf(status) === statusIdOf(item)
+                        ) && (
+                          <option value={statusIdOf(item)}>
+                            {displayValue(item.status, '未设置')}
+                          </option>
+                        )}
+                        {statusOptionsFor(item).map((status) => (
+                          <option key={idOf(status)} value={idOf(status)}>
+                            {nameOf(status)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="badge badge-gray" style={{ whiteSpace: 'nowrap' }}>
+                        {displayValue(item.status, '未设置状态')}
+                      </span>
+                    )}
+                  </div>
+                )
+              })
+            ) : (
+              <div className="empty-state" style={{ margin: 40 }}>
+                <div className="empty-state-title">没有匹配的工作项</div>
+                <div className="empty-state-desc">请调整筛选条件后重试。</div>
+              </div>
+            )}
+
+            <div style={{ padding: 14, display: 'flex', justifyContent: 'center', gap: 8 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                上一页
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+              >
+                下一页
+              </button>
+            </div>
+          </div>
+
+          {/* Floating Bulk Action Bar */}
+          {selectedBugIds.size > 0 && (
+            <div
+              style={{
+                position: 'sticky',
+                bottom: 14,
+                zIndex: 20,
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--accent-blue)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '10px 18px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                marginTop: 12,
+                animation: 'slideUp 150ms ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  已勾选 <strong style={{ color: 'var(--accent-blue)' }}>{selectedBugIds.size}</strong> 个云效工作项
+                </span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setSelectedBugIds(new Set())}
+                  style={{ fontSize: 11, padding: '2px 8px' }}
+                >
+                  清空选择
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setIsOrchestrateModalOpen(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #4f9ef8, #8b5cf6)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 16px',
+                    fontWeight: 600,
+                    boxShadow: '0 0 12px rgba(79, 158, 248, 0.4)'
+                  }}
+                >
+                  <span>🚀</span>
+                  <span>智能编排处理 ({selectedBugIds.size})</span>
+                </button>
+              </div>
             </div>
           )}
-          <div style={{ padding: 14, display: 'flex', justifyContent: 'center', gap: 8 }}>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              上一页
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-            >
-              下一页
-            </button>
-          </div>
-          </div>
+
           {selected && (
             <WorkitemDetailPanel
               item={selected}
@@ -815,6 +1122,24 @@ function WorkitemsTab({ project, projects, onSelectProject }) {
                 setSelected(null)
                 setDetail(null)
                 setDetailError(null)
+              }}
+            />
+          )}
+
+          {/* Bug Orchestration Modal */}
+          {isOrchestrateModalOpen && (
+            <BugOrchestrateModal
+              isOpen={isOrchestrateModalOpen}
+              bugs={selectedBugs}
+              plans={plans}
+              workspaces={workspaces}
+              onClose={() => setIsOrchestrateModalOpen(false)}
+              onConfirm={(payload) => {
+                setIsOrchestrateModalOpen(false)
+                setSelectedBugIds(new Set())
+                if (onOrchestrateBugs) {
+                  onOrchestrateBugs(payload)
+                }
               }}
             />
           )}

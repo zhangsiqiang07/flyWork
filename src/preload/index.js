@@ -85,6 +85,8 @@ const flyworkAPI = {
   yunxiaoGetMember: (memberId, organizationId) =>
     ipcRenderer.invoke('yunxiao-get-member', { memberId, organizationId }),
   yunxiaoGetConfig: () => ipcRenderer.invoke('yunxiao-get-config'),
+  yunxiaoGetCurrentUser: () => ipcRenderer.invoke('yunxiao-get-current-user'),
+  yunxiaoSetCurrentUser: (user) => ipcRenderer.invoke('yunxiao-set-current-user', user),
 
   // 云效项目管理
   yunxiaoSearchProjects: (options) => ipcRenderer.invoke('yunxiao-search-projects', options),
@@ -192,6 +194,10 @@ const flyworkAPI = {
     ipcRenderer.invoke('orchestrator-reconcile-asset', { tasks, assetPayload }),
   orchestratorDecomposePrd: (prdText, options) =>
     ipcRenderer.invoke('orchestrator-decompose-prd', { prdText, options }),
+  orchestratorBindBugsToPlan: (targetPlan, bugs, options) =>
+    ipcRenderer.invoke('orchestrator-bind-bugs-to-plan', { targetPlan, bugs, options }),
+  orchestratorCreateStandaloneBugPlan: (bugs, options) =>
+    ipcRenderer.invoke('orchestrator-create-standalone-bug-plan', { bugs, options }),
 
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),

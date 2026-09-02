@@ -3,6 +3,7 @@ export default function WorkloadHeader({
   onOpenDecompose,
   onOpenBatchAssign,
   onOpenReconcile,
+  onOpenBugModal,
   onRunReadyTasks,
   isRunningAll = false
 }) {
@@ -151,6 +152,27 @@ export default function WorkloadHeader({
           >
             <span>🔗</span> 资产注入 / Reconcile
           </button>
+
+          {onOpenBugModal && (
+            <button
+              onClick={onOpenBugModal}
+              style={{
+                background: 'rgba(224,92,92,0.08)',
+                border: '1px solid rgba(224,92,92,0.3)',
+                color: 'var(--accent-red)',
+                borderRadius: 'var(--radius-md)',
+                padding: '6px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span>🐛</span> 关联云效 Bug
+            </button>
+          )}
 
           <button
             onClick={onRunReadyTasks}

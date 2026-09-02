@@ -8,6 +8,8 @@ import PrdDecomposeModal from '../components/orchestrator/PrdDecomposeModal'
 import ContextPackageModal from '../components/orchestrator/ContextPackageModal'
 import BatchAssignModal from '../components/orchestrator/BatchAssignModal'
 import AssetReconcileModal from '../components/orchestrator/AssetReconcileModal'
+import BugOrchestrateModal from '../components/orchestrator/BugOrchestrateModal'
+import { MOCK_YUNXIAO_BUGS } from '../data/mockYunxiaoBugs'
 
 const DEFAULT_AGENTS = [
   { id: 'chatgpt', name: 'ChatGPT', avatar: '🤖', color: '#10a37f', role: '架构推理与 Review' },
@@ -44,8 +46,26 @@ export default function Orchestrator({
   const [isContextModalOpen, setIsContextModalOpen] = useState(false)
   const [isBatchAssignOpen, setIsBatchAssignOpen] = useState(false)
   const [isReconcileOpen, setIsReconcileOpen] = useState(false)
+  const [isBugModalOpen, setIsBugModalOpen] = useState(false)
+  const [yunxiaoBugs, setYunxiaoBugs] = useState([])
   const [activeContextTask, setActiveContextTask] = useState(null)
   const [activeContextPackage, setActiveContextPackage] = useState(null)
+
+  useEffect(() => {
+    async function loadBugs() {
+      try {
+        if (window.flywork?.yunxiaoListWorkitems) {
+          const res = await window.flywork.yunxiaoListWorkitems({ category: 'Bug', perPage: 20 })
+          if (res.success && res.workitems?.length > 0) {
+            setYunxiaoBugs(res.workitems)
+            return
+          }
+        }
+      } catch (e) {}
+      setYunxiaoBugs(MOCK_YUNXIAO_BUGS)
+    }
+    loadBugs()
+  }, [])
 
   // Agent Profiles
   const [agentProfiles, setAgentProfiles] = useState(DEFAULT_AGENTS)
@@ -329,6 +349,21 @@ export default function Orchestrator({
     [onUpdatePlan]
   )
 
+  // Bug Orchestration Apply
+  const handleBugOrchestrateConfirm = useCallback(
+    ({ mode, updatedPlan, newPlan }) => {
+      setIsBugModalOpen(false)
+      if (mode === 'bind' && updatedPlan) {
+        setCurrentPlan(updatedPlan)
+        if (onUpdatePlan) onUpdatePlan(updatedPlan)
+      } else if (mode === 'standalone' && newPlan) {
+        if (onUpdatePlan) onUpdatePlan(newPlan)
+        if (onSelectPlan) onSelectPlan(newPlan.id)
+      }
+    },
+    [onUpdatePlan, onSelectPlan]
+  )
+
   // Multi-select helpers
   const handleToggleTaskSelection = (taskId) => {
     setSelectedTaskIds((prev) => {
@@ -511,6 +546,7 @@ export default function Orchestrator({
         onOpenDecompose={() => setIsDecomposeOpen(true)}
         onOpenBatchAssign={() => setIsBatchAssignOpen(true)}
         onOpenReconcile={() => setIsReconcileOpen(true)}
+        onOpenBugModal={() => setIsBugModalOpen(true)}
         onRunReadyTasks={handleRunReadyTasks}
         isRunningAll={isRunningAll}
       />
@@ -589,6 +625,18 @@ export default function Orchestrator({
         tasks={currentPlan.tasks || []}
         onApplyReconciliation={handleApplyReconciliation}
       />
+
+      {isBugModalOpen && (
+        <BugOrchestrateModal
+          isOpen={isBugModalOpen}
+          bugs={yunxiaoBugs}
+          targetPlan={currentPlan}
+          plans={plans}
+          workspaces={workspaces}
+          onClose={() => setIsBugModalOpen(false)}
+          onConfirm={handleBugOrchestrateConfirm}
+        />
+      )}
     </div>
   )
 }

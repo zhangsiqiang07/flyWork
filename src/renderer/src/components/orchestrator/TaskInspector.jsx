@@ -219,6 +219,101 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {activeTab === 'details' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Yunxiao Bug Source Section */}
+            {task.sources?.bug && (
+              <div
+                style={{
+                  background: 'rgba(224, 92, 92, 0.06)',
+                  border: '1px solid rgba(224, 92, 92, 0.25)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 6
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13 }}>🐛</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-red)' }}>
+                      云效缺陷来源 (Yunxiao Bug)
+                    </span>
+                  </div>
+                  {task.sources.bug.serialNumber && (
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: 'var(--accent-red)',
+                        background: 'rgba(224, 92, 92, 0.15)',
+                        padding: '1px 5px',
+                        borderRadius: 3
+                      }}
+                    >
+                      {task.sources.bug.serialNumber}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  {task.sources.bug.title}
+                </div>
+                {task.sources.bug.description && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.5,
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      padding: '6px 8px',
+                      borderRadius: 4,
+                      marginTop: 6,
+                      maxHeight: 80,
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {task.sources.bug.description}
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 8,
+                    fontSize: 10,
+                    color: 'var(--text-muted)'
+                  }}
+                >
+                  <span>状态：{task.sources.bug.status || '待修复'}</span>
+                  {task.sources.bug.id && (
+                    <button
+                      onClick={() => {
+                        if (window.flywork?.yunxiaoOpenWorkitemDetail) {
+                          window.flywork.yunxiaoOpenWorkitemDetail(task.sources.bug.id)
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--accent-blue)',
+                        cursor: 'pointer',
+                        fontSize: 10,
+                        padding: 0,
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      在云效中查看 ↗
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* 1. Executor Routing Section */}
             <div
               style={{

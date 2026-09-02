@@ -197,6 +197,69 @@ export function getCurrentOrganizationId() {
 }
 
 /**
+ * 设置当前 Token 用户信息
+ * @param {object} user - 用户信息对象
+ */
+export function setCurrentUser(user) {
+  const config = getConfig() || {}
+  config.currentUser = user
+  storeConfig(config)
+}
+
+/**
+ * 获取当前登录用户/Token对应的用户信息
+ * @param {string} organizationId - 组织ID（可选）
+ * @returns {Promise<object|null>} 用户信息
+ */
+export async function getCurrentUser(organizationId = null) {
+  const config = getConfig() || {}
+  const orgId = organizationId || config.currentOrganizationId || null
+  const { yunxiaoGet } = await import('./api.js')
+
+  const candidateEndpoints = [
+    '/oapi/v1/platform/user',
+    '/oapi/v1/user',
+    '/oapi/v1/platform/user/current',
+    '/oapi/v1/platform/users/current',
+    '/oapi/v1/platform/currentUser',
+    '/oapi/v1/user/current',
+    orgId ? `/oapi/v1/platform/organizations/${encodeURIComponent(orgId)}/user` : null,
+    orgId ? `/oapi/v1/platform/organizations/${encodeURIComponent(orgId)}/user:current` : null,
+    orgId ? `/oapi/v1/platform/organizations/${encodeURIComponent(orgId)}/members:current` : null
+  ].filter(Boolean)
+
+  for (const ep of candidateEndpoints) {
+    try {
+      console.log(`[Yunxiao Auth] 正在调用 ${ep} 获取当前用户信息...`)
+      const res = await yunxiaoGet(ep)
+      const data = res?.result || res?.data || res
+      if (data && (data.id || data.userId || data.identifier || data.name || data.username || data.account)) {
+        const user = {
+          id: String(data.id || data.userId || data.identifier || ''),
+          name: String(data.name || data.nickName || data.realName || data.username || ''),
+          username: String(data.username || data.account || data.email || ''),
+          nickName: String(data.nickName || ''),
+          account: String(data.account || data.email || ''),
+          avatar: String(data.avatar || data.avatarUrl || '')
+        }
+        console.log('[Yunxiao Auth] 成功获取当前 Token 用户:', user.name, user.id, user.username)
+        config.currentUser = user
+        storeConfig(config)
+        return user
+      }
+    } catch (err) {
+      console.warn(`[Yunxiao Auth] 尝试从 ${ep} 获取当前用户失败:`, err.message)
+    }
+  }
+
+  if (config.currentUser) {
+    return config.currentUser
+  }
+
+  return null
+}
+
+/**
  * 验证 Token 是否有效（通过调用 API 测试）
  * @param {string} token - 访问令牌
  * @returns {Promise<{valid: boolean, organizations: Array}>}
@@ -237,9 +300,16 @@ export async function validateToken(token) {
 
     if (organizations.length >= 0) {
       console.log('[Yunxiao Auth] Token 验证成功，获取到', organizations.length, '个组织')
+      let user = null
+      try {
+        user = await getCurrentUser()
+      } catch (e) {
+        console.warn('[Yunxiao Auth] 获取当前用户失败:', e.message)
+      }
       return {
         valid: true,
         organizations: organizations,
+        currentUser: user,
         message: `Token 验证成功，找到 ${organizations.length} 个组织`
       }
     }

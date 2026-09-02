@@ -27,7 +27,9 @@ import {
   getConfig,
   storeConfig,
   setCurrentOrganization,
-  getCurrentOrganizationId
+  getCurrentOrganizationId,
+  getCurrentUser,
+  setCurrentUser
 } from './services/yunxiao/auth.js'
 import {
   listOrganizations,
@@ -127,6 +129,7 @@ import {
   ContextBuilder,
   ChangeSetReconciler,
   PlannerPromptEngine,
+  BugOrchestratorEngine,
   OrchestratorStore
 } from './services/orchestrator/orchestratorService.js'
 
@@ -1646,13 +1649,42 @@ function setupIPC() {
   ipcMain.handle('yunxiao-check-auth', async () => {
     try {
       const hasToken = await hasStoredToken()
-      const config = getConfig()
+      const config = getConfig() || {}
+      let currentUser = config.currentUser || null
+      if (hasToken && !currentUser) {
+        try {
+          currentUser = await getCurrentUser()
+        } catch {
+          // ignore
+        }
+      }
       return {
         success: true,
         configured: hasToken,
         currentOrganizationId: config?.currentOrganizationId || null,
-        currentOrganizationName: config?.currentOrganizationName || null
+        currentOrganizationName: config?.currentOrganizationName || null,
+        currentUser: currentUser || config?.currentUser || null
       }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 获取当前 Token 用户信息
+  ipcMain.handle('yunxiao-get-current-user', async () => {
+    try {
+      const user = await getCurrentUser()
+      return { success: true, user }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  // 设置当前 Token 用户信息
+  ipcMain.handle('yunxiao-set-current-user', async (_, user) => {
+    try {
+      setCurrentUser(user)
+      return { success: true }
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -2149,6 +2181,24 @@ function setupIPC() {
       const result = PlannerPromptEngine.decomposePrd(prdText, options)
       const prompt = PlannerPromptEngine.buildPlannerPrompt(prdText, options?.targetProjects)
       return { success: true, plan: result, prompt }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-bind-bugs-to-plan', async (_, { targetPlan, bugs, options }) => {
+    try {
+      const updatedPlan = BugOrchestratorEngine.bindBugsToPlan(targetPlan, bugs, options)
+      return { success: true, plan: updatedPlan }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('orchestrator-create-standalone-bug-plan', async (_, { bugs, options }) => {
+    try {
+      const newPlan = BugOrchestratorEngine.createStandaloneBugPlan(bugs, options)
+      return { success: true, plan: newPlan }
     } catch (err) {
       return { success: false, error: err.message }
     }
