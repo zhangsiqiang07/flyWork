@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import YunxiaoSettings from '../components/YunxiaoSettings'
 import JenkinsSettings from '../components/JenkinsSettings'
+import NetworkHelper from '../components/NetworkHelper'
 
 // Category configuration for audit log categorization
 const AUDIT_CATEGORIES = {
@@ -442,6 +443,7 @@ export default function SettingsAndTools({
           {[
             { id: 'audit-log', label: '审计日志', icon: '📋' },
             { id: 'doctor', label: '环境医生', icon: '🩺' },
+            { id: 'network', label: '网络与端口', icon: '🌐' },
             { id: 'services', label: '服务集成', icon: '🔌' },
             { id: 'about', label: '系统与关于', icon: 'ℹ️' }
           ].map((tab) => {
@@ -915,7 +917,16 @@ export default function SettingsAndTools({
         )}
 
         {/* ==================================================== */}
-        {/* 3. 服务集成 (Services Integration) Tab [新增整合 P0] */}
+        {/* 3. 网络与端口助手 (Network & Ports Helper) Tab [新增 P2] */}
+        {/* ==================================================== */}
+        {activeTab === 'network' && (
+          <div style={{ padding: '16px 24px', maxWidth: 880 }}>
+            <NetworkHelper showToast={showToast} />
+          </div>
+        )}
+
+        {/* ==================================================== */}
+        {/* 4. 服务集成 (Services Integration) Tab */}
         {/* ==================================================== */}
         {activeTab === 'services' && (
           <div style={{ padding: '16px 24px', maxWidth: 840 }}>

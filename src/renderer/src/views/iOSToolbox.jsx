@@ -4,10 +4,12 @@ import SimulatorToolbox from './SimulatorToolbox'
 import ProvisioningProfiles from './ProvisioningProfiles'
 import CrashAnalysis from './CrashAnalysis'
 import UniversalLink from './UniversalLink'
+import IpaAnalyzer from '../components/IpaAnalyzer'
 
 const IOS_TABS = [
   { id: 'simulator', label: '设备与模拟器', icon: '📱' },
   { id: 'provisioning', label: '描述文件与证书', icon: '🔏' },
+  { id: 'ipa-analyzer', label: 'IPA 体积分析', icon: '📦' },
   { id: 'crash', label: '崩溃符号化', icon: '💥' },
   { id: 'universal-link', label: '通用链接自检', icon: '🔗' }
 ]
@@ -20,6 +22,7 @@ export default function IOSToolbox({
   // Normalize tab
   const resolveTab = (tab) => {
     if (tab === 'provisioning' || tab === 'profiles') return 'provisioning'
+    if (tab === 'ipa' || tab === 'ipa-analyzer') return 'ipa-analyzer'
     if (tab === 'crash') return 'crash'
     if (tab === 'universal-link') return 'universal-link'
     return 'simulator'
@@ -117,6 +120,15 @@ export default function IOSToolbox({
           }}
         >
           <ProvisioningProfiles hideHeader={true} />
+        </div>
+        <div
+          style={{
+            display: activeTab === 'ipa-analyzer' ? 'block' : 'none',
+            height: '100%',
+            overflowY: 'auto'
+          }}
+        >
+          <IpaAnalyzer />
         </div>
         <div
           style={{

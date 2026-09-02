@@ -67,6 +67,14 @@ const flyworkAPI = {
   apnsValidateP12: (p12Path, password) =>
     ipcRenderer.invoke('apns-validate-p12', { p12Path, password }),
 
+  // Mobile Tools: IPA Analyzer
+  ipaAnalyze: (filePath) => ipcRenderer.invoke('ipa-analyze', filePath),
+
+  // Network & Ports Helper
+  networkGetInterfaces: () => ipcRenderer.invoke('network-get-interfaces'),
+  networkCheckPorts: (ports) => ipcRenderer.invoke('network-check-ports', ports),
+  networkKillPortProcess: (pid) => ipcRenderer.invoke('network-kill-port-process', pid),
+
   // File/URL
   openPath: (path) => ipcRenderer.invoke('open-path', path),
   openUrl: (url) => ipcRenderer.invoke('open-url', url),

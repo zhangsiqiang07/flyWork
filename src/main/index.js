@@ -165,6 +165,12 @@ import {
   sendRealApnsPush,
   validateP12Certificate
 } from './services/mobile/apnsService.js'
+import { analyzeIpa } from './services/mobile/ipaAnalyzerService.js'
+import {
+  getNetworkInterfaces,
+  checkPorts,
+  killPortProcess
+} from './services/network/networkService.js'
 
 const execAsync = promisify(exec)
 
@@ -819,6 +825,24 @@ function setupIPC() {
 
   ipcMain.handle('apns-validate-p12', async (_, { p12Path, password }) => {
     return validateP12Certificate(p12Path, password)
+  })
+
+  // IPA Analyzer
+  ipcMain.handle('ipa-analyze', async (_, filePath) => {
+    return await analyzeIpa(filePath)
+  })
+
+  // Network & Ports Helper
+  ipcMain.handle('network-get-interfaces', async () => {
+    return await getNetworkInterfaces()
+  })
+
+  ipcMain.handle('network-check-ports', async (_, ports) => {
+    return await checkPorts(ports)
+  })
+
+  ipcMain.handle('network-kill-port-process', async (_, pid) => {
+    return await killPortProcess(pid)
   })
 
   // Persist app data (workspaces, sessions, etc.)
