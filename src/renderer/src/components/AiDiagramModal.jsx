@@ -1,5 +1,11 @@
+/* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from 'react'
 import { parseMermaidToExcalidraw } from '@excalidraw/mermaid-to-excalidraw'
+import {
+  getInitialAiProviders,
+  getActiveProviderId,
+  switchActiveProvider
+} from '../utils/aiProviderStorage'
 
 const DEFAULT_CONFIG = {
   provider: 'deepseek',
@@ -253,12 +259,22 @@ export default function AiDiagramModal({
   const [mode, setMode] = useState('new') // 'new' | 'refine'
   const [promptText, setPromptText] = useState('')
   const [mermaidCode, setMermaidCode] = useState('')
+  const [providers, setProviders] = useState(() => getInitialAiProviders())
+  const [activeProviderId, setActiveProviderId] = useState(() => {
+    const list = getInitialAiProviders()
+    return getActiveProviderId(list)
+  })
   const [config, setConfig] = useState(() => {
-    try {
-      const saved = localStorage.getItem('flywork_ai_diagram_config')
-      if (saved) return JSON.parse(saved)
-    } catch (e) {
-      console.error('Failed to load AI diagram config', e)
+    const list = getInitialAiProviders()
+    const activeId = getActiveProviderId(list)
+    const active = list.find((p) => p.id === activeId) || list[0]
+    if (active) {
+      return {
+        provider: active.type,
+        baseUrl: active.baseUrl,
+        apiKey: active.apiKey,
+        model: active.model
+      }
     }
     return DEFAULT_CONFIG
   })
@@ -676,24 +692,52 @@ export default function AiDiagramModal({
     }
   }, [])
 
+  // 监听来自「服务集成」模块的模型配置实时变更
+  useEffect(() => {
+    const handleGlobalConfigUpdate = (e) => {
+      try {
+        const saved = localStorage.getItem('flywork_ai_providers')
+        if (saved) setProviders(JSON.parse(saved))
+        const activeId = localStorage.getItem('flywork_ai_active_provider_id')
+        if (activeId) setActiveProviderId(activeId)
+      } catch (err) {
+        console.warn('Failed to reload providers on config update', err)
+      }
+      if (e.detail) {
+        setConfig(e.detail)
+      }
+    }
+    window.addEventListener('flywork_ai_config_updated', handleGlobalConfigUpdate)
+    return () => window.removeEventListener('flywork_ai_config_updated', handleGlobalConfigUpdate)
+  }, [])
+
   const saveConfig = (newConfig) => {
     setConfig(newConfig)
+    localStorage.setItem('flywork_ai_model_config', JSON.stringify(newConfig))
     localStorage.setItem('flywork_ai_diagram_config', JSON.stringify(newConfig))
+    window.dispatchEvent(new CustomEvent('flywork_ai_config_updated', { detail: newConfig }))
   }
 
-  const handleProviderChange = (pKey) => {
-    const preset = PROVIDER_PRESETS[pKey]
-    if (preset && pKey !== 'custom') {
-      const updated = {
-        ...config,
-        provider: pKey,
-        baseUrl: preset.baseUrl,
-        model: preset.model
-      }
-      saveConfig(updated)
-    } else {
-      saveConfig({ ...config, provider: 'custom' })
-    }
+  // 切换选中的 Provider 节点
+  const handleSwitchProvider = (providerId) => {
+    const target = switchActiveProvider(providerId, providers)
+    if (!target) return
+    setActiveProviderId(target.id)
+    setConfig({
+      provider: target.type,
+      baseUrl: target.baseUrl,
+      apiKey: target.apiKey,
+      model: target.model
+    })
+  }
+
+  const handleGoToServiceIntegration = () => {
+    onClose()
+    window.dispatchEvent(
+      new CustomEvent('flywork_open_settings', {
+        detail: { tab: 'services', subTab: 'ai' }
+      })
+    )
   }
 
   // 自动平铺清洗 Mermaid 中的 subgraph 语法，避免 Mermaid v11 DOM 查询缺陷导致降级为不可渲染的 SVG 图片
@@ -1053,45 +1097,130 @@ CRITICAL RULES:
           >
             直接导入 Mermaid
           </button>
-          <button
-            onClick={() => {
-              setActiveTab('settings')
-              setErrorMsg('')
-            }}
+          {/* 快速选择已配置的大模型 */}
+          <div
             style={{
               marginLeft: 'auto',
-              padding: '10px 16px',
-              background: 'transparent',
-              border: 'none',
-              borderBottom:
-                activeTab === 'settings'
-                  ? '2px solid var(--accent-purple)'
-                  : '2px solid transparent',
-              color: activeTab === 'settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: 500,
-              fontSize: 13,
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 8,
+              paddingRight: 6
             }}
           >
-            ⚙️ 模型设置
-            {!config.apiKey && config.provider !== 'ollama' && (
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: 'var(--accent-amber)'
-                }}
-              />
-            )}
-          </button>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>🤖 服务商节点：</span>
+            <select
+              value={activeProviderId}
+              onChange={(e) => handleSwitchProvider(e.target.value)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                outline: 'none',
+                maxWidth: 220
+              }}
+            >
+              {providers && providers.length > 0 ? (
+                providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.model})
+                  </option>
+                ))
+              ) : (
+                <option value="">暂无可用 Provider</option>
+              )}
+            </select>
+            <button
+              onClick={handleGoToServiceIntegration}
+              title="前往「设置与工具 - 服务集成」管理 Provider 节点及 API Key"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                fontSize: 11,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '3px 8px',
+                borderRadius: 5,
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-blue)'
+                e.currentTarget.style.color = 'var(--accent-blue)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }}
+            >
+              <span>⚙️</span>
+              <span>管理 Provider ↗</span>
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
         <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
+          {/* 未配置 API Key 时的贴心引导条 */}
+          {!config.apiKey && config.provider !== 'ollama' && (
+            <div
+              style={{
+                marginBottom: 16,
+                padding: '10px 14px',
+                borderRadius: 8,
+                background: 'rgba(234, 179, 8, 0.1)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                animation: 'fadeIn 0.2s ease'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span>⚠️</span>
+                <span>
+                  当前服务商节点 [
+                  <strong>
+                    {providers.find((p) => p.id === activeProviderId)?.name ||
+                      PROVIDER_PRESETS[config.provider]?.name ||
+                      config.provider}
+                  </strong>
+                  ] 尚未配置 API Key。
+                </span>
+              </div>
+              <button
+                onClick={handleGoToServiceIntegration}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  background: 'var(--accent-amber)',
+                  color: '#000',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                前往服务集成配置 ↗
+              </button>
+            </div>
+          )}
           {errorMsg && (
             <div
               style={{
@@ -1390,9 +1519,12 @@ CRITICAL RULES:
                 }}
               >
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  当前模型：
+                  当前调用节点：
                   <span style={{ color: 'var(--text-accent)', fontWeight: 500, marginLeft: 4 }}>
-                    {PROVIDER_PRESETS[config.provider]?.name || config.provider} ({config.model})
+                    {providers.find((p) => p.id === activeProviderId)?.name ||
+                      PROVIDER_PRESETS[config.provider]?.name ||
+                      config.provider}{' '}
+                    ({config.model})
                   </span>
                 </div>
 
@@ -1509,152 +1641,6 @@ CRITICAL RULES:
                   }}
                 >
                   导入到白板
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    marginBottom: 6
-                  }}
-                >
-                  模型供应商 (Provider)
-                </label>
-                <select
-                  value={config.provider}
-                  onChange={(e) => handleProviderChange(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-base)',
-                    color: 'var(--text-primary)',
-                    fontSize: 13
-                  }}
-                >
-                  {Object.entries(PROVIDER_PRESETS).map(([key, item]) => (
-                    <option key={key} value={key}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  {PROVIDER_PRESETS[config.provider]?.hint}
-                </div>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    marginBottom: 6
-                  }}
-                >
-                  API Base URL
-                </label>
-                <input
-                  type="text"
-                  value={config.baseUrl}
-                  onChange={(e) => saveConfig({ ...config, baseUrl: e.target.value })}
-                  placeholder="https://api.deepseek.com/v1"
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-base)',
-                    color: 'var(--text-primary)',
-                    fontSize: 13,
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    marginBottom: 6
-                  }}
-                >
-                  API Key
-                </label>
-                <input
-                  type="password"
-                  value={config.apiKey}
-                  onChange={(e) => saveConfig({ ...config, apiKey: e.target.value })}
-                  placeholder={config.provider === 'ollama' ? '本地模型无需填 Key' : 'sk-...'}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-base)',
-                    color: 'var(--text-primary)',
-                    fontSize: 13,
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                  配置仅保存在本地设备，不会上传至任何第三方服务器。
-                </div>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    marginBottom: 6
-                  }}
-                >
-                  模型名称 (Model)
-                </label>
-                <input
-                  type="text"
-                  value={config.model}
-                  onChange={(e) => saveConfig({ ...config, model: e.target.value })}
-                  placeholder="deepseek-chat / gpt-4o-mini"
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-base)',
-                    color: 'var(--text-primary)',
-                    fontSize: 13,
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                <button
-                  onClick={() => setActiveTab('prompt')}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: 'var(--accent-blue)',
-                    color: '#fff',
-                    fontSize: 13,
-                    cursor: 'pointer'
-                  }}
-                >
-                  保存并去生成图表
                 </button>
               </div>
             </div>

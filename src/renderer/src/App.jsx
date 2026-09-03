@@ -260,6 +260,16 @@ export default function App() {
     setCommandCenterOpen(false)
   }, [])
 
+  useEffect(() => {
+    const handleOpenSettings = (e) => {
+      const { tab, subTab } = e.detail || {}
+      if (tab) setSettingsInitialTab(subTab ? `${tab}-${subTab}` : tab)
+      setCurrentView('settings')
+    }
+    window.addEventListener('flywork_open_settings', handleOpenSettings)
+    return () => window.removeEventListener('flywork_open_settings', handleOpenSettings)
+  }, [])
+
   const openWorkspace = useCallback((workspaceId) => {
     setSelectedWorkspaceId(workspaceId)
     setCurrentView('workspace-detail')

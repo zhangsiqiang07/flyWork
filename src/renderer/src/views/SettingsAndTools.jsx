@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import YunxiaoSettings from '../components/YunxiaoSettings'
 import JenkinsSettings from '../components/JenkinsSettings'
+import AiModelSettings from '../components/AiModelSettings'
 import NetworkHelper from '../components/NetworkHelper'
 
 // Category configuration for audit log categorization
@@ -231,7 +232,15 @@ export default function SettingsAndTools({
 }) {
   // Normalize initial tab
   const resolveTab = (tab) => {
-    if (tab === 'yunxiao' || tab === 'jenkins') return 'services'
+    if (
+      tab === 'yunxiao' ||
+      tab === 'jenkins' ||
+      tab === 'ai' ||
+      tab === 'services' ||
+      tab?.startsWith('services-')
+    ) {
+      return 'services'
+    }
     if (tab === 'doctor' || tab === 'environment') return 'doctor'
     if (tab === 'about') return 'about'
     return 'audit-log'
@@ -239,7 +248,11 @@ export default function SettingsAndTools({
 
   const [activeTab, setActiveTab] = useState(resolveTab(initialTab))
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab)
-  const [serviceTab, setServiceTab] = useState(initialTab === 'jenkins' ? 'jenkins' : 'yunxiao')
+  const [serviceTab, setServiceTab] = useState(() => {
+    if (initialTab === 'jenkins' || initialTab === 'services-jenkins') return 'jenkins'
+    if (initialTab === 'ai' || initialTab === 'services-ai') return 'ai'
+    return 'yunxiao'
+  })
 
   // Audit log states
   const [logs, setLogs] = useState([])
@@ -259,8 +272,9 @@ export default function SettingsAndTools({
   if (initialTab !== prevInitialTab) {
     setPrevInitialTab(initialTab)
     setActiveTab(resolveTab(initialTab))
-    if (initialTab === 'jenkins') setServiceTab('jenkins')
-    if (initialTab === 'yunxiao') setServiceTab('yunxiao')
+    if (initialTab === 'jenkins' || initialTab === 'services-jenkins') setServiceTab('jenkins')
+    if (initialTab === 'yunxiao' || initialTab === 'services-yunxiao') setServiceTab('yunxiao')
+    if (initialTab === 'ai' || initialTab === 'services-ai') setServiceTab('ai')
   }
 
   const showToast = useCallback((msg) => {
@@ -1103,7 +1117,7 @@ export default function SettingsAndTools({
         {/* ==================================================== */}
         {activeTab === 'services' && (
           <div style={{ padding: '16px 24px', maxWidth: 840 }}>
-            {/* Sub-nav toggle for Yunxiao & Jenkins */}
+            {/* Sub-nav toggle for Yunxiao, Jenkins & AI Models */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button
                 className={`btn btn-sm ${serviceTab === 'yunxiao' ? 'btn-primary' : 'btn-secondary'}`}
@@ -1120,6 +1134,14 @@ export default function SettingsAndTools({
               >
                 <span>🏗️</span>
                 <span>Jenkins CI 持续集成</span>
+              </button>
+              <button
+                className={`btn btn-sm ${serviceTab === 'ai' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setServiceTab('ai')}
+                style={{ gap: 6, fontSize: 12 }}
+              >
+                <span>🤖</span>
+                <span>AI 大模型服务</span>
               </button>
             </div>
 
@@ -1138,6 +1160,8 @@ export default function SettingsAndTools({
                 }}
               />
             )}
+
+            {serviceTab === 'ai' && <AiModelSettings />}
           </div>
         )}
 
