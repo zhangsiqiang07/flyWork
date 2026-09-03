@@ -151,7 +151,9 @@ export default function YunxiaoSettings({ onConfigChange }) {
   return (
     <div style={{ padding: 24, maxWidth: 600 }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+        <h2
+          style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}
+        >
           云效集成设置
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
@@ -161,29 +163,33 @@ export default function YunxiaoSettings({ onConfigChange }) {
 
       {/* 状态提示 */}
       {error && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--accent-red-dim)',
-          border: '1px solid var(--accent-red)',
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: 13,
-          color: 'var(--accent-red)'
-        }}>
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'var(--accent-red-dim)',
+            border: '1px solid var(--accent-red)',
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 13,
+            color: 'var(--accent-red)'
+          }}
+        >
           ⚠️ {error}
         </div>
       )}
 
       {success && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--accent-green-dim)',
-          border: '1px solid var(--accent-green)',
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: 13,
-          color: 'var(--accent-green)'
-        }}>
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'var(--accent-green-dim)',
+            border: '1px solid var(--accent-green)',
+            borderRadius: 8,
+            marginBottom: 16,
+            fontSize: 13,
+            color: 'var(--accent-green)'
+          }}
+        >
           ✓ {success}
         </div>
       )}
@@ -192,7 +198,15 @@ export default function YunxiaoSettings({ onConfigChange }) {
       {!isConfigured && (
         <div className="card" style={{ padding: 20 }}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8, color: 'var(--text-primary)' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: 13,
+                fontWeight: 500,
+                marginBottom: 8,
+                color: 'var(--text-primary)'
+              }}
+            >
               个人访问令牌
             </label>
             <input
@@ -211,7 +225,9 @@ export default function YunxiaoSettings({ onConfigChange }) {
                 color: 'var(--text-primary)'
               }}
             />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+            <div
+              style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}
+            >
               💡 在{' '}
               <a
                 href="https://devops.aliyun.com/personalAccessToken"
@@ -241,23 +257,39 @@ export default function YunxiaoSettings({ onConfigChange }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* 当前组织 */}
           <div className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16
+              }}
+            >
               <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    marginBottom: 4
+                  }}
+                >
                   当前组织
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
                   {currentOrgName || '未选择'}
                 </div>
               </div>
-              <div style={{
-                padding: '4px 10px',
-                background: 'var(--accent-green-dim)',
-                color: 'var(--accent-green)',
-                borderRadius: 12,
-                fontSize: 11,
-                fontWeight: 500
-              }}>
+              <div
+                style={{
+                  padding: '4px 10px',
+                  background: 'var(--accent-green-dim)',
+                  color: 'var(--accent-green)',
+                  borderRadius: 12,
+                  fontSize: 11,
+                  fontWeight: 500
+                }}
+              >
                 ✓ 已连接
               </div>
             </div>
@@ -265,7 +297,14 @@ export default function YunxiaoSettings({ onConfigChange }) {
             {/* 组织选择 */}
             {organizations.length > 0 && (
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 12,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 8
+                  }}
+                >
                   切换组织
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -291,18 +330,10 @@ export default function YunxiaoSettings({ onConfigChange }) {
 
           {/* 操作按钮 */}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn btn-secondary"
-              onClick={handleLogout}
-              style={{ flex: 1 }}
-            >
+            <button className="btn btn-secondary" onClick={handleLogout} style={{ flex: 1 }}>
               退出登录
             </button>
-            <button
-              className="btn btn-ghost"
-              onClick={checkAuthStatus}
-              style={{ flex: 1 }}
-            >
+            <button className="btn btn-ghost" onClick={checkAuthStatus} style={{ flex: 1 }}>
               刷新状态
             </button>
           </div>
@@ -310,11 +341,23 @@ export default function YunxiaoSettings({ onConfigChange }) {
       )}
 
       {/* 帮助信息 */}
-      <div style={{ marginTop: 24, padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}>
+      <div
+        style={{ marginTop: 24, padding: 16, background: 'var(--bg-elevated)', borderRadius: 8 }}
+      >
+        <div
+          style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8 }}
+        >
           📖 使用说明
         </div>
-        <ul style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
+        <ul
+          style={{
+            fontSize: 11,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.8,
+            paddingLeft: 16,
+            margin: 0
+          }}
+        >
           <li>访问令牌用于调用云效 API，安全存储在本地</li>
           <li>配置后可在 FlyDeck 中管理云效项目和工作项</li>
           <li>支持多组织切换，方便管理不同团队的项目</li>

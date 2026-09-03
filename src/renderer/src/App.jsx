@@ -20,6 +20,7 @@ const IOSToolbox = lazy(() => import('./views/iOSToolbox'))
 const JenkinsDashboard = lazy(() => import('./views/JenkinsDashboard'))
 const PrdIterationHub = lazy(() => import('./views/PrdIterationHub'))
 const Orchestrator = lazy(() => import('./views/Orchestrator'))
+const Whiteboard = lazy(() => import('./views/Whiteboard'))
 
 function ViewSkeleton() {
   return (
@@ -414,9 +415,7 @@ export default function App() {
   const handleOrchestrateBugs = useCallback(
     ({ mode, targetPlanId, updatedPlan, newPlan }) => {
       if (mode === 'bind' && updatedPlan) {
-        setOrchestratorPlans((prev) =>
-          prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
-        )
+        setOrchestratorPlans((prev) => prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)))
         navigateTo('orchestrator', updatedPlan.id)
       } else if (mode === 'standalone' && newPlan) {
         setOrchestratorPlans((prev) => [newPlan, ...prev])
@@ -598,6 +597,8 @@ export default function App() {
         )
       case 'jenkins':
         return <JenkinsDashboard />
+      case 'whiteboard':
+        return <Whiteboard />
       default:
         return null
     }

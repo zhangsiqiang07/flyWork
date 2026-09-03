@@ -233,7 +233,10 @@ export async function getCurrentUser(organizationId = null) {
       console.log(`[Yunxiao Auth] 正在调用 ${ep} 获取当前用户信息...`)
       const res = await yunxiaoGet(ep)
       const data = res?.result || res?.data || res
-      if (data && (data.id || data.userId || data.identifier || data.name || data.username || data.account)) {
+      if (
+        data &&
+        (data.id || data.userId || data.identifier || data.name || data.username || data.account)
+      ) {
         const user = {
           id: String(data.id || data.userId || data.identifier || ''),
           name: String(data.name || data.nickName || data.realName || data.username || ''),

@@ -13,8 +13,20 @@ import { MOCK_YUNXIAO_BUGS } from '../data/mockYunxiaoBugs'
 
 const DEFAULT_AGENTS = [
   { id: 'chatgpt', name: 'ChatGPT', avatar: '🤖', color: '#10a37f', role: '架构推理与 Review' },
-  { id: 'antigravity', name: 'Antigravity', avatar: '✨', color: '#8b5cf6', role: '跨文件编码与 UI' },
-  { id: 'claude-code', name: 'Claude Code', avatar: '⚡', color: '#d97706', role: '代码分析与单测' },
+  {
+    id: 'antigravity',
+    name: 'Antigravity',
+    avatar: '✨',
+    color: '#8b5cf6',
+    role: '跨文件编码与 UI'
+  },
+  {
+    id: 'claude-code',
+    name: 'Claude Code',
+    avatar: '⚡',
+    color: '#d97706',
+    role: '代码分析与单测'
+  },
   { id: 'trae', name: 'TRAE', avatar: '🚀', color: '#06b6d4', role: 'UI 骨架与原型' },
   { id: 'workbuddy', name: 'WorkBuddy', avatar: '🛠️', color: '#3b82f6', role: '脚手架与 API' }
 ]
@@ -29,9 +41,7 @@ export default function Orchestrator({
   onAddWorkspace
 }) {
   const [currentPlan, setCurrentPlan] = useState(activePlan || INITIAL_ORCHESTRATOR_PLAN)
-  const [selectedTaskId, setSelectedTaskId] = useState(
-    currentPlan?.tasks?.[0]?.id || 'IOS-REP-104'
-  )
+  const [selectedTaskId, setSelectedTaskId] = useState(currentPlan?.tasks?.[0]?.id || 'IOS-REP-104')
   const [selectedNode, setSelectedNode] = useState(null)
   const [selectedTaskIds, setSelectedTaskIds] = useState(new Set())
   const [viewMode, setViewMode] = useState('list') // 'list' | 'dag'
@@ -161,8 +171,7 @@ export default function Orchestrator({
   // Selected Task
   const selectedTask = useMemo(() => {
     return (
-      (currentPlan.tasks || []).find((t) => t.id === selectedTaskId) ||
-      (currentPlan.tasks || [])[0]
+      (currentPlan.tasks || []).find((t) => t.id === selectedTaskId) || (currentPlan.tasks || [])[0]
     )
   }, [currentPlan.tasks, selectedTaskId])
 
@@ -199,7 +208,9 @@ export default function Orchestrator({
               status: 'DONE',
               files: {
                 ...t.files,
-                changed: t.files?.expected || [`src/${t.layer}/${t.title.replace(/\s+/g, '')}.swift`]
+                changed: t.files?.expected || [
+                  `src/${t.layer}/${t.title.replace(/\s+/g, '')}.swift`
+                ]
               }
             }
           }
@@ -490,7 +501,9 @@ export default function Orchestrator({
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-secondary)' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-secondary)' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <button
               onClick={() => setShowLeftTree((v) => !v)}
@@ -517,7 +530,8 @@ export default function Orchestrator({
               title={showRightInspector ? '隐藏右侧检查器' : '展开右侧检查器'}
               style={{
                 background: showRightInspector ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
-                border: '1px solid ' + (showRightInspector ? 'var(--accent-blue)' : 'var(--border)'),
+                border:
+                  '1px solid ' + (showRightInspector ? 'var(--accent-blue)' : 'var(--border)'),
                 color: showRightInspector ? 'var(--accent-blue)' : 'var(--text-secondary)',
                 borderRadius: 4,
                 padding: '2px 6px',

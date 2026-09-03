@@ -75,13 +75,33 @@ export default function PrdIterationHub({
   const getStatusBadge = (status) => {
     switch (status) {
       case 'IN_PROGRESS':
-        return { label: '● 进行中', bg: 'rgba(79,158,248,0.15)', color: '#4f9ef8', border: 'rgba(79,158,248,0.3)' }
+        return {
+          label: '● 进行中',
+          bg: 'rgba(79,158,248,0.15)',
+          color: '#4f9ef8',
+          border: 'rgba(79,158,248,0.3)'
+        }
       case 'PLANNING':
-        return { label: '📋 规划中', bg: 'rgba(210,153,34,0.15)', color: '#d29922', border: 'rgba(210,153,34,0.3)' }
+        return {
+          label: '📋 规划中',
+          bg: 'rgba(210,153,34,0.15)',
+          color: '#d29922',
+          border: 'rgba(210,153,34,0.3)'
+        }
       case 'DONE':
-        return { label: '✓ 已完成', bg: 'rgba(63,185,80,0.15)', color: '#3fb950', border: 'rgba(63,185,80,0.3)' }
+        return {
+          label: '✓ 已完成',
+          bg: 'rgba(63,185,80,0.15)',
+          color: '#3fb950',
+          border: 'rgba(63,185,80,0.3)'
+        }
       default:
-        return { label: status, bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border)' }
+        return {
+          label: status,
+          bg: 'var(--bg-elevated)',
+          color: 'var(--text-secondary)',
+          border: 'var(--border)'
+        }
     }
   }
 
@@ -238,7 +258,13 @@ export default function PrdIterationHub({
         </div>
 
         {/* Aggregate KPI Metric Badges */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 12
+          }}
+        >
           <div
             style={{
               background: 'var(--bg-elevated)',
@@ -253,7 +279,9 @@ export default function PrdIterationHub({
             <span style={{ fontSize: 24 }}>📋</span>
             <div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>PRD 需求总数</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{totalPrds} 个需求</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {totalPrds} 个需求
+              </div>
             </div>
           </div>
 
@@ -271,7 +299,9 @@ export default function PrdIterationHub({
             <span style={{ fontSize: 24 }}>🚀</span>
             <div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>进行中迭代</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-blue)' }}>{inProgressCount} 个迭代</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--accent-blue)' }}>
+                {inProgressCount} 个迭代
+              </div>
             </div>
           </div>
 
@@ -289,7 +319,9 @@ export default function PrdIterationHub({
             <span style={{ fontSize: 24 }}>⚙️</span>
             <div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>累计分层任务</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{totalTasks} 个 Task</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {totalTasks} 个 Task
+              </div>
             </div>
           </div>
 
@@ -330,8 +362,14 @@ export default function PrdIterationHub({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {[
             { id: 'ALL', label: `全部需求 (${plans.length})` },
-            { id: 'IN_PROGRESS', label: `● 进行中 (${plans.filter((p) => p.status === 'IN_PROGRESS').length})` },
-            { id: 'PLANNING', label: `📋 规划中 (${plans.filter((p) => p.status === 'PLANNING').length})` },
+            {
+              id: 'IN_PROGRESS',
+              label: `● 进行中 (${plans.filter((p) => p.status === 'IN_PROGRESS').length})`
+            },
+            {
+              id: 'PLANNING',
+              label: `📋 规划中 (${plans.filter((p) => p.status === 'PLANNING').length})`
+            },
             { id: 'DONE', label: `✓ 已完成 (${plans.filter((p) => p.status === 'DONE').length})` }
           ].map((tab) => (
             <button
@@ -341,9 +379,13 @@ export default function PrdIterationHub({
                 fontSize: 12,
                 padding: '5px 12px',
                 borderRadius: 'var(--radius-md)',
-                background: statusFilter === tab.id ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                background:
+                  statusFilter === tab.id ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
                 color: statusFilter === tab.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                border: statusFilter === tab.id ? '1px solid var(--accent-blue)' : '1px solid var(--border)',
+                border:
+                  statusFilter === tab.id
+                    ? '1px solid var(--accent-blue)'
+                    : '1px solid var(--border)',
                 fontWeight: statusFilter === tab.id ? 600 : 400,
                 cursor: 'pointer'
               }}
@@ -423,8 +465,12 @@ export default function PrdIterationHub({
             }}
           >
             <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>未找到匹配的 PRD 需求</div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>可调整筛选条件或点击上方「+ AI 导入新 PRD 需求」</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+              未找到匹配的 PRD 需求
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4 }}>
+              可调整筛选条件或点击上方「+ AI 导入新 PRD 需求」
+            </div>
           </div>
         ) : (
           filteredPlans.map((plan) => {
@@ -441,7 +487,8 @@ export default function PrdIterationHub({
             // Multi-Agent team distribution
             const agentCounts = {}
             tasks.forEach((t) => {
-              const agentId = t.execution?.selected?.agent_id || t.execution?.recommended?.agent_id || 'chatgpt'
+              const agentId =
+                t.execution?.selected?.agent_id || t.execution?.recommended?.agent_id || 'chatgpt'
               agentCounts[agentId] = (agentCounts[agentId] || 0) + 1
             })
 
@@ -450,7 +497,9 @@ export default function PrdIterationHub({
                 key={plan.id}
                 style={{
                   background: 'var(--bg-surface)',
-                  border: plan.isDemo ? '1px solid rgba(139,92,246,0.4)' : '1px solid var(--border)',
+                  border: plan.isDemo
+                    ? '1px solid rgba(139,92,246,0.4)'
+                    : '1px solid var(--border)',
                   borderRadius: 'var(--radius-xl)',
                   padding: '18px 20px',
                   display: 'flex',
@@ -461,7 +510,9 @@ export default function PrdIterationHub({
                 }}
               >
                 {/* Card Header: PRD ID, Demo Tag, Status */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {plan.isDemo && (
                       <span
@@ -470,7 +521,8 @@ export default function PrdIterationHub({
                           fontWeight: 700,
                           padding: '2px 7px',
                           borderRadius: 4,
-                          background: 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(79,158,248,0.25))',
+                          background:
+                            'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(79,158,248,0.25))',
                           color: '#c084fc',
                           border: '1px solid rgba(139,92,246,0.4)'
                         }}
@@ -582,11 +634,20 @@ export default function PrdIterationHub({
                     border: '1px solid var(--border)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 6 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: 11,
+                      marginBottom: 6
+                    }}
+                  >
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                       研发任务完成度 ({doneCount}/{tasks.length})
                     </span>
-                    <span style={{ fontWeight: 700, color: 'var(--accent-green)' }}>{pctDone}%</span>
+                    <span style={{ fontWeight: 700, color: 'var(--accent-green)' }}>
+                      {pctDone}%
+                    </span>
                   </div>
 
                   {/* Stacked Progress Bar */}
@@ -621,11 +682,23 @@ export default function PrdIterationHub({
                     />
                   </div>
 
-                  <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: 10, color: 'var(--text-secondary)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 10,
+                      marginTop: 8,
+                      fontSize: 10,
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
                     <span style={{ color: '#3fb950' }}>✓ {doneCount} 完成</span>
                     <span style={{ color: '#4f9ef8' }}>⚡ {readyCount} 就绪</span>
-                    {blockedCount > 0 && <span style={{ color: '#d29922' }}>⛔ {blockedCount} 阻塞</span>}
-                    {waitCount > 0 && <span style={{ color: '#a371f7' }}>⏳ {waitCount} 等待资产</span>}
+                    {blockedCount > 0 && (
+                      <span style={{ color: '#d29922' }}>⛔ {blockedCount} 阻塞</span>
+                    )}
+                    {waitCount > 0 && (
+                      <span style={{ color: '#a371f7' }}>⏳ {waitCount} 等待资产</span>
+                    )}
                   </div>
                 </div>
 
@@ -772,7 +845,12 @@ export default function PrdIterationHub({
               </div>
               <button
                 onClick={() => setSelectedPrdPreview(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
               >
                 ✕
               </button>
@@ -798,7 +876,14 @@ export default function PrdIterationHub({
               </div>
             </div>
 
-            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                padding: '12px 18px',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'flex-end'
+              }}
+            >
               <button
                 onClick={() => {
                   const id = selectedPrdPreview.id

@@ -26,8 +26,8 @@ mac:
   notarize: false
   identity: null
   extendInfo:
-    NSDocumentsFolderUsageDescription: "FlyDeck 需要访问您的项目目录"
-    NSDownloadsFolderUsageDescription: "FlyDeck 需要访问下载目录"
+    NSDocumentsFolderUsageDescription: 'FlyDeck 需要访问您的项目目录'
+    NSDownloadsFolderUsageDescription: 'FlyDeck 需要访问下载目录'
 dmg:
   artifactName: FlyDeck-${version}-${arch}.${ext}
   title: FlyDeck ${version}

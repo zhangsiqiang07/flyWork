@@ -7,17 +7,20 @@ A desktop productivity app for developers, built with Electron and React. Manage
 ## Features
 
 ### Workspace Management
+
 - Organize projects into workspaces with custom paths
 - Real-time Git status monitoring (branch, modified files, last commit)
 - Quick access to workspace details and recent activity
 
 ### Git Operations
+
 - Comprehensive Git workflow: commit, push, pull, stash, branch management
 - AI-powered commit message generation using Claude Code CLI (with rule-based fallback)
 - Visual branch management and checkout
 - File staging/unstaging with granular control
 
 ### Automation Workflows
+
 - Build custom automation pipelines with multi-step commands
 - Dry-run mode to preview execution before applying changes
 - Real-time streaming output during execution
@@ -25,22 +28,26 @@ A desktop productivity app for developers, built with Electron and React. Manage
 - Action whitelist for safe, controlled execution
 
 ### AI Agent Integration
+
 - Detect and integrate with local CLI agents: Claude Code, Codex/ChatGPT, OpenCode, Gemini
 - View project-specific sessions from native agent storage
 - Access conversation history and thread messages
 
 ### Mobile & iOS Developer Tools
+
 - **iOS Simulator Control Box**: Device state monitoring and power controls, one-click APNs push notification testing, simulated GPS location mock (presets & custom coordinates), instant Finder container sandbox opening, and drag-and-drop .app installation.
 - **Provisioning Profiles & Certificates Inspector**: Parse local & external .mobileprovision files, instant device UDID inclusion search, expiration countdown alerts, Entitlements capability breakdown, and macOS Keychain code signing identities.
 - **Crash Analysis**: Import PLCrash logs and .dSYM symbols, symbolicate stacks with `symbolicatecrash`.
 - **Universal Links**: AASA validation and deep link testing in iOS Simulator.
 
 ### Command Center
+
 - Quick access via **⌥ Space** (Alt+Space) global shortcut
 - Execute common actions: open Xcode, terminal, Finder
 - Run Git operations directly from the command palette
 
 ### Additional Features
+
 - System tray integration for quick access
 - Settings & Tools: Environment Doctor diagnosis, system audit log (Audit Logs), and enterprise integrations (Yunxiao & Jenkins)
 - Today view for daily focus
@@ -88,6 +95,7 @@ Build output will be in the `dist` directory.
 ## Data Storage
 
 Application data is stored in `~/.flywork/`:
+
 - `data.json` - Workspaces, sessions, and app state
 - `audit.log` - Activity and automation execution logs
 

@@ -40,7 +40,11 @@ function parseAuditLog(rawLog, index) {
     if (action === 'TOKEN_VALIDATED') {
       title = '云效: 个人访问令牌验证通过'
       detail = '用户 Token 校验成功并完成授权'
-      statusBadge = { label: '授权有效', color: 'var(--accent-green)', bg: 'var(--accent-green-dim)' }
+      statusBadge = {
+        label: '授权有效',
+        color: 'var(--accent-green)',
+        bg: 'var(--accent-green-dim)'
+      }
     } else if (action === 'TOKEN_DELETED') {
       title = '云效: 用户退出登录'
       detail = '已清除本地保存的个人访问令牌'
@@ -52,7 +56,11 @@ function parseAuditLog(rawLog, index) {
     } else if (action === 'CREATE') {
       title = `云效: 创建项目 [${rawLog.projectId || ''}]`
       detail = '成功创建并登记云效项目'
-      statusBadge = { label: '创建成功', color: 'var(--accent-green)', bg: 'var(--accent-green-dim)' }
+      statusBadge = {
+        label: '创建成功',
+        color: 'var(--accent-green)',
+        bg: 'var(--accent-green-dim)'
+      }
     } else if (action === 'UPDATE_FIELD') {
       title = `云效: 更新工作项 [${rawLog.workitemId || ''}]`
       detail = `变更工作项字段内容`
@@ -60,7 +68,11 @@ function parseAuditLog(rawLog, index) {
     } else if (action === 'ADD_COMMENT') {
       title = `云效: 添加工作项评论 [${rawLog.workitemId || ''}]`
       detail = '成功发表工作项讨论评论'
-      statusBadge = { label: '已评论', color: 'var(--accent-purple)', bg: 'var(--accent-purple-dim)' }
+      statusBadge = {
+        label: '已评论',
+        color: 'var(--accent-purple)',
+        bg: 'var(--accent-purple-dim)'
+      }
     } else if (action === 'UPDATE') {
       title = `云效: 迭代更新 [${rawLog.sprintId || ''}]`
       detail = '更新敏捷迭代状态'
@@ -76,7 +88,11 @@ function parseAuditLog(rawLog, index) {
     if (action === 'CONFIG_VALIDATED') {
       title = `Jenkins: 实例连接成功`
       detail = `已验证服务地址: ${rawLog.baseUrl || ''}`
-      statusBadge = { label: '连接正常', color: 'var(--accent-green)', bg: 'var(--accent-green-dim)' }
+      statusBadge = {
+        label: '连接正常',
+        color: 'var(--accent-green)',
+        bg: 'var(--accent-green-dim)'
+      }
     } else if (action === 'BUILD_JOB') {
       title = `Jenkins: 触发流水线构建 [${rawLog.jobPath || ''}]`
       detail = `构建编号: #${rawLog.buildNumber || '队列中'} | 成功入队`
@@ -108,7 +124,11 @@ function parseAuditLog(rawLog, index) {
       if (rawLog.success) {
         title = `崩溃分析: 符号化完成 [${rawLog.reportId || ''}]`
         detail = '已成功生成符号化报告并解析堆栈'
-        statusBadge = { label: '解析成功', color: 'var(--accent-green)', bg: 'var(--accent-green-dim)' }
+        statusBadge = {
+          label: '解析成功',
+          color: 'var(--accent-green)',
+          bg: 'var(--accent-green-dim)'
+        }
       } else {
         title = `崩溃分析: 符号化失败 [${rawLog.reportId || ''}]`
         detail = `失败原因: ${rawLog.error || '未知错误'}`
@@ -154,9 +174,13 @@ function parseAuditLog(rawLog, index) {
       icon = '🧪'
       title = `试运行预演: ${rawLog.name || rawLog.actionId || '本地脚本'}`
       detail = `工作目录: ${rawLog.workdir || '.'} | 仅验证命令不产生实际写入`
-      statusBadge = { label: 'Dry Run', color: 'var(--accent-amber)', bg: 'var(--accent-amber-dim)' }
+      statusBadge = {
+        label: 'Dry Run',
+        color: 'var(--accent-amber)',
+        bg: 'var(--accent-amber-dim)'
+      }
     } else if (type === 'RESULT') {
-      const isSuccess = rawLog.success ?? (rawLog.exitCode === 0)
+      const isSuccess = rawLog.success ?? rawLog.exitCode === 0
       icon = isSuccess ? '✅' : '❌'
       title = `执行结束: ${rawLog.actionId || '任务'} (退出码: ${rawLog.exitCode ?? 0})`
       detail = isSuccess ? '命令成功完成执行' : `命令异常退出 (Exit Code: ${rawLog.exitCode})`
@@ -427,14 +451,26 @@ export default function SettingsAndTools({
       )}
 
       {/* Page Header */}
-      <div className="page-header" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div
+        className="page-header"
+        style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}
+        >
           <div>
             <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>⚙️</span>
               <span>设置与工具</span>
             </div>
-            <div className="page-subtitle">开发者操作审计、本地环境医生体检、企业平台集成与系统配置</div>
+            <div className="page-subtitle">
+              开发者操作审计、本地环境医生体检、企业平台集成与系统配置
+            </div>
           </div>
         </div>
 
@@ -469,7 +505,14 @@ export default function SettingsAndTools({
         {/* 1. 审计日志 Tab */}
         {/* ==================================================== */}
         {activeTab === 'audit-log' && (
-          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div
+            style={{
+              padding: '16px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%'
+            }}
+          >
             {/* Toolbar */}
             <div
               style={{
@@ -481,9 +524,21 @@ export default function SettingsAndTools({
                 marginBottom: 16
               }}
             >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 260 }}>
-                <div className="quick-input" style={{ padding: '5px 10px', flex: 1, maxWidth: 360 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
+              <div
+                style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 260 }}
+              >
+                <div
+                  className="quick-input"
+                  style={{ padding: '5px 10px', flex: 1, maxWidth: 360 }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--text-muted)"
+                    strokeWidth="2"
+                  >
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                   </svg>
@@ -535,7 +590,12 @@ export default function SettingsAndTools({
                   title="重新加载最新日志"
                   style={{ gap: 4, fontSize: 12 }}
                 >
-                  <span style={{ display: 'inline-block', animation: loadingLogs ? 'spin 1s linear infinite' : 'none' }}>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      animation: loadingLogs ? 'spin 1s linear infinite' : 'none'
+                    }}
+                  >
                     🔄
                   </span>
                   <span>{loadingLogs ? '刷新中' : '刷新'}</span>
@@ -593,7 +653,9 @@ export default function SettingsAndTools({
                   <div style={{ fontSize: 36 }}>📋</div>
                   <div className="empty-state-title">暂无匹配的审计记录</div>
                   <div className="empty-state-desc">
-                    {searchQuery ? '未找到符合检索条件的审计日志，可尝试调整过滤词' : '本地暂无操作产生，执行动作、云效同步或构建后将自动写入'}
+                    {searchQuery
+                      ? '未找到符合检索条件的审计日志，可尝试调整过滤词'
+                      : '本地暂无操作产生，执行动作、云效同步或构建后将自动写入'}
                   </div>
                 </div>
               ) : (
@@ -629,8 +691,21 @@ export default function SettingsAndTools({
                             }}
                           >
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  marginBottom: 4
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: 'var(--text-primary)'
+                                  }}
+                                >
                                   {item.title}
                                 </span>
                                 <span
@@ -702,7 +777,13 @@ export default function SettingsAndTools({
                                 animation: 'fadeIn 150ms ease'
                               }}
                             >
-                              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                              <pre
+                                style={{
+                                  margin: 0,
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-all'
+                                }}
+                              >
                                 {JSON.stringify(item.raw, null, 2)}
                               </pre>
                             </div>
@@ -759,10 +840,23 @@ export default function SettingsAndTools({
                     fontSize: 22
                   }}
                 >
-                  {doctorLoading ? '🔄' : doctorSummary.error > 0 ? '❌' : doctorSummary.warning > 0 ? '⚠️' : '✅'}
+                  {doctorLoading
+                    ? '🔄'
+                    : doctorSummary.error > 0
+                      ? '❌'
+                      : doctorSummary.warning > 0
+                        ? '⚠️'
+                        : '✅'}
                 </div>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      marginBottom: 2
+                    }}
+                  >
                     {doctorLoading
                       ? '正在体检本地研发环境...'
                       : doctorSummary.error > 0
@@ -771,11 +865,28 @@ export default function SettingsAndTools({
                           ? '环境基本可用，有可优化项'
                           : '研发环境健康完善，全组件就绪'}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', gap: 12 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      gap: 12
+                    }}
+                  >
                     <span>已检测 {doctorSummary.total} 个关键组件</span>
-                    <span style={{ color: 'var(--accent-green)' }}>● {doctorSummary.ok} 项就绪</span>
-                    {doctorSummary.warning > 0 && <span style={{ color: 'var(--accent-amber)' }}>● {doctorSummary.warning} 项建议优化</span>}
-                    {doctorSummary.error > 0 && <span style={{ color: 'var(--accent-red)' }}>● {doctorSummary.error} 项异常/缺失</span>}
+                    <span style={{ color: 'var(--accent-green)' }}>
+                      ● {doctorSummary.ok} 项就绪
+                    </span>
+                    {doctorSummary.warning > 0 && (
+                      <span style={{ color: 'var(--accent-amber)' }}>
+                        ● {doctorSummary.warning} 项建议优化
+                      </span>
+                    )}
+                    {doctorSummary.error > 0 && (
+                      <span style={{ color: 'var(--accent-red)' }}>
+                        ● {doctorSummary.error} 项异常/缺失
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -786,7 +897,12 @@ export default function SettingsAndTools({
                 disabled={doctorLoading}
                 style={{ gap: 6 }}
               >
-                <span style={{ display: 'inline-block', animation: doctorLoading ? 'spin 1s linear infinite' : 'none' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    animation: doctorLoading ? 'spin 1s linear infinite' : 'none'
+                  }}
+                >
                   🔄
                 </span>
                 <span>{doctorLoading ? '诊断中...' : '重新体检'}</span>
@@ -816,102 +932,159 @@ export default function SettingsAndTools({
             {/* Diagnostic Item List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {doctorLoading && doctorResults.length === 0 ? (
-                <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <div
+                  className="card"
+                  style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}
+                >
                   <div style={{ fontSize: 28, marginBottom: 10 }}>🩺</div>
                   <div>正在运行 Xcode、Git、AI 智能体及平台连通性体检，请稍候...</div>
                 </div>
-              ) : filteredDoctorResults.map((item) => {
-                const isOk = item.status === 'ok'
-                const isWarn = item.status === 'warning'
-                const isErr = item.status === 'error'
+              ) : (
+                filteredDoctorResults.map((item) => {
+                  const isOk = item.status === 'ok'
+                  const isWarn = item.status === 'warning'
+                  const isErr = item.status === 'error'
 
-                const statusColor = isOk ? 'var(--accent-green)' : isWarn ? 'var(--accent-amber)' : 'var(--accent-red)'
-                const statusBg = isOk ? 'var(--accent-green-dim)' : isWarn ? 'var(--accent-amber-dim)' : 'var(--accent-red-dim)'
-                const statusLabel = isOk ? '已就绪' : isWarn ? '建议优化' : '缺失/异常'
+                  const statusColor = isOk
+                    ? 'var(--accent-green)'
+                    : isWarn
+                      ? 'var(--accent-amber)'
+                      : 'var(--accent-red)'
+                  const statusBg = isOk
+                    ? 'var(--accent-green-dim)'
+                    : isWarn
+                      ? 'var(--accent-amber-dim)'
+                      : 'var(--accent-red-dim)'
+                  const statusLabel = isOk ? '已就绪' : isWarn ? '建议优化' : '缺失/异常'
 
-                return (
-                  <div
-                    key={item.id}
-                    className="card"
-                    style={{
-                      padding: '14px 18px',
-                      borderLeft: `3px solid ${statusColor}`
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {item.name}
-                          </span>
-                          <span className="badge" style={{ background: statusBg, color: statusColor, fontSize: 10 }}>
-                            {statusLabel}
-                          </span>
-                          {item.version && (
-                            <span className="badge badge-gray" style={{ fontSize: 10 }}>
-                              {item.version}
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 4 }}>
-                          {item.message}
-                        </div>
-
-                        {item.path && (
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            <span>检测路径 / 目标: </span>
-                            <code style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 4 }}>
-                              {item.path}
-                            </code>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Remedy hint & command */}
-                    {item.remedy && (
+                  return (
+                    <div
+                      key={item.id}
+                      className="card"
+                      style={{
+                        padding: '14px 18px',
+                        borderLeft: `3px solid ${statusColor}`
+                      }}
+                    >
                       <div
                         style={{
-                          marginTop: 10,
-                          padding: '8px 12px',
-                          background: 'var(--bg-elevated)',
-                          borderRadius: 'var(--radius-md)',
-                          border: '1px solid var(--border)',
-                          fontSize: 12,
                           display: 'flex',
-                          alignItems: 'center',
+                          alignItems: 'flex-start',
                           justifyContent: 'space-between',
                           gap: 12
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ color: 'var(--accent-amber)', fontWeight: 500, marginRight: 6 }}>
-                            💡 修复指引:
-                          </span>
-                          <span style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>
-                            {item.remedy}
-                          </span>
-                        </div>
-                        {item.remedy.includes(' ') && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              // Extract command portion if formatted as "请在终端执行: xxx"
-                              const match = item.remedy.match(/(:|\"|\')(.*)/)
-                              const cmd = match ? match[2].replace(/[\"\']/g, '').trim() : item.remedy
-                              handleCopyCmd(cmd)
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              marginBottom: 4
                             }}
-                            style={{ fontSize: 11, flexShrink: 0 }}
                           >
-                            {copiedCmd ? '✓ 已复制' : '复制命令'}
-                          </button>
-                        )}
+                            <span
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: 'var(--text-primary)'
+                              }}
+                            >
+                              {item.name}
+                            </span>
+                            <span
+                              className="badge"
+                              style={{ background: statusBg, color: statusColor, fontSize: 10 }}
+                            >
+                              {statusLabel}
+                            </span>
+                            {item.version && (
+                              <span className="badge badge-gray" style={{ fontSize: 10 }}>
+                                {item.version}
+                              </span>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: 'var(--text-secondary)',
+                              lineHeight: 1.5,
+                              marginBottom: 4
+                            }}
+                          >
+                            {item.message}
+                          </div>
+
+                          {item.path && (
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              <span>检测路径 / 目标: </span>
+                              <code
+                                style={{
+                                  background: 'var(--bg-elevated)',
+                                  padding: '1px 5px',
+                                  borderRadius: 4
+                                }}
+                              >
+                                {item.path}
+                              </code>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+
+                      {/* Remedy hint & command */}
+                      {item.remedy && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            padding: '8px 12px',
+                            background: 'var(--bg-elevated)',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border)',
+                            fontSize: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <span
+                              style={{
+                                color: 'var(--accent-amber)',
+                                fontWeight: 500,
+                                marginRight: 6
+                              }}
+                            >
+                              💡 修复指引:
+                            </span>
+                            <span style={{ color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                              {item.remedy}
+                            </span>
+                          </div>
+                          {item.remedy.includes(' ') && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                // Extract command portion if formatted as "请在终端执行: xxx"
+                                const match = item.remedy.match(/(:|\"|\')(.*)/)
+                                const cmd = match
+                                  ? match[2].replace(/[\"\']/g, '').trim()
+                                  : item.remedy
+                                handleCopyCmd(cmd)
+                              }}
+                              style={{ fontSize: 11, flexShrink: 0 }}
+                            >
+                              {copiedCmd ? '✓ 已复制' : '复制命令'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </div>
           </div>
         )}
@@ -974,49 +1147,105 @@ export default function SettingsAndTools({
         {activeTab === 'about' && (
           <div style={{ padding: '24px', maxWidth: 800 }}>
             <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: 6
+                }}
+              >
                 flyWork 开发者工作台
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>
-                面向开发者的效能桌面应用。整合 Git 多分支管理、AI 自动化代码与周报编排、云效项目协同、Jenkins 持续集成与 iOS 崩溃符号化分析。
+              <div
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                  marginBottom: 16
+                }}
+              >
+                面向开发者的效能桌面应用。整合 Git 多分支管理、AI
+                自动化代码与周报编排、云效项目协同、Jenkins 持续集成与 iOS 崩溃符号化分析。
               </div>
 
               <div className="divider" style={{ margin: '16px 0' }} />
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: 16
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>应用版本</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>v1.0.0</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    应用版本
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    v1.0.0
+                  </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>主运行时</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>Electron + React 19</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    主运行时
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                    Electron + React 19
+                  </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>全局命令中心快捷键</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-blue)' }}>⌥ Space / ⌘ K</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                    全局命令中心快捷键
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--accent-blue)' }}>
+                    ⌥ Space / ⌘ K
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="card" style={{ padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: 12
+                }}
+              >
                 本地持久化存储说明
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <div>
-                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>应用核心数据</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>~/.flywork/data.json</div>
+                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                      应用核心数据
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                      ~/.flywork/data.json
+                    </div>
                   </div>
-                  <span className="badge badge-gray" style={{ fontSize: 11 }}>工作空间、会话状态</span>
+                  <span className="badge badge-gray" style={{ fontSize: 11 }}>
+                    工作空间、会话状态
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <div>
-                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>操作审计日志</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>~/.flywork/audit.log</div>
+                    <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                      操作审计日志
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+                      ~/.flywork/audit.log
+                    </div>
                   </div>
-                  <span className="badge badge-gray" style={{ fontSize: 11 }}>安全拦截、执行追踪</span>
+                  <span className="badge badge-gray" style={{ fontSize: 11 }}>
+                    安全拦截、执行追踪
+                  </span>
                 </div>
               </div>
 

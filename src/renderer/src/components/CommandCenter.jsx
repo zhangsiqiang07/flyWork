@@ -16,7 +16,15 @@ const RISK_LABELS = {
   high: { text: '高风险', color: 'var(--accent-red)', bg: 'var(--accent-red-dim)' }
 }
 
-export default function CommandCenter({ workspaces, sessions, automations = [], onClose, onNavigate, onOpenWorkspace, onResumeSession }) {
+export default function CommandCenter({
+  workspaces,
+  sessions,
+  automations = [],
+  onClose,
+  onNavigate,
+  onOpenWorkspace,
+  onResumeSession
+}) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef(null)
@@ -33,36 +41,72 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
     const results = []
 
     // Match workspaces
-    workspaces.forEach(ws => {
+    workspaces.forEach((ws) => {
       if (ws.name.toLowerCase().includes(lower) || ws.description?.toLowerCase().includes(lower)) {
-        results.push({ type: 'workspace', label: `打开 ${ws.name}`, icon: ws.icon, action: `workspace:${ws.id}`, meta: ws.description })
+        results.push({
+          type: 'workspace',
+          label: `打开 ${ws.name}`,
+          icon: ws.icon,
+          action: `workspace:${ws.id}`,
+          meta: ws.description
+        })
       }
     })
 
     // Match sessions
-    sessions.filter(s => s.status === 'paused').forEach(s => {
-      if (s.title.toLowerCase().includes(lower)) {
-        results.push({ type: 'session', label: `继续: ${s.title}`, icon: '▶️', action: `resume-session:${s.id}`, meta: s.workspaceId })
-      }
-    })
-
-    // Match automations
-    (automations || []).forEach(auto => {
-      if (auto.name.toLowerCase().includes(lower) || auto.description?.toLowerCase().includes(lower)) {
-        results.push({ type: 'action', label: `运行自动化: ${auto.name}`, icon: '⚙️', action: `automation:${auto.id}`, meta: `${auto.steps?.length || 0} 步骤` })
-      }
-    })
+    sessions
+      .filter((s) => s.status === 'paused')
+      .forEach((s) => {
+        if (s.title.toLowerCase().includes(lower)) {
+          results.push({
+            type: 'session',
+            label: `继续: ${s.title}`,
+            icon: '▶️',
+            action: `resume-session:${s.id}`,
+            meta: s.workspaceId
+          })
+        }
+      })(
+        // Match automations
+        automations || []
+      )
+      .forEach((auto) => {
+        if (
+          auto.name.toLowerCase().includes(lower) ||
+          auto.description?.toLowerCase().includes(lower)
+        ) {
+          results.push({
+            type: 'action',
+            label: `运行自动化: ${auto.name}`,
+            icon: '⚙️',
+            action: `automation:${auto.id}`,
+            meta: `${auto.steps?.length || 0} 步骤`
+          })
+        }
+      })
 
     // Filter suggestions
-    COMMAND_SUGGESTIONS.forEach(sug => {
+    COMMAND_SUGGESTIONS.forEach((sug) => {
       if (sug.label.toLowerCase().includes(lower)) {
         results.push(sug)
       }
     })
 
     // AI task for anything not matched
-    if (results.length === 0 || lower.startsWith('让') || lower.startsWith('分析') || lower.startsWith('生成') || lower.startsWith('帮我')) {
-      results.push({ type: 'ai', label: `AI: ${q}`, icon: '🤖', action: `ai:query:${q}`, meta: 'Claude Code' })
+    if (
+      results.length === 0 ||
+      lower.startsWith('让') ||
+      lower.startsWith('分析') ||
+      lower.startsWith('生成') ||
+      lower.startsWith('帮我')
+    ) {
+      results.push({
+        type: 'ai',
+        label: `AI: ${q}`,
+        icon: '🤖',
+        action: `ai:query:${q}`,
+        meta: 'Claude Code'
+      })
     }
 
     return results.slice(0, 8)
@@ -103,7 +147,9 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
     }
   }
 
-  useEffect(() => { setSelectedIndex(0) }, [query])
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [query])
 
   // Group results by type for display
   const grouped = results.reduce((acc, item, idx) => {
@@ -117,9 +163,16 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
       <div className="command-center" onClick={(e) => e.stopPropagation()}>
         {/* Search Input */}
         <div className="command-center-input-wrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--text-secondary)"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
           </svg>
           <input
             ref={inputRef}
@@ -130,8 +183,20 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
             onKeyDown={handleKeyDown}
           />
           {query && (
-            <button onClick={() => setQuery('')} style={{ color:'var(--text-muted)', padding:'2px' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <button
+              onClick={() => setQuery('')}
+              style={{ color: 'var(--text-muted)', padding: '2px' }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
@@ -152,13 +217,20 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
                       className={`command-center-item ${isSelected ? 'selected' : ''}`}
                       onClick={() => handleSelect(item)}
                     >
-                      <div className="command-center-item-icon" style={{ background: typeConfig.bg }}>
+                      <div
+                        className="command-center-item-icon"
+                        style={{ background: typeConfig.bg }}
+                      >
                         <span style={{ fontSize: 14 }}>{item.icon}</span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <div className="command-center-item-title">{item.label}</div>
-                        {item.meta && <div className="command-center-item-subtitle">{item.meta}</div>}
-                        {item.agent && <div className="command-center-item-subtitle">由 {item.agent} 处理</div>}
+                        {item.meta && (
+                          <div className="command-center-item-subtitle">{item.meta}</div>
+                        )}
+                        {item.agent && (
+                          <div className="command-center-item-subtitle">由 {item.agent} 处理</div>
+                        )}
                       </div>
                       {item.risk && (
                         <span
@@ -173,7 +245,7 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
                         </span>
                       )}
                       {isSelected && (
-                        <span style={{ color:'var(--text-muted)', fontSize:11 }}>↵</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>↵</span>
                       )}
                     </div>
                   )
@@ -185,18 +257,28 @@ export default function CommandCenter({ workspaces, sessions, automations = [], 
           {results.length === 0 && (
             <div className="empty-state" style={{ padding: '24px' }}>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>未找到匹配结果</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>按 Enter 将其作为 AI 任务处理</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                按 Enter 将其作为 AI 任务处理
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="command-center-footer">
-          <span><kbd className="command-center-kbd">↑↓</kbd> 导航</span>
-          <span><kbd className="command-center-kbd">↵</kbd> 执行</span>
-          <span><kbd className="command-center-kbd">Esc</kbd> 关闭</span>
+          <span>
+            <kbd className="command-center-kbd">↑↓</kbd> 导航
+          </span>
+          <span>
+            <kbd className="command-center-kbd">↵</kbd> 执行
+          </span>
+          <span>
+            <kbd className="command-center-kbd">Esc</kbd> 关闭
+          </span>
           <span style={{ marginLeft: 'auto' }}>
-            <span className="badge badge-purple" style={{ fontSize: 10 }}>AI 感知</span>
+            <span className="badge badge-purple" style={{ fontSize: 10 }}>
+              AI 感知
+            </span>
           </span>
         </div>
       </div>

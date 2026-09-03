@@ -1,9 +1,15 @@
 export default function StatusBar({ workspaces, sessions }) {
-  const failedBuilds = workspaces.filter(w => w.buildStatus === 'failed').length
-  const activeSessions = sessions.filter(s => s.status === 'active').length
+  const failedBuilds = workspaces.filter((w) => w.buildStatus === 'failed').length
+  const activeSessions = sessions.filter((s) => s.status === 'active').length
   const totalServices = workspaces.reduce((acc, w) => acc + (w.services?.length || 0), 0)
-  const onlineServices = workspaces.reduce((acc, w) => acc + (w.services?.filter(s => s.status === 'online').length || 0), 0)
-  const totalModifiedFiles = workspaces.reduce((acc, w) => acc + (w.gitModifiedFiles?.length || 0), 0)
+  const onlineServices = workspaces.reduce(
+    (acc, w) => acc + (w.services?.filter((s) => s.status === 'online').length || 0),
+    0
+  )
+  const totalModifiedFiles = workspaces.reduce(
+    (acc, w) => acc + (w.gitModifiedFiles?.length || 0),
+    0
+  )
 
   return (
     <div className="status-bar">
@@ -17,7 +23,9 @@ export default function StatusBar({ workspaces, sessions }) {
       {totalServices > 0 && (
         <div className="status-bar-item">
           <span className={`dot ${onlineServices === totalServices ? 'dot-green' : 'dot-amber'}`} />
-          <span>服务 {onlineServices}/{totalServices} 在线</span>
+          <span>
+            服务 {onlineServices}/{totalServices} 在线
+          </span>
         </div>
       )}
 
@@ -41,7 +49,9 @@ export default function StatusBar({ workspaces, sessions }) {
           <span>命令中心</span>
         </div>
         <div className="status-bar-item" style={{ color: 'var(--text-muted)' }}>
-          <span>{new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+          <span>
+            {new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
       </div>
     </div>

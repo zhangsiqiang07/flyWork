@@ -404,9 +404,7 @@ export default function WeeklyReport({
     setGenerationLogs([])
     setViewMode('preview')
 
-    const selectedRepoNames = repos
-      .filter((r) => selectedRepoPaths.has(r.path))
-      .map((r) => r.name)
+    const selectedRepoNames = repos.filter((r) => selectedRepoPaths.has(r.path)).map((r) => r.name)
 
     const now = new Date()
     const title = `${now.getFullYear()}年第 ${getWeekNumber(now)} 周工作周报 (${selectedRepoNames.join('、') || '项目'})`
@@ -474,7 +472,11 @@ export default function WeeklyReport({
 
     if (activeReportId) {
       setWeeklyReports((prev) =>
-        prev.map((r) => (r.id === activeReportId ? { ...r, content: currentReportContent, title: currentReportTitle } : r))
+        prev.map((r) =>
+          r.id === activeReportId
+            ? { ...r, content: currentReportContent, title: currentReportTitle }
+            : r
+        )
       )
     } else {
       const newId = `report-${Date.now()}`
@@ -567,13 +569,28 @@ export default function WeeklyReport({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {/* Header */}
-      <div className="page-header" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div
+        className="page-header"
+        style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12
+          }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 22 }}>📊</span>
-              <div className="page-title" style={{ margin: 0, fontSize: 18 }}>周报生成与管理</div>
-              <span className="badge badge-blue" style={{ fontSize: 11 }}>Git 提交自动提取 + AI 智能体</span>
+              <div className="page-title" style={{ margin: 0, fontSize: 18 }}>
+                周报生成与管理
+              </div>
+              <span className="badge badge-blue" style={{ fontSize: 11 }}>
+                Git 提交自动提取 + AI 智能体
+              </span>
             </div>
             <div className="page-subtitle" style={{ marginTop: 3 }}>
               支持多 Git 仓库提交记录聚合、作者与时间筛选、提示词模板定制及本地 AI 智能体驱动生成。
@@ -605,29 +622,81 @@ export default function WeeklyReport({
       </div>
 
       {/* Main Body: 2 Columns (Config & Commits on Left, Preview/Editor on Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '480px 1fr', flex: 1, overflow: 'hidden' }}>
+      <div
+        style={{ display: 'grid', gridTemplateColumns: '480px 1fr', flex: 1, overflow: 'hidden' }}
+      >
         {/* Left Column: Repository Selection, Filters, Prompt Template & Commits */}
-        <div style={{ borderRight: '1px solid var(--border)', overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div
+          style={{
+            borderRight: '1px solid var(--border)',
+            overflowY: 'auto',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}
+        >
           {/* Section 1: Git Repositories */}
           <div className="card" style={{ padding: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 10
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
                 <span>📁 关联 Git 仓库</span>
-                <span className="badge badge-purple" style={{ fontSize: 10 }}>{selectedRepoPaths.size} / {repos.length} 已选</span>
+                <span className="badge badge-purple" style={{ fontSize: 10 }}>
+                  {selectedRepoPaths.size} / {repos.length} 已选
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '2px 6px' }} onClick={handleSelectAllRepos}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: 10, padding: '2px 6px' }}
+                  onClick={handleSelectAllRepos}
+                >
                   {selectedRepoPaths.size === repos.length ? '取消全选' : '全选'}
                 </button>
-                <button className="btn btn-secondary btn-sm" style={{ fontSize: 10, padding: '2px 8px' }} onClick={handleAddRepository}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: 10, padding: '2px 8px' }}
+                  onClick={handleAddRepository}
+                >
                   + 添加仓库
                 </button>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                maxHeight: 160,
+                overflowY: 'auto'
+              }}
+            >
               {repos.length === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '8px 0', textAlign: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-muted)',
+                    padding: '8px 0',
+                    textAlign: 'center'
+                  }}
+                >
                   暂未关联任何 Git 仓库，点击上方「+ 添加仓库」选择本地工程目录。
                 </div>
               ) : (
@@ -651,32 +720,88 @@ export default function WeeklyReport({
                         transition: 'all 120ms ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          minWidth: 0,
+                          flex: 1
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
-                          style={{ cursor: 'pointer', accentColor: 'var(--accent-blue)', flexShrink: 0 }}
+                          style={{
+                            cursor: 'pointer',
+                            accentColor: 'var(--accent-blue)',
+                            flexShrink: 0
+                          }}
                         />
                         <span style={{ fontSize: 14, flexShrink: 0 }}>{r.icon || '📁'}</span>
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: 'var(--text-primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <span
+                              style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {r.name}
+                            </span>
                             {authorName && (
-                              <span className="badge badge-gray" style={{ fontSize: 9, padding: '1px 5px' }}>
+                              <span
+                                className="badge badge-gray"
+                                style={{ fontSize: 9, padding: '1px 5px' }}
+                              >
                                 👤 {authorName}
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: 'var(--text-muted)',
+                              fontFamily: 'monospace',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              marginTop: 2
+                            }}
+                          >
                             {r.path}
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flexShrink: 0,
+                          marginLeft: 8
+                        }}
+                      >
                         {repoData?.latestCommit && (
-                          <span style={{ fontSize: 10, color: 'var(--accent-green)', whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              color: 'var(--accent-green)',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
                             ✓ {repoData.latestCommit.date}
                           </span>
                         )}
@@ -703,7 +828,14 @@ export default function WeeklyReport({
 
           {/* Section 2: Time Range & Author Filter */}
           <div className="card" style={{ padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: 10
+              }}
+            >
               ⏱️ 提交时间与作者筛选
             </div>
 
@@ -721,8 +853,25 @@ export default function WeeklyReport({
             </div>
 
             {/* Author filter dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-elevated)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', flexShrink: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'var(--bg-elevated)',
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid var(--border)'
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  flexShrink: 0
+                }}
+              >
                 👤 提交作者:
               </span>
               <select
@@ -742,8 +891,24 @@ export default function WeeklyReport({
 
           {/* Section 3: AI Agent & Prompt Template */}
           <div className="card" style={{ padding: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 10
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
                 <span>🤖 智能体与提示词配置</span>
               </div>
               <button
@@ -756,8 +921,17 @@ export default function WeeklyReport({
             </div>
 
             {/* Agent Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: showPromptEditor ? 10 : 0 }}>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>执行智能体 (自动检测本地环境):</label>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                marginBottom: showPromptEditor ? 10 : 0
+              }}
+            >
+              <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                执行智能体 (自动检测本地环境):
+              </label>
               <select
                 value={selectedAgentId}
                 onChange={(e) => setSelectedAgentId(e.target.value)}
@@ -784,8 +958,19 @@ export default function WeeklyReport({
 
             {/* Prompt Template Editor (Foldable) */}
             {showPromptEditor && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, borderTop: '1px dashed var(--border)', paddingTop: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  marginTop: 10,
+                  borderTop: '1px dashed var(--border)',
+                  paddingTop: 10
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                     提示词模板 (已自动缓存持久化):
                   </span>
@@ -811,16 +996,36 @@ export default function WeeklyReport({
                   placeholder="可使用 {commits}、{repoName}、{dateRange}、{author} 等变量占位符..."
                 />
                 <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                  可用变量：<code>{'{commits}'}</code> 提交列表、<code>{'{repoName}'}</code> 仓库名、<code>{'{dateRange}'}</code> 时间周期
+                  可用变量：<code>{'{commits}'}</code> 提交列表、<code>{'{repoName}'}</code>{' '}
+                  仓库名、<code>{'{dateRange}'}</code> 时间周期
                 </div>
               </div>
             )}
           </div>
 
           {/* Section 4: Commits Selection List */}
-          <div className="card" style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div
+            className="card"
+            style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 10
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
                 <span>📋 提取的提交记录</span>
                 <span className="badge badge-green" style={{ fontSize: 10 }}>
                   {includedCommits.length} / {allCommits.length} 条已勾选
@@ -830,7 +1035,9 @@ export default function WeeklyReport({
                 <button
                   className="btn btn-ghost btn-sm"
                   style={{ fontSize: 10, padding: '2px 6px' }}
-                  onClick={() => handleSelectAllCommits(selectedCommitIds.size !== allCommits.length)}
+                  onClick={() =>
+                    handleSelectAllCommits(selectedCommitIds.size !== allCommits.length)
+                  }
                 >
                   {selectedCommitIds.size === allCommits.length ? '全部取消' : '全选'}
                 </button>
@@ -846,14 +1053,42 @@ export default function WeeklyReport({
             </div>
 
             {isLoadingCommits ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                <div style={{ fontSize: 24, marginBottom: 8, animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⟳</div>
+              <div
+                style={{
+                  padding: 24,
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: 12
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 24,
+                    marginBottom: 8,
+                    animation: 'spin 1.2s linear infinite',
+                    display: 'inline-block'
+                  }}
+                >
+                  ⟳
+                </div>
                 <div>正在从 Git 仓库拉取提交记录...</div>
               </div>
             ) : allCommits.length === 0 ? (
-              <div style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px dashed var(--border)' }}>
+              <div
+                style={{
+                  padding: '16px 12px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: 12,
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 8,
+                  border: '1px dashed var(--border)'
+                }}
+              >
                 <div style={{ fontSize: 20, marginBottom: 6 }}>📭</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>所选时间范围内暂无 Git 提交记录</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                  所选时间范围内暂无 Git 提交记录
+                </div>
                 {hasFallbackAvailable ? (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
@@ -883,7 +1118,16 @@ export default function WeeklyReport({
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 340, overflowY: 'auto', paddingRight: 4 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  maxHeight: 340,
+                  overflowY: 'auto',
+                  paddingRight: 4
+                }}
+              >
                 {allCommits.map((c) => {
                   const isSelected = selectedCommitIds.has(c.id)
                   return (
@@ -906,20 +1150,50 @@ export default function WeeklyReport({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => {}}
-                        style={{ marginTop: 2, cursor: 'pointer', accentColor: 'var(--accent-blue)' }}
+                        style={{
+                          marginTop: 2,
+                          cursor: 'pointer',
+                          accentColor: 'var(--accent-blue)'
+                        }}
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: 'var(--text-primary)',
+                            lineHeight: 1.4,
+                            wordBreak: 'break-word'
+                          }}
+                        >
                           {c.subject}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span className="badge badge-purple" style={{ fontSize: 9, padding: '1px 5px' }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: 'var(--text-muted)',
+                            marginTop: 4,
+                            display: 'flex',
+                            gap: 8,
+                            flexWrap: 'wrap',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <span
+                            className="badge badge-purple"
+                            style={{ fontSize: 9, padding: '1px 5px' }}
+                          >
                             👤 {c.author}
                           </span>
-                          <span className="badge badge-gray" style={{ fontSize: 9, fontFamily: 'monospace' }}>
+                          <span
+                            className="badge badge-gray"
+                            style={{ fontSize: 9, fontFamily: 'monospace' }}
+                          >
                             📂 {c.repoName}
                           </span>
-                          <code style={{ fontSize: 9, color: 'var(--accent-blue)' }}>{c.shortHash}</code>
+                          <code style={{ fontSize: 9, color: 'var(--accent-blue)' }}>
+                            {c.shortHash}
+                          </code>
                           <span>🕒 {c.date || c.relativeDate}</span>
                           {c.stats?.filesChanged > 0 && (
                             <span style={{ color: 'var(--accent-green)' }}>
@@ -940,7 +1214,15 @@ export default function WeeklyReport({
             {isGenerating ? (
               <button
                 className="btn btn-danger"
-                style={{ width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'center', gap: 8 }}
+                style={{
+                  width: '100%',
+                  padding: '10px 0',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 8
+                }}
                 onClick={handleCancelGeneration}
               >
                 <span>⏹ 正在生成中，点击中止</span>
@@ -948,7 +1230,15 @@ export default function WeeklyReport({
             ) : (
               <button
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '10px 0', fontSize: 14, fontWeight: 600, display: 'flex', justifyContent: 'center', gap: 8 }}
+                style={{
+                  width: '100%',
+                  padding: '10px 0',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 8
+                }}
                 onClick={handleGenerateReport}
                 disabled={includedCommits.length === 0}
               >
@@ -959,7 +1249,15 @@ export default function WeeklyReport({
         </div>
 
         {/* Right Column: Generated Report Preview, Markdown Editor & Logs */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-surface)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+            background: 'var(--bg-surface)'
+          }}
+        >
           {/* Top Bar for Report View */}
           <div
             style={{
@@ -971,7 +1269,16 @@ export default function WeeklyReport({
               background: 'var(--bg-elevated)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flex: 1,
+                minWidth: 0,
+                marginRight: 12
+              }}
+            >
               <span style={{ fontSize: 16 }}>📝</span>
               <input
                 style={{
@@ -991,7 +1298,15 @@ export default function WeeklyReport({
 
             {/* View Mode Switcher & Export Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: 6, padding: 2, border: '1px solid var(--border)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  background: 'var(--bg-base)',
+                  borderRadius: 6,
+                  padding: 2,
+                  border: '1px solid var(--border)'
+                }}
+              >
                 <button
                   className={`btn btn-sm ${viewMode === 'preview' ? 'btn-primary' : 'btn-ghost'}`}
                   style={{ fontSize: 11, padding: '2px 8px' }}
@@ -1048,16 +1363,31 @@ export default function WeeklyReport({
 
           {/* Main Content Area: Preview vs Edit vs Logs */}
           <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-            {viewMode === 'preview' && (
-              currentReportContent ? (
-                <div className="selectable" style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-primary)', maxWidth: 880 }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentReportContent}
-                  </ReactMarkdown>
+            {viewMode === 'preview' &&
+              (currentReportContent ? (
+                <div
+                  className="selectable"
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.8,
+                    color: 'var(--text-primary)',
+                    maxWidth: 880
+                  }}
+                >
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentReportContent}</ReactMarkdown>
                 </div>
               ) : isGenerating ? (
                 <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: 36, marginBottom: 12, animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⟳</div>
+                  <div
+                    style={{
+                      fontSize: 36,
+                      marginBottom: 12,
+                      animation: 'spin 1.2s linear infinite',
+                      display: 'inline-block'
+                    }}
+                  >
+                    ⟳
+                  </div>
                   <div style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>
                     智能体正在基于提交历史深度分析并生成周报...
                   </div>
@@ -1073,8 +1403,7 @@ export default function WeeklyReport({
                     在左侧选择仓库与提交记录后，点击「一键生成本周周报」，或在右上角「历史周报」中选择历史周报查看。
                   </div>
                 </div>
-              )
-            )}
+              ))}
 
             {viewMode === 'edit' && (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -1108,18 +1437,24 @@ export default function WeeklyReport({
                 style={{ height: '100%', maxHeight: 'none', fontSize: 12, padding: 16 }}
               >
                 {generationLogs.length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)' }}>暂无执行日志。点击生成后将在此流式打印调度日志。</div>
+                  <div style={{ color: 'var(--text-muted)' }}>
+                    暂无执行日志。点击生成后将在此流式打印调度日志。
+                  </div>
                 ) : (
                   generationLogs.map((l, i) => (
                     <div
                       key={i}
                       style={{
                         color:
-                          l.type === 'stderr' ? '#ff8080'
-                          : l.type === 'warn' ? 'var(--accent-amber)'
-                          : l.type === 'info' ? 'var(--accent-blue)'
-                          : l.type === 'exit' ? 'var(--accent-green)'
-                          : '#e6edf3',
+                          l.type === 'stderr'
+                            ? '#ff8080'
+                            : l.type === 'warn'
+                              ? 'var(--accent-amber)'
+                              : l.type === 'info'
+                                ? 'var(--accent-blue)'
+                                : l.type === 'exit'
+                                  ? 'var(--accent-green)'
+                                  : '#e6edf3',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-all'
                       }}
@@ -1162,11 +1497,25 @@ export default function WeeklyReport({
               background: 'var(--bg-elevated)'
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
               <span>🕒 历史周报缓存</span>
-              <span className="badge badge-purple" style={{ fontSize: 10 }}>{weeklyReports.length} 篇</span>
+              <span className="badge badge-purple" style={{ fontSize: 10 }}>
+                {weeklyReports.length} 篇
+              </span>
             </div>
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setShowHistoryDrawer(false)}>
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              onClick={() => setShowHistoryDrawer(false)}
+            >
               ✕
             </button>
           </div>
@@ -1181,9 +1530,25 @@ export default function WeeklyReport({
             />
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '10px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
+            }}
+          >
             {filteredHistory.length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, padding: 30 }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: 12,
+                  padding: 30
+                }}
+              >
                 暂无历史周报记录
               </div>
             ) : (
@@ -1194,14 +1559,31 @@ export default function WeeklyReport({
                   style={{
                     padding: '10px 12px',
                     borderRadius: 8,
-                    background: activeReportId === item.id ? 'var(--bg-selected)' : 'var(--bg-elevated)',
+                    background:
+                      activeReportId === item.id ? 'var(--bg-selected)' : 'var(--bg-elevated)',
                     border: `1px solid ${activeReportId === item.id ? 'var(--accent-blue)' : 'var(--border)'}`,
                     cursor: 'pointer',
                     transition: 'all 120ms ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 4
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
                       {item.title}
                     </div>
                     <button
@@ -1214,7 +1596,15 @@ export default function WeeklyReport({
                     </button>
                   </div>
 
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap'
+                    }}
+                  >
                     <span>📅 {formatTime(item.createdAt)}</span>
                     <span>🤖 {item.agent}</span>
                     <span>📋 {item.commitCount || 0} commits</span>

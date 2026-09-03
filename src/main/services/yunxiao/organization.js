@@ -16,7 +16,7 @@ export async function listOrganizations(userId = null) {
   const response = await yunxiaoGet(`/oapi/v1/platform/organizations${params}`)
 
   // 云效 API 直接返回数组
-  const organizations = Array.isArray(response) ? response : (response.result || response.data || [])
+  const organizations = Array.isArray(response) ? response : response.result || response.data || []
 
   return {
     organizations: organizations,

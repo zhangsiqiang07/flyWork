@@ -108,7 +108,12 @@ export const MODEL_REGISTRY = [
   { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', tier: 'flagship' },
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'Google', tier: 'fast' },
   { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', tier: 'flagship' },
-  { id: 'qwen-2.5-coder-32b', name: 'Qwen 2.5 Coder 32B', provider: 'Alibaba', tier: 'open-source' },
+  {
+    id: 'qwen-2.5-coder-32b',
+    name: 'Qwen 2.5 Coder 32B',
+    provider: 'Alibaba',
+    tier: 'open-source'
+  },
   { id: 'deepseek-r1', name: 'DeepSeek R1', provider: 'DeepSeek', tier: 'reasoning' },
   { id: 'glm-4-plus', name: 'GLM-4 Plus', provider: 'Zhipu AI', tier: 'flagship' }
 ]
@@ -371,9 +376,7 @@ export class ContextBuilder {
    */
   static buildContextPackage(task, requirement = {}, allTasks = []) {
     const taskMap = new Map(allTasks.map((t) => [t.id, t]))
-    const upstreamTasks = (task.dependencies || [])
-      .map((id) => taskMap.get(id))
-      .filter(Boolean)
+    const upstreamTasks = (task.dependencies || []).map((id) => taskMap.get(id)).filter(Boolean)
 
     const contextPackage = {
       taskId: task.id,
@@ -429,7 +432,9 @@ export class ContextBuilder {
       ],
 
       // 5. Target Expected Files & Upstream Outputs
-      expectedFiles: task.files?.expected || [`src/${task.layer}/${task.title.replace(/\s+/g, '')}.ts`],
+      expectedFiles: task.files?.expected || [
+        `src/${task.layer}/${task.title.replace(/\s+/g, '')}.ts`
+      ],
       acceptanceCriteria: task.acceptance_criteria || [
         '代码结构清晰，符合项目分层设计规范',
         '核心方法包含防御性异常处理与状态闭环',
@@ -490,7 +495,11 @@ export class ChangeSetReconciler {
 
     finalTasks.forEach((t) => {
       const orig = tasks.find((o) => o.id === t.id)
-      if (orig && (orig.status === 'WAITING_API' || orig.status === 'WAITING_DESIGN') && t.status === 'READY') {
+      if (
+        orig &&
+        (orig.status === 'WAITING_API' || orig.status === 'WAITING_DESIGN') &&
+        t.status === 'READY'
+      ) {
         unlockedTaskIds.push(t.id)
       }
     })
@@ -568,7 +577,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['定义强类型实体与枚举', '实现 Codable 与 Equatable 协议'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'chatgpt', model_id: 'gpt-4o', score: 95, reason: '领域契约抽象' },
+          recommended: {
+            agent_id: 'chatgpt',
+            model_id: 'gpt-4o',
+            score: 95,
+            reason: '领域契约抽象'
+          },
           selected: { agent_id: 'chatgpt', model_id: 'gpt-4o' }
         }
       },
@@ -591,7 +605,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['实现内存与 SQLite 二级缓存', '支持无网离线读取'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'antigravity', model_id: 'gemini-1.5-pro', score: 96, reason: '本地存储实现' },
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 96,
+            reason: '本地存储实现'
+          },
           selected: { agent_id: 'antigravity', model_id: 'auto' }
         }
       },
@@ -615,7 +634,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['网络重试与超时兜底', '错误码全局映射'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'antigravity', model_id: 'gemini-1.5-pro', score: 94, reason: 'API 接入' },
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 94,
+            reason: 'API 接入'
+          },
           selected: { agent_id: 'antigravity', model_id: 'auto' }
         }
       },
@@ -635,10 +659,18 @@ Please output the complete task graph JSON.`
           prd: { section_id: 'sec-3.1', title: '状态机与分页拉取' }
         },
         files: { expected: ['ViewModels/ReportListViewModel.swift'] },
-        acceptance_criteria: ['维护 .loading / .loaded / .empty / .error 状态', '支持分页拉取与下拉刷新'],
+        acceptance_criteria: [
+          '维护 .loading / .loaded / .empty / .error 状态',
+          '支持分页拉取与下拉刷新'
+        ],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'antigravity', model_id: 'gemini-1.5-pro', score: 95, reason: '状态流编写' },
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 95,
+            reason: '状态流编写'
+          },
           selected: { agent_id: 'antigravity', model_id: 'auto' }
         }
       },
@@ -661,7 +693,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['构建列表滚动容器', '骨架屏动画占位'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'trae', model_id: 'claude-3-5-sonnet', score: 92, reason: '快速骨架搭建' },
+          recommended: {
+            agent_id: 'trae',
+            model_id: 'claude-3-5-sonnet',
+            score: 92,
+            reason: '快速骨架搭建'
+          },
           selected: { agent_id: 'trae', model_id: 'claude-3-5-sonnet' }
         }
       },
@@ -684,7 +721,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['还原 Figma 设计稿样式', '适配暗黑模式与动态字体'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'antigravity', model_id: 'gemini-1.5-pro', score: 94, reason: '像素级 UI 还原' },
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 94,
+            reason: '像素级 UI 还原'
+          },
           selected: { agent_id: 'antigravity', model_id: 'auto' }
         }
       },
@@ -707,7 +749,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['事件流双向绑定', '路由跳转与生命周期管理'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'antigravity', model_id: 'gemini-1.5-pro', score: 92, reason: '模块装配集成' },
+          recommended: {
+            agent_id: 'antigravity',
+            model_id: 'gemini-1.5-pro',
+            score: 92,
+            reason: '模块装配集成'
+          },
           selected: { agent_id: 'antigravity', model_id: 'auto' }
         }
       },
@@ -730,7 +777,12 @@ Please output the complete task graph JSON.`
         acceptance_criteria: ['ViewModel 单元测试覆盖率 > 85%', 'Mock 异常边界测试通过'],
         execution: {
           mode: 'assisted',
-          recommended: { agent_id: 'claude-code', model_id: 'claude-3-5-sonnet', score: 95, reason: '测试验证' },
+          recommended: {
+            agent_id: 'claude-code',
+            model_id: 'claude-3-5-sonnet',
+            score: 95,
+            reason: '测试验证'
+          },
           selected: { agent_id: 'claude-code', model_id: 'claude-3-5-sonnet' }
         }
       }
@@ -755,7 +807,8 @@ export class BugOrchestratorEngine {
    * Convert a Yunxiao bug into a standardized bugfix task for an existing plan
    */
   static createBugTaskForPlan(bug, options = {}) {
-    const bugId = bug.identifier || bug.id || bug.serialNumber || `BUG-${Date.now().toString().slice(-4)}`
+    const bugId =
+      bug.identifier || bug.id || bug.serialNumber || `BUG-${Date.now().toString().slice(-4)}`
     const bugSerial = bug.serialNumber || bugId
     const bugTitle = bug.subject || bug.title || bug.name || '缺陷修复'
     const project = options.project || 'PetPal-iOS'
@@ -782,8 +835,10 @@ export class BugOrchestratorEngine {
           id: bug.identifier || bug.id || '',
           serialNumber: bugSerial,
           title: bugTitle,
-          status: typeof bug.status === 'object' ? (bug.status?.name || '待修复') : (bug.status || '待修复'),
-          assignedTo: typeof bug.assignedTo === 'object' ? (bug.assignedTo?.name || '') : (bug.assignedTo || ''),
+          status:
+            typeof bug.status === 'object' ? bug.status?.name || '待修复' : bug.status || '待修复',
+          assignedTo:
+            typeof bug.assignedTo === 'object' ? bug.assignedTo?.name || '' : bug.assignedTo || '',
           description: bug.description || '',
           gmtCreate: bug.gmtCreate || '',
           url: bug.url || ''
@@ -825,7 +880,12 @@ export class BugOrchestratorEngine {
 
     bugs.forEach((bug, idx) => {
       const task = this.createBugTaskForPlan(bug, {
-        project: options.project || (targetPlan.projects?.[0]?.id || targetPlan.projects?.[0]?.name || targetPlan.projects?.[0] || 'PetPal-iOS'),
+        project:
+          options.project ||
+          targetPlan.projects?.[0]?.id ||
+          targetPlan.projects?.[0]?.name ||
+          targetPlan.projects?.[0] ||
+          'PetPal-iOS',
         feature: options.feature || 'BugFix',
         policy: options.policy || 'parallel',
         dependOnTaskIds: options.dependOnTaskIds || []

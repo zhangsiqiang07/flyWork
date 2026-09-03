@@ -9,7 +9,9 @@ const RISK_OPTIONS = [
 
 function objectToEnvText(envObj) {
   if (!envObj || typeof envObj !== 'object') return ''
-  return Object.entries(envObj).map(([k, v]) => `${k}=${v}`).join('\n')
+  return Object.entries(envObj)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n')
 }
 
 function envTextToObject(envText) {
@@ -19,7 +21,7 @@ function envTextToObject(envText) {
   // e.g. "BUILD_ENV=dev\nSCHEME=PetPal" or "BUILD_ENV=dev SCHEME=PetPal"
   // Split on newlines first, then handle space-separated pairs per line
   const lines = envText.split('\n')
-  lines.forEach(rawLine => {
+  lines.forEach((rawLine) => {
     const line = rawLine.trim()
     if (!line || line.startsWith('#')) return
     // Check if line contains multiple KEY=VALUE pairs separated by spaces
@@ -35,7 +37,10 @@ function envTextToObject(envText) {
         const key = m[1].trim()
         let val = m[2].trim()
         // Strip surrounding quotes if any
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        ) {
           val = val.slice(1, -1)
         }
         if (key) envObj[key] = val
@@ -46,7 +51,10 @@ function envTextToObject(envText) {
       if (eqIdx > 0) {
         const key = line.slice(0, eqIdx).trim()
         let val = line.slice(eqIdx + 1).trim()
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        ) {
           val = val.slice(1, -1)
         }
         if (key) envObj[key] = val
@@ -64,16 +72,25 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
   const [description, setDescription] = useState(automation?.description || '')
   const [envText, setEnvText] = useState(objectToEnvText(automation?.env))
   const [steps, setSteps] = useState(
-    automation?.steps ? automation.steps.map(s => ({
-      ...s,
-      envText: objectToEnvText(s.env)
-    })) : [
-      { id: `s-${Date.now()}-1`, name: '检查工程状态', command: 'git status --porcelain', risk: 'readonly', envText: '', status: 'pending' }
-    ]
+    automation?.steps
+      ? automation.steps.map((s) => ({
+          ...s,
+          envText: objectToEnvText(s.env)
+        }))
+      : [
+          {
+            id: `s-${Date.now()}-1`,
+            name: '检查工程状态',
+            command: 'git status --porcelain',
+            risk: 'readonly',
+            envText: '',
+            status: 'pending'
+          }
+        ]
   )
 
   const handleAddStep = () => {
-    setSteps(prev => [
+    setSteps((prev) => [
       ...prev,
       {
         id: `s-${Date.now()}-${prev.length + 1}`,
@@ -87,7 +104,7 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
   }
 
   const handleUpdateStep = (index, field, value) => {
-    setSteps(prev => {
+    setSteps((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], [field]: value }
       return next
@@ -99,13 +116,13 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
       alert('自动化流程至少需要保留一个步骤')
       return
     }
-    setSteps(prev => prev.filter((_, i) => i !== index))
+    setSteps((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleMoveStep = (index, direction) => {
     const targetIndex = index + direction
     if (targetIndex < 0 || targetIndex >= steps.length) return
-    setSteps(prev => {
+    setSteps((prev) => {
       const next = [...prev]
       const temp = next[index]
       next[index] = next[targetIndex]
@@ -149,17 +166,22 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
       <div
         className="modal"
         style={{ width: 720, maxWidth: '92vw' }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <div className="modal-title">
             <span style={{ fontSize: 18 }}>⚙️</span>
             <span>{isEditing ? '编辑自动化流程' : '新建自动化流程'}</span>
           </div>
-          <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+        >
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Name & Workspace */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
@@ -172,7 +194,7 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                   className="form-control"
                   placeholder="例如：PetPal 一键编译与发布"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   required
                   autoFocus
                 />
@@ -182,10 +204,12 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                 <select
                   className="form-control"
                   value={workspaceId}
-                  onChange={e => setWorkspaceId(e.target.value)}
+                  onChange={(e) => setWorkspaceId(e.target.value)}
                 >
-                  {workspaces.map(w => (
-                    <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
+                  {workspaces.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.icon} {w.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -198,15 +222,20 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                 className="form-control"
                 placeholder="说明该流程的具体作用和执行目标"
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
             {/* Flow Default Environment Variables */}
             <div>
-              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label
+                className="form-label"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <span>流程默认环境变量 (Flow Default ENV)</span>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>运行未显式选择时默认生效，每行 KEY=VALUE</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  运行未显式选择时默认生效，每行 KEY=VALUE
+                </span>
               </label>
               <textarea
                 className="form-control"
@@ -219,7 +248,7 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                 }}
                 placeholder={`BUILD_ENV=dev\nSCHEME=PetPal`}
                 value={envText}
-                onChange={e => setEnvText(e.target.value)}
+                onChange={(e) => setEnvText(e.target.value)}
               />
             </div>
 
@@ -234,21 +263,55 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                 color: 'var(--text-secondary)'
               }}
             >
-              <div style={{ fontWeight: 600, color: 'var(--accent-blue)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  color: 'var(--accent-blue)',
+                  marginBottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
                 <span>🌿</span> 系统内置与多层级变量覆盖机制：
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 10, color: 'var(--text-muted)' }}>
-                <span><code>$GIT_BRANCH</code> 当前分支</span>
-                <span><code>$GIT_COMMIT_HASH</code> Commit Hash</span>
-                <span><code>$GIT_SHORT_SHA</code> 短 Hash</span>
-                <span><code>$GIT_COMMIT_MSG</code> Commit 说明</span>
-                <span>优先级: 运行时临时选择 &gt; 步骤专属 ENV &gt; 流程默认 ENV &gt; 内置 Git 变量</span>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  fontSize: 10,
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <span>
+                  <code>$GIT_BRANCH</code> 当前分支
+                </span>
+                <span>
+                  <code>$GIT_COMMIT_HASH</code> Commit Hash
+                </span>
+                <span>
+                  <code>$GIT_SHORT_SHA</code> 短 Hash
+                </span>
+                <span>
+                  <code>$GIT_COMMIT_MSG</code> Commit 说明
+                </span>
+                <span>
+                  优先级: 运行时临时选择 &gt; 步骤专属 ENV &gt; 流程默认 ENV &gt; 内置 Git 变量
+                </span>
               </div>
             </div>
 
             {/* Steps Editor */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 10
+                }}
+              >
                 <label className="form-label" style={{ marginBottom: 0 }}>
                   执行步骤序列 ({steps.length})
                 </label>
@@ -277,23 +340,34 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-blue)', width: 22 }}>#{idx + 1}</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--accent-blue)',
+                          width: 22
+                        }}
+                      >
+                        #{idx + 1}
+                      </span>
                       <input
                         type="text"
                         className="form-control"
                         style={{ flex: 1, fontSize: 12, padding: '5px 10px' }}
                         placeholder="步骤名称"
                         value={step.name}
-                        onChange={e => handleUpdateStep(idx, 'name', e.target.value)}
+                        onChange={(e) => handleUpdateStep(idx, 'name', e.target.value)}
                       />
                       <select
                         className="form-control"
                         style={{ width: 150, fontSize: 11, padding: '5px 8px' }}
                         value={step.risk}
-                        onChange={e => handleUpdateStep(idx, 'risk', e.target.value)}
+                        onChange={(e) => handleUpdateStep(idx, 'risk', e.target.value)}
                       >
-                        {RISK_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        {RISK_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
                         ))}
                       </select>
 
@@ -345,15 +419,26 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                         }}
                         placeholder="Shell 指令 (例如 ./packaging/build.sh --env $BUILD_ENV --scheme $SCHEME)"
                         value={step.command}
-                        onChange={e => handleUpdateStep(idx, 'command', e.target.value)}
+                        onChange={(e) => handleUpdateStep(idx, 'command', e.target.value)}
                       />
                     </div>
 
                     {/* Step-specific Custom ENV */}
                     <div style={{ marginTop: 6 }}>
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: 'var(--text-muted)',
+                          marginBottom: 3,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
                         <span>步骤专属环境变量 (覆盖流程默认值)</span>
-                        <span style={{ color: 'var(--accent-teal)', fontFamily: 'monospace' }}>在命令中用 $KEY 引用，如 $BUILD_ENV</span>
+                        <span style={{ color: 'var(--accent-teal)', fontFamily: 'monospace' }}>
+                          在命令中用 $KEY 引用，如 $BUILD_ENV
+                        </span>
                       </div>
                       <textarea
                         className="form-control"
@@ -367,9 +452,11 @@ export default function EditAutomationModal({ automation, workspaces, onSave, on
                           resize: 'vertical',
                           lineHeight: 1.5
                         }}
-                        placeholder={'INSTALL_PODS=1\nFASTLANE_LANE=build_dev\n# 每行一个变量 KEY=VALUE'}
+                        placeholder={
+                          'INSTALL_PODS=1\nFASTLANE_LANE=build_dev\n# 每行一个变量 KEY=VALUE'
+                        }
                         value={step.envText || ''}
-                        onChange={e => handleUpdateStep(idx, 'envText', e.target.value)}
+                        onChange={(e) => handleUpdateStep(idx, 'envText', e.target.value)}
                       />
                     </div>
                   </div>

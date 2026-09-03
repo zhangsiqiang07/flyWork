@@ -10,7 +10,8 @@ export const DEMO_HEALTH_PLAN = {
   leadPm: 'Sarah (Lead PM)',
   techLead: 'Alex (Architect)',
   updatedAt: '2026-09-01 15:30',
-  description: '重构宠物健康历史评测报告模块，支持应激趋势图表、离线缓存、多端统一数据模型与 API 响应流。',
+  description:
+    '重构宠物健康历史评测报告模块，支持应激趋势图表、离线缓存、多端统一数据模型与 API 响应流。',
   requirement: {
     id: 'REQ-2026-003',
     title: '宠物健康报告与应激分析系统优化 PRD',
@@ -70,7 +71,11 @@ export const DEMO_HEALTH_PLAN = {
         expected: ['PetPal/Domain/Models/PetHealthReport.swift'],
         changed: ['PetPal/Domain/Models/PetHealthReport.swift']
       },
-      acceptance_criteria: ['严格不可变模型', '实现 Equatable 与 Identifiable', '支持 stressScore 风险等级枚举'],
+      acceptance_criteria: [
+        '严格不可变模型',
+        '实现 Equatable 与 Identifiable',
+        '支持 stressScore 风险等级枚举'
+      ],
       execution: {
         mode: 'assisted',
         recommended: { agent_id: 'chatgpt', score: 96, reason: '领域契约抽象与不可变数据建模' },
@@ -117,13 +122,21 @@ export const DEMO_HEALTH_PLAN = {
       dependencies: ['IOS-REP-101'],
       sources: {
         prd: { section_id: 'sec-2.2', title: 'API 通信规范' },
-        api: { operation_id: 'getPetHealthReportList', status: 'ready', endpoint: '/api/v2/pet/health/reports' }
+        api: {
+          operation_id: 'getPetHealthReportList',
+          status: 'ready',
+          endpoint: '/api/v2/pet/health/reports'
+        }
       },
       files: {
         expected: ['PetPal/Network/Services/HealthReportApiService.swift'],
         changed: ['PetPal/Network/Services/HealthReportApiService.swift']
       },
-      acceptance_criteria: ['基于 Combine 的 Publisher 封装', '超时 10s 自动重试 2 次', '业务错误码解析'],
+      acceptance_criteria: [
+        '基于 Combine 的 Publisher 封装',
+        '超时 10s 自动重试 2 次',
+        '业务错误码解析'
+      ],
       execution: {
         mode: 'assisted',
         recommended: { agent_id: 'antigravity', score: 94, reason: '网络契约与异步 API 接入' },
@@ -182,7 +195,11 @@ export const DEMO_HEALTH_PLAN = {
       files: {
         expected: ['PetPal/Features/Report/Views/ReportListSkeletonView.swift']
       },
-      acceptance_criteria: ['SwiftUI 列表容器骨架', '骨架屏渐变 Shimmer 动效', '空状态与断网占位图'],
+      acceptance_criteria: [
+        'SwiftUI 列表容器骨架',
+        '骨架屏渐变 Shimmer 动效',
+        '空状态与断网占位图'
+      ],
       execution: {
         mode: 'assisted',
         recommended: { agent_id: 'trae', score: 92, reason: '快速生成 SwiftUI 布局骨架与占位组件' },
@@ -202,15 +219,27 @@ export const DEMO_HEALTH_PLAN = {
       status: 'WAITING_DESIGN',
       dependencies: ['IOS-REP-105'],
       sources: {
-        design: { figma_file: 'figma://file/petpal-v2?node-id=302', frame_id: 'ReportCardItem', status: 'pending' }
+        design: {
+          figma_file: 'figma://file/petpal-v2?node-id=302',
+          frame_id: 'ReportCardItem',
+          status: 'pending'
+        }
       },
       files: {
         expected: ['PetPal/Features/Report/Views/ReportCardCell.swift']
       },
-      acceptance_criteria: ['还原 Figma 渐变边框与阴影', '支持应激指数彩色气泡', '暗黑模式高对比度适配'],
+      acceptance_criteria: [
+        '还原 Figma 渐变边框与阴影',
+        '支持应激指数彩色气泡',
+        '暗黑模式高对比度适配'
+      ],
       execution: {
         mode: 'assisted',
-        recommended: { agent_id: 'antigravity', score: 94, reason: '结合设计稿标注进行像素级 UI 编码' },
+        recommended: {
+          agent_id: 'antigravity',
+          score: 94,
+          reason: '结合设计稿标注进行像素级 UI 编码'
+        },
         selected: { agent_id: 'antigravity' }
       }
     },
@@ -257,7 +286,11 @@ export const DEMO_HEALTH_PLAN = {
       files: {
         expected: ['PetPalTests/Features/Report/ReportListViewModelTests.swift']
       },
-      acceptance_criteria: ['单测分支覆盖率 > 85%', 'Mock 网络延迟与异常抛出用例', '内存释放无循环引用验证'],
+      acceptance_criteria: [
+        '单测分支覆盖率 > 85%',
+        'Mock 网络延迟与异常抛出用例',
+        '内存释放无循环引用验证'
+      ],
       execution: {
         mode: 'assisted',
         recommended: { agent_id: 'claude-code', score: 95, reason: '测试用例编写与边缘异常分析' },
@@ -337,10 +370,18 @@ export const DEMO_HEALTH_PLAN = {
       files: {
         expected: ['src/main/java/com/petpal/controller/HealthReportController.java']
       },
-      acceptance_criteria: ['OpenAPI 3.0 注解完备', '统一 ResultWrapper 响应封装', '参数合法性校验'],
+      acceptance_criteria: [
+        'OpenAPI 3.0 注解完备',
+        '统一 ResultWrapper 响应封装',
+        '参数合法性校验'
+      ],
       execution: {
         mode: 'assisted',
-        recommended: { agent_id: 'workbuddy', score: 91, reason: 'REST Controller 与 API 契约生成' },
+        recommended: {
+          agent_id: 'workbuddy',
+          score: 91,
+          reason: 'REST Controller 与 API 契约生成'
+        },
         selected: { agent_id: 'workbuddy' }
       }
     },
@@ -491,7 +532,9 @@ export const DEMO_BLE_PLAN = {
       risk: 'low',
       status: 'DONE',
       dependencies: [],
-      execution: { recommended: { agent_id: 'chatgpt', score: 95, reason: '蓝牙服务协议与特征值定义' } }
+      execution: {
+        recommended: { agent_id: 'chatgpt', score: 95, reason: '蓝牙服务协议与特征值定义' }
+      }
     },
     {
       id: 'BLE-102',
@@ -505,7 +548,13 @@ export const DEMO_BLE_PLAN = {
       risk: 'medium',
       status: 'READY',
       dependencies: ['BLE-101'],
-      execution: { recommended: { agent_id: 'antigravity', score: 96, reason: 'CoreBluetooth 状态机与并发通信' } }
+      execution: {
+        recommended: {
+          agent_id: 'antigravity',
+          score: 96,
+          reason: 'CoreBluetooth 状态机与并发通信'
+        }
+      }
     },
     {
       id: 'BLE-103',
@@ -519,7 +568,9 @@ export const DEMO_BLE_PLAN = {
       risk: 'high',
       status: 'BLOCKED',
       dependencies: ['BLE-102'],
-      execution: { recommended: { agent_id: 'antigravity', score: 95, reason: '环形缓冲区与分片重传' } }
+      execution: {
+        recommended: { agent_id: 'antigravity', score: 95, reason: '环形缓冲区与分片重传' }
+      }
     },
     {
       id: 'BLE-104',
@@ -577,7 +628,9 @@ export const DEMO_FEED_PLAN = {
       risk: 'low',
       status: 'READY',
       dependencies: [],
-      execution: { recommended: { agent_id: 'chatgpt', score: 96, reason: '动态流数据模型与推荐协议设计' } }
+      execution: {
+        recommended: { agent_id: 'chatgpt', score: 96, reason: '动态流数据模型与推荐协议设计' }
+      }
     },
     {
       id: 'FEED-102',
@@ -591,7 +644,9 @@ export const DEMO_FEED_PLAN = {
       risk: 'low',
       status: 'BLOCKED',
       dependencies: ['FEED-101'],
-      execution: { recommended: { agent_id: 'antigravity', score: 94, reason: 'OSS 预签名直传服务实现' } }
+      execution: {
+        recommended: { agent_id: 'antigravity', score: 94, reason: 'OSS 预签名直传服务实现' }
+      }
     },
     {
       id: 'FEED-103',
@@ -648,7 +703,9 @@ export const DEMO_MALL_PLAN = {
       risk: 'high',
       status: 'DONE',
       dependencies: [],
-      execution: { recommended: { agent_id: 'chatgpt', score: 96, reason: '订单状态机与幂等 Token 机制' } }
+      execution: {
+        recommended: { agent_id: 'chatgpt', score: 96, reason: '订单状态机与幂等 Token 机制' }
+      }
     },
     {
       id: 'MALL-102',
@@ -662,7 +719,9 @@ export const DEMO_MALL_PLAN = {
       risk: 'medium',
       status: 'DONE',
       dependencies: ['MALL-101'],
-      execution: { recommended: { agent_id: 'antigravity', score: 95, reason: 'PassKit 支付网关接入' } }
+      execution: {
+        recommended: { agent_id: 'antigravity', score: 95, reason: 'PassKit 支付网关接入' }
+      }
     }
   ]
 }

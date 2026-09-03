@@ -102,7 +102,8 @@ alwaysApply: false
     icon: '✨',
     color: '#238636',
     description: 'GitHub Copilot 仓库级指令与 Copilot Chat 上下文规范',
-    docsUrl: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+    docsUrl:
+      'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
     ruleDefinitions: [
       {
         fileName: 'copilot-instructions.md',
@@ -887,7 +888,12 @@ export async function saveWorkspaceAgentRule(workspaceRoot, relativePath, conten
  * @param {string} [customContent]
  * @returns {Promise<Object>}
  */
-export async function createWorkspaceAgentRule(workspaceRoot, relativePath, templateId = '', customContent = '') {
+export async function createWorkspaceAgentRule(
+  workspaceRoot,
+  relativePath,
+  templateId = '',
+  customContent = ''
+) {
   try {
     const fullPath = resolveSafePath(workspaceRoot, relativePath)
     if (fs.existsSync(fullPath)) {
@@ -919,7 +925,11 @@ export async function createWorkspaceAgentRule(workspaceRoot, relativePath, temp
       }
     }
 
-    return await saveWorkspaceAgentRule(workspaceRoot, relativePath, initialContent || '# AI Rules\n')
+    return await saveWorkspaceAgentRule(
+      workspaceRoot,
+      relativePath,
+      initialContent || '# AI Rules\n'
+    )
   } catch (err) {
     return {
       success: false,

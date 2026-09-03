@@ -49,7 +49,9 @@ export default function IpaAnalyzer({ showToast }) {
 
       try {
         if (!window.flywork?.ipaAnalyze) {
-          throw new Error('未检测到 IPA 分析接口 (window.flywork.ipaAnalyze 为空)，请重启应用以生效最新模块。')
+          throw new Error(
+            '未检测到 IPA 分析接口 (window.flywork.ipaAnalyze 为空)，请重启应用以生效最新模块。'
+          )
         }
 
         const res = await window.flywork.ipaAnalyze(filePath)
@@ -145,7 +147,9 @@ export default function IpaAnalyzer({ showToast }) {
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
-      list = list.filter((f) => f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q))
+      list = list.filter(
+        (f) => f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q)
+      )
     }
 
     return list
@@ -250,11 +254,25 @@ export default function IpaAnalyzer({ showToast }) {
           onClick={handlePickFile}
         >
           <div style={{ fontSize: 44, marginBottom: 12 }}>📦</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
-            {analyzing ? '正在深度解压与拆解分析安装包...' : '拖拽 iOS .ipa 安装包或 .app 文件至此处'}
+          <div
+            style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}
+          >
+            {analyzing
+              ? '正在深度解压与拆解分析安装包...'
+              : '拖拽 iOS .ipa 安装包或 .app 文件至此处'}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 540, margin: '0 auto 16px auto', lineHeight: 1.6 }}>
-            系统将毫秒级深度遍历解封应用，高精拆解主二进制 (Mach-O)、三方动态库 (Frameworks)、Assets.car 资产、字体库 (Fonts)、JS/Web代码包、AI/CoreML模型、数据文件及多语言配置，并出具瘦身优化建议。
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+              maxWidth: 540,
+              margin: '0 auto 16px auto',
+              lineHeight: 1.6
+            }}
+          >
+            系统将毫秒级深度遍历解封应用，高精拆解主二进制 (Mach-O)、三方动态库
+            (Frameworks)、Assets.car 资产、字体库
+            (Fonts)、JS/Web代码包、AI/CoreML模型、数据文件及多语言配置，并出具瘦身优化建议。
           </div>
           <button
             className="btn btn-primary btn-sm"
@@ -312,25 +330,40 @@ export default function IpaAnalyzer({ showToast }) {
                 <span className="badge" style={{ fontSize: 10, background: 'var(--bg-elevated)' }}>
                   v{analysisResult.version} ({analysisResult.buildNumber})
                 </span>
-                <span className="badge" style={{ fontSize: 10, background: 'var(--accent-teal-dim)', color: 'var(--accent-teal)' }}>
+                <span
+                  className="badge"
+                  style={{
+                    fontSize: 10,
+                    background: 'var(--accent-teal-dim)',
+                    color: 'var(--accent-teal)'
+                  }}
+                >
                   {analysisResult.architectures?.join(', ')}
                 </span>
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Bundle ID: <code>{analysisResult.bundleId}</code> · 目标系统: <code>{analysisResult.minOsVersion}</code> · 文件: <code>{analysisResult.fileName}</code>
+                Bundle ID: <code>{analysisResult.bundleId}</code> · 目标系统:{' '}
+                <code>{analysisResult.minOsVersion}</code> · 文件:{' '}
+                <code>{analysisResult.fileName}</code>
               </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              (可直接拖入新包)
-            </span>
-            <button className="btn btn-secondary btn-sm" onClick={copyReport} style={{ fontSize: 11, height: 28, gap: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>(可直接拖入新包)</span>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={copyReport}
+              style={{ fontSize: 11, height: 28, gap: 4 }}
+            >
               <span>📋</span>
               <span>导出 JSON</span>
             </button>
-            <button className="btn btn-primary btn-sm" onClick={handlePickFile} style={{ fontSize: 11, height: 28, gap: 4 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handlePickFile}
+              style={{ fontSize: 11, height: 28, gap: 4 }}
+            >
               <span>🔄</span>
               <span>选择其他包</span>
             </button>
@@ -342,7 +375,13 @@ export default function IpaAnalyzer({ showToast }) {
       {analysisResult && (
         <>
           {/* Key Metrics Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+              gap: 12
+            }}
+          >
             <div className="card" style={{ padding: '12px 16px' }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
                 {analysisResult.isIpa ? '📦 IPA 压缩包体积' : '📁 安装包体积'}
@@ -386,15 +425,15 @@ export default function IpaAnalyzer({ showToast }) {
                 🔤 字体与脚本资产
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent-amber)' }}>
-                {(
-                  (analysisResult.categories.fonts?.size || 0) +
-                  (analysisResult.categories.scripts?.size || 0) > 0
-                )
+                {(analysisResult.categories.fonts?.size || 0) +
+                  (analysisResult.categories.scripts?.size || 0) >
+                0
                   ? `${analysisResult.categories.fonts?.formatted || '0 B'} / ${analysisResult.categories.scripts?.formatted || '0 B'}`
                   : '0 B'}
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
-                字体: {analysisResult.categories.fonts?.percent || 0}% · 脚本: {analysisResult.categories.scripts?.percent || 0}%
+                字体: {analysisResult.categories.fonts?.percent || 0}% · 脚本:{' '}
+                {analysisResult.categories.scripts?.percent || 0}%
               </div>
             </div>
 
@@ -406,10 +445,11 @@ export default function IpaAnalyzer({ showToast }) {
                 style={{
                   fontSize: 20,
                   fontWeight: 700,
-                  color:
-                    analysisResult.recommendations.some((r) => r.type === 'danger' || r.type === 'warning')
-                      ? 'var(--accent-red)'
-                      : 'var(--accent-green)'
+                  color: analysisResult.recommendations.some(
+                    (r) => r.type === 'danger' || r.type === 'warning'
+                  )
+                    ? 'var(--accent-red)'
+                    : 'var(--accent-green)'
                 }}
               >
                 {analysisResult.recommendations.length} 项
@@ -422,7 +462,14 @@ export default function IpaAnalyzer({ showToast }) {
 
           {/* Visual Category Breakdown Progress Bar */}
           <div className="card" style={{ padding: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                marginBottom: 10
+              }}
+            >
               📊 安装包体积构成高精细分分布
             </div>
 
@@ -489,8 +536,12 @@ export default function IpaAnalyzer({ showToast }) {
                       }}
                     />
                     <span style={{ color: 'var(--text-secondary)' }}>{cat.label}:</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cat.formatted}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({cat.percent}%)</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {cat.formatted}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                      ({cat.percent}%)
+                    </span>
                   </div>
                 )
               })}
@@ -498,14 +549,34 @@ export default function IpaAnalyzer({ showToast }) {
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid var(--border)',
+              paddingBottom: 8
+            }}
+          >
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[
                 { id: 'overview', label: '总体细分诊断', icon: '📋' },
-                { id: 'extensions', label: `文件后缀排行 (${analysisResult.extensionBreakdown?.length || 0})`, icon: '📊' },
-                { id: 'frameworks', label: `动态库排行 (${analysisResult.frameworksList?.length || 0})`, icon: '📚' },
+                {
+                  id: 'extensions',
+                  label: `文件后缀排行 (${analysisResult.extensionBreakdown?.length || 0})`,
+                  icon: '📊'
+                },
+                {
+                  id: 'frameworks',
+                  label: `动态库排行 (${analysisResult.frameworksList?.length || 0})`,
+                  icon: '📚'
+                },
                 { id: 'files', label: `文件穿透检索 (${filteredFiles.length})`, icon: '🎨' },
-                { id: 'recommendations', label: `瘦身优化建议 (${analysisResult.recommendations?.length || 0})`, icon: '💡' }
+                {
+                  id: 'recommendations',
+                  label: `瘦身优化建议 (${analysisResult.recommendations?.length || 0})`,
+                  icon: '💡'
+                }
               ].map((t) => (
                 <button
                   key={t.id}
@@ -519,7 +590,9 @@ export default function IpaAnalyzer({ showToast }) {
               ))}
             </div>
 
-            {(activeTab === 'frameworks' || activeTab === 'extensions' || activeTab === 'files') && (
+            {(activeTab === 'frameworks' ||
+              activeTab === 'extensions' ||
+              activeTab === 'files') && (
               <input
                 type="text"
                 className="input"
@@ -536,11 +609,20 @@ export default function IpaAnalyzer({ showToast }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 14 }}>
               {/* Category Breakdown Table */}
               <div className="card" style={{ padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 10
+                  }}
+                >
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                     全景资产分类颗粒度统计 (点击穿透查看明细)
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>共 {analysisResult.allFilesCount} 个文件</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    共 {analysisResult.allFilesCount} 个文件
+                  </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -559,33 +641,75 @@ export default function IpaAnalyzer({ showToast }) {
                         transition: 'background 150ms ease'
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = 'var(--bg-elevated)')
+                      }
                       title={`点击筛选属于「${cat.label}」的文件`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          minWidth: 0,
+                          flex: 1
+                        }}
+                      >
                         <span style={{ fontSize: 14 }}>{cat.icon}</span>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: 'var(--text-primary)'
+                              }}
+                            >
                               {cat.label}
                             </span>
                             {catKey === 'other' && (
-                              <span className="badge" style={{ fontSize: 9, background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                              <span
+                                className="badge"
+                                style={{
+                                  fontSize: 9,
+                                  background: 'var(--bg-hover)',
+                                  color: 'var(--text-muted)'
+                                }}
+                              >
                                 细碎杂项
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: 'var(--text-muted)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                          >
                             {cat.desc}
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}
+                      >
+                        <span
+                          style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}
+                        >
                           {cat.formatted}
                         </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 44, textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-muted)',
+                            width: 44,
+                            textAlign: 'right'
+                          }}
+                        >
                           {cat.percent}%
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--accent-blue)', opacity: 0.8 }}>
@@ -600,25 +724,45 @@ export default function IpaAnalyzer({ showToast }) {
               {/* Assets.car & Bundles info */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="card" style={{ padding: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginBottom: 10,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     Assets Catalog 编录摘要
                   </div>
                   {analysisResult.assetsCarInfo ? (
                     <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--text-primary)' }}>
                       <div style={{ marginBottom: 6 }}>
-                        <strong>已编录资产总数:</strong> {analysisResult.assetsCarInfo.renditionCount} 个
+                        <strong>已编录资产总数:</strong>{' '}
+                        {analysisResult.assetsCarInfo.renditionCount} 个
                       </div>
-                      <div style={{ color: 'var(--text-secondary)', marginBottom: 8, fontSize: 11 }}>
+                      <div
+                        style={{ color: 'var(--text-secondary)', marginBottom: 8, fontSize: 11 }}
+                      >
                         Apple assetutil 已对包含的切图完成按机型 Thinning 压缩。
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        编录图片抽样：
-                      </div>
-                      <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>编录图片抽样：</div>
+                      <div
+                        style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}
+                      >
                         {analysisResult.assetsCarInfo.assets.slice(0, 4).map((a, idx) => (
-                          <div key={idx} style={{ fontSize: 10, display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace' }}>
+                          <div
+                            key={idx}
+                            style={{
+                              fontSize: 10,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              fontFamily: 'monospace'
+                            }}
+                          >
                             <span>{a.name}</span>
-                            <span style={{ color: 'var(--text-muted)' }}>{a.scale}x · {a.idiom}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              {a.scale}x · {a.idiom}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -633,12 +777,29 @@ export default function IpaAnalyzer({ showToast }) {
                 {/* Bundles directory info */}
                 {analysisResult.bundlesList?.length > 0 && (
                   <div className="card" style={{ padding: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 8,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
                       包含的嵌套资源包 (Bundles, {analysisResult.bundlesList.length} 个)
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {analysisResult.bundlesList.slice(0, 5).map((b, idx) => (
-                        <div key={idx} style={{ fontSize: 11, display: 'flex', justifyContent: 'space-between', padding: '4px 6px', background: 'var(--bg-elevated)', borderRadius: 4 }}>
+                        <div
+                          key={idx}
+                          style={{
+                            fontSize: 11,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '4px 6px',
+                            background: 'var(--bg-elevated)',
+                            borderRadius: 4
+                          }}
+                        >
                           <code style={{ fontSize: 10 }}>{b.name}</code>
                           <span style={{ fontWeight: 600 }}>{b.formattedSize}</span>
                         </div>
@@ -653,7 +814,14 @@ export default function IpaAnalyzer({ showToast }) {
           {/* Tab 2: Extension Breakdown (NEW!) */}
           {activeTab === 'extensions' && (
             <div className="card" style={{ padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                     文件后缀类型分布排行 (按文件拓展名聚合)
@@ -665,7 +833,14 @@ export default function IpaAnalyzer({ showToast }) {
               </div>
 
               {filteredExtensions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 12 }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: 24,
+                    color: 'var(--text-muted)',
+                    fontSize: 12
+                  }}
+                >
                   无匹配后缀
                 </div>
               ) : (
@@ -684,12 +859,18 @@ export default function IpaAnalyzer({ showToast }) {
                         cursor: 'pointer'
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = 'var(--bg-elevated)')
+                      }
                       title={`点击筛选所有 ${item.ext} 文件`}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 24 }}>#{idx + 1}</span>
-                        <code style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-blue)' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 24 }}>
+                          #{idx + 1}
+                        </span>
+                        <code
+                          style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-blue)' }}
+                        >
                           {item.ext}
                         </code>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -701,7 +882,9 @@ export default function IpaAnalyzer({ showToast }) {
                                 ? '字体文件'
                                 : item.ext === '.jsbundle' || item.ext === '.bundle'
                                   ? 'JavaScript / React Native 代码包'
-                                  : item.ext === '.png' || item.ext === '.jpg' || item.ext === '.webp'
+                                  : item.ext === '.png' ||
+                                      item.ext === '.jpg' ||
+                                      item.ext === '.webp'
                                     ? '离散图片资源'
                                     : item.ext === '.strings' || item.ext === '.stringsdict'
                                       ? '多语言本地化文件'
@@ -711,23 +894,56 @@ export default function IpaAnalyzer({ showToast }) {
                                           ? '本地 SQLite 数据库'
                                           : item.ext === '.metallib'
                                             ? 'Metal 着色器图形库'
-                                            : item.ext === '.caf' || item.ext === '.wav' || item.ext === '.mp3'
+                                            : item.ext === '.caf' ||
+                                                item.ext === '.wav' ||
+                                                item.ext === '.mp3'
                                               ? '音频素材'
                                               : '其他资源文件'}
                         </span>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ width: 120, height: 6, background: 'var(--bg-card)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.min(parseFloat(item.percent), 100)}%`, height: '100%', background: 'var(--accent-blue)' }} />
+                        <div
+                          style={{
+                            width: 120,
+                            height: 6,
+                            background: 'var(--bg-card)',
+                            borderRadius: 3,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${Math.min(parseFloat(item.percent), 100)}%`,
+                              height: '100%',
+                              background: 'var(--accent-blue)'
+                            }}
+                          />
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', width: 70, textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            width: 70,
+                            textAlign: 'right'
+                          }}
+                        >
                           {item.formattedSize}
                         </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 48, textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-muted)',
+                            width: 48,
+                            textAlign: 'right'
+                          }}
+                        >
                           {item.percent}%
                         </span>
-                        <span style={{ fontSize: 11, color: 'var(--accent-blue)' }}>查看文件 →</span>
+                        <span style={{ fontSize: 11, color: 'var(--accent-blue)' }}>
+                          查看文件 →
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -739,12 +955,26 @@ export default function IpaAnalyzer({ showToast }) {
           {/* Tab 3: Frameworks Ranking */}
           {activeTab === 'frameworks' && (
             <div className="card" style={{ padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 12,
+                  color: 'var(--text-primary)'
+                }}
+              >
                 第三方与内部动态库 (Frameworks) 体积排行
               </div>
 
               {filteredFrameworks.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 12 }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: 24,
+                    color: 'var(--text-muted)',
+                    fontSize: 12
+                  }}
+                >
                   未包含或未找到匹配的 Framework
                 </div>
               ) : (
@@ -765,19 +995,35 @@ export default function IpaAnalyzer({ showToast }) {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 20 }}>#{idx + 1}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 20 }}>
+                            #{idx + 1}
+                          </span>
+                          <span
+                            style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}
+                          >
                             {fw.name}
                           </span>
                           {fw.isDylib && (
-                            <span className="badge" style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', fontSize: 9 }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: 'var(--accent-blue-dim)',
+                                color: 'var(--accent-blue)',
+                                fontSize: 9
+                              }}
+                            >
                               .dylib 动态库
                             </span>
                           )}
                           {fw.isDebug && (
                             <span
                               className="badge"
-                              style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--accent-red)', fontSize: 9, fontWeight: 600 }}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                color: 'var(--accent-red)',
+                                fontSize: 9,
+                                fontWeight: 600
+                              }}
                             >
                               🚨 Debug 调试版
                             </span>
@@ -785,7 +1031,11 @@ export default function IpaAnalyzer({ showToast }) {
                           {isHeavy && !fw.isDebug && (
                             <span
                               className="badge"
-                              style={{ background: 'var(--accent-amber-dim)', color: 'var(--accent-amber)', fontSize: 9 }}
+                              style={{
+                                background: 'var(--accent-amber-dim)',
+                                color: 'var(--accent-amber)',
+                                fontSize: 9
+                              }}
                             >
                               超大库 &gt; 5MB
                             </span>
@@ -793,10 +1043,19 @@ export default function IpaAnalyzer({ showToast }) {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <span
+                            style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}
+                          >
                             {fw.formattedSize}
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 60, textAlign: 'right' }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: 'var(--text-muted)',
+                              width: 60,
+                              textAlign: 'right'
+                            }}
+                          >
                             占库 {fw.percent}%
                           </span>
                           <button
@@ -819,7 +1078,16 @@ export default function IpaAnalyzer({ showToast }) {
           {/* Tab 4: All Files with Deep Category Filter */}
           {activeTab === 'files' && (
             <div className="card" style={{ padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 12,
+                  flexWrap: 'wrap',
+                  gap: 8
+                }}
+              >
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                     全量资产文件深度检索与穿透
@@ -865,7 +1133,13 @@ export default function IpaAnalyzer({ showToast }) {
                     justifyContent: 'space-between'
                   }}
                 >
-                  <span>当前正筛选查看：<strong>{CATEGORY_NAMES[selectedCategoryFilter] || selectedCategoryFilter}</strong> 下的文件清单 (共 {filteredFiles.length} 个)</span>
+                  <span>
+                    当前正筛选查看：
+                    <strong>
+                      {CATEGORY_NAMES[selectedCategoryFilter] || selectedCategoryFilter}
+                    </strong>{' '}
+                    下的文件清单 (共 {filteredFiles.length} 个)
+                  </span>
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={() => setSelectedCategoryFilter('all')}
@@ -877,7 +1151,14 @@ export default function IpaAnalyzer({ showToast }) {
               )}
 
               {filteredFiles.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 12 }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: 24,
+                    color: 'var(--text-muted)',
+                    fontSize: 12
+                  }}
+                >
                   无匹配文件
                 </div>
               ) : (
@@ -894,8 +1175,26 @@ export default function IpaAnalyzer({ showToast }) {
                         borderRadius: 'var(--radius-sm)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 24, flexShrink: 0 }}>#{idx + 1}</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          overflow: 'hidden',
+                          minWidth: 0,
+                          flex: 1
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: 'var(--text-muted)',
+                            width: 24,
+                            flexShrink: 0
+                          }}
+                        >
+                          #{idx + 1}
+                        </span>
                         <span
                           className="badge"
                           style={{
@@ -936,14 +1235,28 @@ export default function IpaAnalyzer({ showToast }) {
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}
+                      >
+                        <span
+                          style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}
+                        >
                           {file.formattedSize}
                         </span>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 44, textAlign: 'right' }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: 'var(--text-muted)',
+                            width: 44,
+                            textAlign: 'right'
+                          }}
+                        >
                           {file.percent}%
                         </span>
-                        {(file.machOInfo || file.ext === '.dylib' || file.type === 'executable' || file.type === 'frameworks') && (
+                        {(file.machOInfo ||
+                          file.ext === '.dylib' ||
+                          file.type === 'executable' ||
+                          file.type === 'frameworks') && (
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={() => setInspectingFile(file)}
@@ -958,7 +1271,14 @@ export default function IpaAnalyzer({ showToast }) {
                     </div>
                   ))}
                   {filteredFiles.length > 100 && (
-                    <div style={{ textAlign: 'center', padding: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        padding: 8,
+                        fontSize: 11,
+                        color: 'var(--text-muted)'
+                      }}
+                    >
                       仅展示前 100 个最大文件（已包含绝大部分体积）
                     </div>
                   )}
@@ -1002,7 +1322,14 @@ export default function IpaAnalyzer({ showToast }) {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.5 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--text-primary)',
+                        marginBottom: 8,
+                        lineHeight: 1.5
+                      }}
+                    >
                       {rec.desc}
                     </div>
 
@@ -1058,14 +1385,23 @@ export default function IpaAnalyzer({ showToast }) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 12
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
                     width: 44,
                     height: 44,
                     borderRadius: 10,
-                    background: inspectingFile.isDebug ? 'rgba(239, 68, 68, 0.15)' : 'var(--accent-purple-dim)',
+                    background: inspectingFile.isDebug
+                      ? 'rgba(239, 68, 68, 0.15)'
+                      : 'var(--accent-purple-dim)',
                     color: inspectingFile.isDebug ? 'var(--accent-red)' : 'var(--accent-purple)',
                     display: 'flex',
                     alignItems: 'center',
@@ -1082,7 +1418,14 @@ export default function IpaAnalyzer({ showToast }) {
                       {inspectingFile.name}
                     </span>
                     {inspectingFile.isDebug && (
-                      <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--accent-red)', fontSize: 10 }}>
+                      <span
+                        className="badge"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: 'var(--accent-red)',
+                          fontSize: 10
+                        }}
+                      >
                         🚨 Debug 调试版动态库
                       </span>
                     )}
@@ -1091,7 +1434,9 @@ export default function IpaAnalyzer({ showToast }) {
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    相对路径: <code>{inspectingFile.path}</code> · 体积: <strong>{inspectingFile.formattedSize}</strong> ({inspectingFile.percent}% 全包占比)
+                    相对路径: <code>{inspectingFile.path}</code> · 体积:{' '}
+                    <strong>{inspectingFile.formattedSize}</strong> ({inspectingFile.percent}%
+                    全包占比)
                   </div>
                 </div>
               </div>
@@ -1126,25 +1471,44 @@ export default function IpaAnalyzer({ showToast }) {
                 </div>
 
                 <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                  该文件包含 <strong>.debug</strong> 标识，是由于在 <strong>Debug 模式</strong> 下直接编译并打包入 IPA 所致：
+                  该文件包含 <strong>.debug</strong> 标识，是由于在 <strong>Debug 模式</strong>{' '}
+                  下直接编译并打包入 IPA 所致：
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11 }}>
-                  <div style={{ padding: 10, background: 'var(--bg-card)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11 }}
+                >
+                  <div
+                    style={{
+                      padding: 10,
+                      background: 'var(--bg-card)',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)'
+                    }}
+                  >
                     <div style={{ fontWeight: 600, color: 'var(--accent-red)', marginBottom: 4 }}>
                       1. 未剥离 DWARF 调试符号 (占 60%~80%)
                     </div>
                     <div style={{ color: 'var(--text-secondary)' }}>
-                      包含完整源代码路径、行号表、函数内部局部变量定义与 AST 类型元数据，未执行 strip 剥离。
+                      包含完整源代码路径、行号表、函数内部局部变量定义与 AST 类型元数据，未执行
+                      strip 剥离。
                     </div>
                   </div>
 
-                  <div style={{ padding: 10, background: 'var(--bg-card)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                  <div
+                    style={{
+                      padding: 10,
+                      background: 'var(--bg-card)',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)'
+                    }}
+                  >
                     <div style={{ fontWeight: 600, color: 'var(--accent-red)', marginBottom: 4 }}>
                       2. 未开启编译器最高优化 (-O0)
                     </div>
                     <div style={{ color: 'var(--text-secondary)' }}>
-                      Debug 模式默认禁用内联与死代码删除 (Dead Code Elimination)，保留了所有未调用的冗余指令。
+                      Debug 模式默认禁用内联与死代码删除 (Dead Code
+                      Elimination)，保留了所有未调用的冗余指令。
                     </div>
                   </div>
                 </div>
@@ -1164,9 +1528,12 @@ export default function IpaAnalyzer({ showToast }) {
                   }}
                 >
                   <div>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>💡 预期瘦身效果：</span>
+                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
+                      💡 预期瘦身效果：
+                    </span>
                     <span style={{ color: 'var(--text-primary)' }}>
-                      切换为 Release 或执行符号剥离后，该库体积预计将缩减至 <strong>10MB ~ 15MB</strong> (直接减负约 35MB~40MB)！
+                      切换为 Release 或执行符号剥离后，该库体积预计将缩减至{' '}
+                      <strong>10MB ~ 15MB</strong> (直接减负约 35MB~40MB)！
                     </span>
                   </div>
                   <button
@@ -1188,7 +1555,14 @@ export default function IpaAnalyzer({ showToast }) {
             {inspectingFile.machOInfo?.segments?.length > 0 ? (
               <>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      marginBottom: 8
+                    }}
+                  >
                     Mach-O 二进制段 (Segments) 体积分布
                   </div>
                   <div
@@ -1202,7 +1576,14 @@ export default function IpaAnalyzer({ showToast }) {
                     }}
                   >
                     {inspectingFile.machOInfo.segments.map((seg, sIdx) => {
-                      const colors = ['#3b82f6', '#8b5cf6', '#6366f1', '#f59e0b', '#ef4444', '#10b981']
+                      const colors = [
+                        '#3b82f6',
+                        '#8b5cf6',
+                        '#6366f1',
+                        '#f59e0b',
+                        '#ef4444',
+                        '#10b981'
+                      ]
                       return (
                         <div
                           key={sIdx}
@@ -1217,7 +1598,13 @@ export default function IpaAnalyzer({ showToast }) {
                     })}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: 8
+                    }}
+                  >
                     {inspectingFile.machOInfo.segments.map((seg, sIdx) => (
                       <div
                         key={sIdx}
@@ -1228,9 +1615,18 @@ export default function IpaAnalyzer({ showToast }) {
                           fontSize: 11
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: 2 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontWeight: 600,
+                            marginBottom: 2
+                          }}
+                        >
                           <code>{seg.name}</code>
-                          <span style={{ color: 'var(--text-primary)' }}>{seg.formattedSize} ({seg.percent}%)</span>
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {seg.formattedSize} ({seg.percent}%)
+                          </span>
                         </div>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>{seg.desc}</div>
                       </div>
@@ -1241,7 +1637,14 @@ export default function IpaAnalyzer({ showToast }) {
                 {/* Top Sections Breakdown */}
                 {inspectingFile.machOInfo?.topSections?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        marginBottom: 8
+                      }}
+                    >
                       核心节 (Sections) 细分排行
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1259,12 +1662,22 @@ export default function IpaAnalyzer({ showToast }) {
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20 }}>#{secIdx + 1}</span>
-                            <code style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{sec.name}</code>
-                            <span className="badge badge-gray" style={{ fontSize: 9 }}>{sec.segment}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{sec.desc}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', width: 20 }}>
+                              #{secIdx + 1}
+                            </span>
+                            <code style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>
+                              {sec.name}
+                            </code>
+                            <span className="badge badge-gray" style={{ fontSize: 9 }}>
+                              {sec.segment}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                              {sec.desc}
+                            </span>
                           </div>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{sec.formattedSize}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {sec.formattedSize}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1274,7 +1687,14 @@ export default function IpaAnalyzer({ showToast }) {
                 {/* Linked Libraries */}
                 {inspectingFile.machOInfo?.linkedLibraries?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        marginBottom: 6
+                      }}
+                    >
                       依赖的动态库与系统框架 ({inspectingFile.machOInfo.linkedLibraries.length} 个)
                     </div>
                     <div
@@ -1290,7 +1710,14 @@ export default function IpaAnalyzer({ showToast }) {
                       }}
                     >
                       {inspectingFile.machOInfo.linkedLibraries.map((lib, lIdx) => (
-                        <div key={lIdx} style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                        <div
+                          key={lIdx}
+                          style={{
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
                           • {lib}
                         </div>
                       ))}
@@ -1299,7 +1726,15 @@ export default function IpaAnalyzer({ showToast }) {
                 )}
               </>
             ) : (
-              <div style={{ padding: 16, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', fontSize: 12, color: 'var(--text-muted)' }}>
+              <div
+                style={{
+                  padding: 16,
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12,
+                  color: 'var(--text-muted)'
+                }}
+              >
                 该二进制在解压临时分析目录中已归档，建议查看上方针对该库的剥离优化建议。
               </div>
             )}

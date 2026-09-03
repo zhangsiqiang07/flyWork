@@ -32,8 +32,12 @@ export default function TaskInspector({
         }}
       >
         <span style={{ fontSize: 32, marginBottom: 12 }}>🧭</span>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>未选择任务</div>
-        <div style={{ fontSize: 12, marginTop: 4 }}>点击左侧或中间列表中的 Task 节点查看详情与调度</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+          未选择任务
+        </div>
+        <div style={{ fontSize: 12, marginTop: 4 }}>
+          点击左侧或中间列表中的 Task 节点查看详情与调度
+        </div>
       </div>
     )
   }
@@ -42,9 +46,11 @@ export default function TaskInspector({
   const upstreamTasks = (task.dependencies || []).map((id) => taskMap.get(id)).filter(Boolean)
   const downstreamTasks = allTasks.filter((t) => (t.dependencies || []).includes(task.id))
 
-  const currentAgent = task.execution?.selected?.agent_id || task.execution?.recommended?.agent_id || 'antigravity'
+  const currentAgent =
+    task.execution?.selected?.agent_id || task.execution?.recommended?.agent_id || 'antigravity'
   const recommendedScore = task.execution?.recommended?.score || 94
-  const recommendedReason = task.execution?.recommended?.reason || '匹配当前任务类型与工程技术栈规范'
+  const recommendedReason =
+    task.execution?.recommended?.reason || '匹配当前任务类型与工程技术栈规范'
 
   const handleAgentChange = (newAgent) => {
     onUpdateTask(task.id, {
@@ -202,7 +208,8 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
               flex: 1,
               background: 'transparent',
               border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid var(--accent-blue)' : '2px solid transparent',
+              borderBottom:
+                activeTab === tab.id ? '2px solid var(--accent-blue)' : '2px solid transparent',
               color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
               padding: '8px 0',
               fontSize: 12,
@@ -259,7 +266,14 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    marginBottom: 4
+                  }}
+                >
                   {task.sources.bug.title}
                 </div>
                 {task.sources.bug.description && (
@@ -351,12 +365,21 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                   border: '1px solid rgba(63,185,80,0.2)'
                 }}
               >
-                💡 <span style={{ color: 'var(--text-primary)' }}>推荐理由:</span> {recommendedReason}
+                💡 <span style={{ color: 'var(--text-primary)' }}>推荐理由:</span>{' '}
+                {recommendedReason}
               </div>
 
               {/* Agent Selector */}
               <div style={{ marginTop: 10 }}>
-                <label style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                <label
+                  style={{
+                    fontSize: 10,
+                    color: 'var(--text-secondary)',
+                    display: 'block',
+                    marginBottom: 4,
+                    fontWeight: 600
+                  }}
+                >
                   指派执行智能体 (Target Agent):
                 </label>
                 <select
@@ -389,7 +412,14 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
 
             {/* 2. Acceptance Criteria */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 6
+                }}
+              >
                 ✅ 交付与验收标准 (Acceptance Criteria):
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -416,7 +446,14 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
 
             {/* 3. Expected Files */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 6
+                }}
+              >
                 📄 目标变更文件 (Expected Files):
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -460,8 +497,12 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                   alignItems: 'center'
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>📋 PRD 选段 (§3.2 需求契约)</span>
-                <span style={{ fontSize: 11, color: 'var(--accent-green)', fontWeight: 600 }}>✓ 已就绪</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                  📋 PRD 选段 (§3.2 需求契约)
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--accent-green)', fontWeight: 600 }}>
+                  ✓ 已就绪
+                </span>
               </div>
 
               <div
@@ -475,11 +516,14 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                   alignItems: 'center'
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>🔌 API 接口与 DTO 签名</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                  🔌 API 接口与 DTO 签名
+                </span>
                 <span
                   style={{
                     fontSize: 11,
-                    color: task.sources?.api?.status === 'pending' ? '#a371f7' : 'var(--accent-green)',
+                    color:
+                      task.sources?.api?.status === 'pending' ? '#a371f7' : 'var(--accent-green)',
                     fontWeight: 600
                   }}
                 >
@@ -498,11 +542,16 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                   alignItems: 'center'
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>🎨 Figma UI 标注与 Token</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                  🎨 Figma UI 标注与 Token
+                </span>
                 <span
                   style={{
                     fontSize: 11,
-                    color: task.sources?.design?.status === 'pending' ? '#f87171' : 'var(--accent-green)',
+                    color:
+                      task.sources?.design?.status === 'pending'
+                        ? '#f87171'
+                        : 'var(--accent-green)',
                     fontWeight: 600
                   }}
                 >
@@ -521,8 +570,12 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                   alignItems: 'center'
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>📐 项目架构 Rules & Skills</span>
-                <span style={{ fontSize: 11, color: 'var(--accent-green)', fontWeight: 600 }}>✓ 2 Rules / 2 Skills</span>
+                <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                  📐 项目架构 Rules & Skills
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--accent-green)', fontWeight: 600 }}>
+                  ✓ 2 Rules / 2 Skills
+                </span>
               </div>
             </div>
 
@@ -549,11 +602,20 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Predecessors */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 6
+                }}
+              >
                 ⬅️ 前置依赖任务 (Predecessors):
               </div>
               {upstreamTasks.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>无前置依赖，可直接并行执行</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  无前置依赖，可直接并行执行
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {upstreamTasks.map((u) => (
@@ -570,10 +632,19 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'monospace' }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: 'var(--accent-blue)',
+                            fontFamily: 'monospace'
+                          }}
+                        >
                           {u.id}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 2 }}>{u.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 2 }}>
+                          {u.title}
+                        </div>
                       </div>
                       <span
                         style={{
@@ -592,7 +663,14 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
 
             {/* Downstream */}
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 6
+                }}
+              >
                 ➡️ 下游解锁任务 (Successors):
               </div>
               {downstreamTasks.length === 0 ? (
@@ -609,10 +687,19 @@ ${(task.acceptance_criteria || []).map((c, i) => `${i + 1}. ${c}`).join('\n')}
                         border: '1px solid var(--border)'
                       }}
                     >
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-blue)', fontFamily: 'monospace' }}>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--accent-blue)',
+                          fontFamily: 'monospace'
+                        }}
+                      >
                         {d.id}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 2 }}>{d.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-primary)', marginTop: 2 }}>
+                        {d.title}
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -775,20 +775,27 @@ export default function WorkspaceDetail({
               </div>
 
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                {['cursor', 'claude', 'copilot', 'agent-dir', 'windsurf', 'cline', 'opencode'].map((agentId) => {
-                  const agentInfo = agentRulesSummary?.agents?.find((a) => a.id === agentId)
-                  const isConfigured = (agentInfo?.rules?.filter((r) => r.exists)?.length || 0) > 0
-                  return (
-                    <span
-                      key={agentId}
-                      className={`badge ${isConfigured ? 'badge-green' : 'badge-gray'}`}
-                      style={{ fontSize: 10, padding: '2px 7px', opacity: isConfigured ? 1 : 0.6 }}
-                    >
-                      {agentInfo?.icon || '•'} {agentInfo?.name || agentId}
-                      {isConfigured ? ' ✓' : ''}
-                    </span>
-                  )
-                })}
+                {['cursor', 'claude', 'copilot', 'agent-dir', 'windsurf', 'cline', 'opencode'].map(
+                  (agentId) => {
+                    const agentInfo = agentRulesSummary?.agents?.find((a) => a.id === agentId)
+                    const isConfigured =
+                      (agentInfo?.rules?.filter((r) => r.exists)?.length || 0) > 0
+                    return (
+                      <span
+                        key={agentId}
+                        className={`badge ${isConfigured ? 'badge-green' : 'badge-gray'}`}
+                        style={{
+                          fontSize: 10,
+                          padding: '2px 7px',
+                          opacity: isConfigured ? 1 : 0.6
+                        }}
+                      >
+                        {agentInfo?.icon || '•'} {agentInfo?.name || agentId}
+                        {isConfigured ? ' ✓' : ''}
+                      </span>
+                    )
+                  }
+                )}
               </div>
 
               <button

@@ -31,9 +31,10 @@ export async function yunxiaoRequest(method, path, data = null, options = {}) {
   }
 
   // 构建完整 URL
-  const baseUrl = options.useRegion && options.regionEndpoint
-    ? options.regionEndpoint
-    : YUNXIAO_CONFIG.CENTER_BASE
+  const baseUrl =
+    options.useRegion && options.regionEndpoint
+      ? options.regionEndpoint
+      : YUNXIAO_CONFIG.CENTER_BASE
 
   const url = `${baseUrl}${path}`
 
@@ -41,7 +42,7 @@ export async function yunxiaoRequest(method, path, data = null, options = {}) {
   const headers = {
     'x-yunxiao-token': token,
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
     ...options.headers
   }
 
@@ -105,10 +106,7 @@ export async function yunxiaoRequest(method, path, data = null, options = {}) {
     }
 
     // 处理其他错误
-    throw new YunxiaoError(
-      error.message || '网络请求失败',
-      'NETWORK_ERROR'
-    )
+    throw new YunxiaoError(error.message || '网络请求失败', 'NETWORK_ERROR')
   }
 }
 
@@ -155,9 +153,7 @@ export class YunxiaoError extends Error {
    * 判断是否为认证错误
    */
   isAuthError() {
-    return this.code === 'AUTH_REQUIRED' ||
-           this.code === 'INVALID_TOKEN' ||
-           this.statusCode === 401
+    return this.code === 'AUTH_REQUIRED' || this.code === 'INVALID_TOKEN' || this.statusCode === 401
   }
 
   /**

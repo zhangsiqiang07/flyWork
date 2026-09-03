@@ -57,7 +57,10 @@ export default function BugOrchestrateModal({
     return [
       {
         id: 'BUG-01-DIAG',
-        title: bugs.length === 1 ? `根因溯源与复现单测: ${first.subject || first.title}` : `多缺陷根因排查与复现自动化测试`,
+        title:
+          bugs.length === 1
+            ? `根因溯源与复现单测: ${first.subject || first.title}`
+            : `多缺陷根因排查与复现自动化测试`,
         agent: 'Claude Code',
         agentAvatar: '⚡',
         agentRole: 'Bug Hunter',
@@ -66,7 +69,10 @@ export default function BugOrchestrateModal({
       },
       {
         id: 'BUG-02-FIX',
-        title: bugs.length === 1 ? `补丁修复与工程落地: ${first.subject || first.title}` : `核心代码补丁编写与容错兜底`,
+        title:
+          bugs.length === 1
+            ? `补丁修复与工程落地: ${first.subject || first.title}`
+            : `核心代码补丁编写与容错兜底`,
         agent: 'Antigravity',
         agentAvatar: '✨',
         agentRole: 'Full-stack Implementer',
@@ -121,7 +127,10 @@ export default function BugOrchestrateModal({
                   id: bug.identifier || bug.id || '',
                   serialNumber: serial,
                   title: bug.subject || bug.title || '',
-                  status: typeof bug.status === 'object' ? (bug.status?.name || '待修复') : (bug.status || '待修复'),
+                  status:
+                    typeof bug.status === 'object'
+                      ? bug.status?.name || '待修复'
+                      : bug.status || '待修复',
                   description: bug.description || ''
                 }
               },
@@ -188,31 +197,53 @@ export default function BugOrchestrateModal({
             tasks: [
               {
                 id: task1Id,
-                title: bugs.length === 1 ? `诊断与根因溯源: ${first.subject || first.title}` : `多缺陷根因排查与复现单测`,
+                title:
+                  bugs.length === 1
+                    ? `诊断与根因溯源: ${first.subject || first.title}`
+                    : `多缺陷根因排查与复现单测`,
                 project: selectedWorkspace,
                 feature: 'BugFix',
                 layer: 'test',
                 type: 'bug-diagnosis',
                 status: 'READY',
                 dependencies: [],
-                sources: { bug: { id: first.identifier, serialNumber: first.serialNumber, title: first.subject } },
+                sources: {
+                  bug: {
+                    id: first.identifier,
+                    serialNumber: first.serialNumber,
+                    title: first.subject
+                  }
+                },
                 files: { expected: ['Tests/BugReproductionTests.swift'] },
                 acceptance_criteria: ['定位缺陷触发场景并输出根因分析'],
                 execution: {
-                  recommended: { agent_id: 'claude-code', score: 96, reason: '深度检索与 Bug 溯源' },
+                  recommended: {
+                    agent_id: 'claude-code',
+                    score: 96,
+                    reason: '深度检索与 Bug 溯源'
+                  },
                   selected: { agent_id: 'claude-code' }
                 }
               },
               {
                 id: task2Id,
-                title: bugs.length === 1 ? `补丁修复与工程落地: ${first.subject || first.title}` : `核心代码补丁编写与容错兜底`,
+                title:
+                  bugs.length === 1
+                    ? `补丁修复与工程落地: ${first.subject || first.title}`
+                    : `核心代码补丁编写与容错兜底`,
                 project: selectedWorkspace,
                 feature: 'BugFix',
                 layer: 'domain',
                 type: 'bugfix',
                 status: 'BLOCKED',
                 dependencies: [task1Id],
-                sources: { bug: { id: first.identifier, serialNumber: first.serialNumber, title: first.subject } },
+                sources: {
+                  bug: {
+                    id: first.identifier,
+                    serialNumber: first.serialNumber,
+                    title: first.subject
+                  }
+                },
                 files: { expected: ['Sources/Core/Fix.swift'] },
                 acceptance_criteria: ['补丁消除异常分支，通过单元测试'],
                 execution: {
@@ -229,7 +260,13 @@ export default function BugOrchestrateModal({
                 type: 'review',
                 status: 'BLOCKED',
                 dependencies: [task2Id],
-                sources: { bug: { id: first.identifier, serialNumber: first.serialNumber, title: first.subject } },
+                sources: {
+                  bug: {
+                    id: first.identifier,
+                    serialNumber: first.serialNumber,
+                    title: first.subject
+                  }
+                },
                 files: { expected: ['ReviewReport.md'] },
                 acceptance_criteria: ['全局测试套件 100% 通过'],
                 execution: {
@@ -318,10 +355,25 @@ export default function BugOrchestrateModal({
         </div>
 
         {/* Content Body */}
-        <div style={{ padding: '18px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div
+          style={{
+            padding: '18px 20px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}
+        >
           {/* Selected Bugs Pill List */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: 8
+              }}
+            >
               已勾选的云效缺陷 ({bugs.length})：
             </div>
             <div
@@ -382,7 +434,9 @@ export default function BugOrchestrateModal({
                       </span>
                     </div>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                      {typeof b.assignedTo === 'object' ? (b.assignedTo?.name || '未指派') : (b.assignedTo || '未指派')}
+                      {typeof b.assignedTo === 'object'
+                        ? b.assignedTo?.name || '未指派'
+                        : b.assignedTo || '未指派'}
                     </span>
                   </div>
                 )
@@ -392,7 +446,14 @@ export default function BugOrchestrateModal({
 
           {/* Mode Selection Cards */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: 8
+              }}
+            >
               编排模式选择 (Orchestration Mode)：
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -402,7 +463,8 @@ export default function BugOrchestrateModal({
                 style={{
                   padding: 14,
                   borderRadius: 'var(--radius-md)',
-                  border: mode === 'bind' ? '2px solid var(--accent-blue)' : '1px solid var(--border)',
+                  border:
+                    mode === 'bind' ? '2px solid var(--accent-blue)' : '1px solid var(--border)',
                   background: mode === 'bind' ? 'rgba(79, 158, 248, 0.08)' : 'var(--bg-elevated)',
                   cursor: 'pointer',
                   display: 'flex',
@@ -410,7 +472,9 @@ export default function BugOrchestrateModal({
                   gap: 6
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                     🔗 绑定到现有迭代需求
                   </span>
@@ -433,15 +497,21 @@ export default function BugOrchestrateModal({
                 style={{
                   padding: 14,
                   borderRadius: 'var(--radius-md)',
-                  border: mode === 'standalone' ? '2px solid var(--accent-purple)' : '1px solid var(--border)',
-                  background: mode === 'standalone' ? 'rgba(163, 113, 247, 0.08)' : 'var(--bg-elevated)',
+                  border:
+                    mode === 'standalone'
+                      ? '2px solid var(--accent-purple)'
+                      : '1px solid var(--border)',
+                  background:
+                    mode === 'standalone' ? 'rgba(163, 113, 247, 0.08)' : 'var(--bg-elevated)',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                     ⚡ 不绑定 (独立 Bug 修复计划)
                   </span>
@@ -476,7 +546,15 @@ export default function BugOrchestrateModal({
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--text-secondary)',
+                        display: 'block',
+                        marginBottom: 4,
+                        fontWeight: 600
+                      }}
+                    >
                       目标 PRD 迭代计划 (Target Plan)：
                     </label>
                     <select
@@ -494,14 +572,23 @@ export default function BugOrchestrateModal({
                     >
                       {plans.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.title} ({p.status === 'IN_PROGRESS' ? '进行中' : '规划中'} · {p.tasks?.length || 0} 任务)
+                          {p.title} ({p.status === 'IN_PROGRESS' ? '进行中' : '规划中'} ·{' '}
+                          {p.tasks?.length || 0} 任务)
                         </option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--text-secondary)',
+                        display: 'block',
+                        marginBottom: 4,
+                        fontWeight: 600
+                      }}
+                    >
                       归属工程工作区 (Workspace)：
                     </label>
                     <select
@@ -536,11 +623,27 @@ export default function BugOrchestrateModal({
 
                 {/* Execution Policy */}
                 <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, fontWeight: 600 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      display: 'block',
+                      marginBottom: 6,
+                      fontWeight: 600
+                    }}
+                  >
                     DAG 拓扑执行策略 (Execution Policy)：
                   </label>
                   <div style={{ display: 'flex', gap: 16 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                        cursor: 'pointer'
+                      }}
+                    >
                       <input
                         type="radio"
                         name="bugPolicy"
@@ -549,7 +652,15 @@ export default function BugOrchestrateModal({
                       />
                       <span>并行业行 (Ready) - 作为独立修复分支立即就绪</span>
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                        cursor: 'pointer'
+                      }}
+                    >
                       <input
                         type="radio"
                         name="bugPolicy"
@@ -564,7 +675,15 @@ export default function BugOrchestrateModal({
             ) : (
               <>
                 <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      display: 'block',
+                      marginBottom: 4,
+                      fontWeight: 600
+                    }}
+                  >
                     独立 Bug 修复计划名称 (Plan Title)：
                   </label>
                   <input
@@ -585,7 +704,15 @@ export default function BugOrchestrateModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      display: 'block',
+                      marginBottom: 4,
+                      fontWeight: 600
+                    }}
+                  >
                     关联工作区 (Target Project Workspace)：
                   </label>
                   <select
@@ -622,7 +749,14 @@ export default function BugOrchestrateModal({
 
           {/* Generated Task Preview */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: 8
+              }}
+            >
               生成的任务节点与智能体分配预览 (Task Graph Preview)：
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -641,10 +775,24 @@ export default function BugOrchestrateModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <span style={{ color: 'var(--accent-blue)', fontWeight: 700, fontFamily: 'monospace' }}>
+                    <span
+                      style={{
+                        color: 'var(--accent-blue)',
+                        fontWeight: 700,
+                        fontFamily: 'monospace'
+                      }}
+                    >
                       {i + 1}.
                     </span>
-                    <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span
+                      style={{
+                        color: 'var(--text-primary)',
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
                       {t.title}
                     </span>
                   </div>
@@ -664,14 +812,18 @@ export default function BugOrchestrateModal({
                     >
                       <span>{t.agentAvatar}</span>
                       <span>{t.agent}</span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({t.agentRole})</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                        ({t.agentRole})
+                      </span>
                     </span>
                     <span
                       style={{
                         fontSize: 10,
                         padding: '2px 6px',
                         borderRadius: 4,
-                        background: t.status.includes('READY') ? 'rgba(63, 185, 80, 0.15)' : 'rgba(210, 153, 34, 0.15)',
+                        background: t.status.includes('READY')
+                          ? 'rgba(63, 185, 80, 0.15)'
+                          : 'rgba(210, 153, 34, 0.15)',
                         color: t.status.includes('READY') ? '#3fb950' : '#d29922'
                       }}
                     >

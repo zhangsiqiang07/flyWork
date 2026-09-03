@@ -99,26 +99,61 @@ function DescriptionContent({ description, formatType, workitemId }) {
         const src = node.getAttribute('src') || ''
         if (!/^https:\/\//i.test(src)) return null
         const style = node.getAttribute('style') || ''
-        const width = Number.parseInt(node.getAttribute('width') || style.match(/width:\s*(\d+)px/i)?.[1] || '', 10)
-        const height = Number.parseInt(node.getAttribute('height') || style.match(/height:\s*(\d+)px/i)?.[1] || '', 10)
+        const width = Number.parseInt(
+          node.getAttribute('width') || style.match(/width:\s*(\d+)px/i)?.[1] || '',
+          10
+        )
+        const height = Number.parseInt(
+          node.getAttribute('height') || style.match(/height:\s*(\d+)px/i)?.[1] || '',
+          10
+        )
         return (
           <MarkdownImage
             key={key}
             src={src}
             alt={node.getAttribute('alt') || node.getAttribute('name') || '工作项图片'}
             workitemId={workitemId}
-            style={{ width: Number.isFinite(width) ? width : undefined, height: Number.isFinite(height) ? height : undefined }}
+            style={{
+              width: Number.isFinite(width) ? width : undefined,
+              height: Number.isFinite(height) ? height : undefined
+            }}
           />
         )
       }
       if (tag === 'br') return <br key={key} />
-      if (['p', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'strong', 'b', 'em', 'i', 'u', 's', 'h1', 'h2', 'h3', 'h4'].includes(tag)) {
+      if (
+        [
+          'p',
+          'ul',
+          'ol',
+          'li',
+          'blockquote',
+          'pre',
+          'code',
+          'strong',
+          'b',
+          'em',
+          'i',
+          'u',
+          's',
+          'h1',
+          'h2',
+          'h3',
+          'h4'
+        ].includes(tag)
+      ) {
         const Tag = tag
         return <Tag key={key}>{children}</Tag>
       }
       if (tag === 'a') {
         const href = node.getAttribute('href') || ''
-        return /^https?:\/\//i.test(href) ? <a key={key} href={href} target="_blank" rel="noreferrer">{children}</a> : <span key={key}>{children}</span>
+        return /^https?:\/\//i.test(href) ? (
+          <a key={key} href={href} target="_blank" rel="noreferrer">
+            {children}
+          </a>
+        ) : (
+          <span key={key}>{children}</span>
+        )
       }
       return <span key={key}>{children}</span>
     }
@@ -126,7 +161,16 @@ function DescriptionContent({ description, formatType, workitemId }) {
   }, [richTextHtml, workitemId])
 
   if (richTextNodes) return <>{richTextNodes}</>
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} workitemId={workitemId} /> }}>{normalizeMarkdown(description)}</ReactMarkdown>
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} workitemId={workitemId} />
+      }}
+    >
+      {normalizeMarkdown(description)}
+    </ReactMarkdown>
+  )
 }
 
 function Notice({ message }) {
@@ -193,8 +237,16 @@ export default function YunxiaoDashboard({
       if (!auth?.success || !auth.configured) {
         setConfig({ currentOrganizationName: 'PetPal 研发协同组织 (演示模式)', isDemo: true })
         setProjects([
-          { id: 'proj-petpal', name: 'PetPal 移动端主工程', description: 'iOS / Android 宠物社交平台主工程' },
-          { id: 'proj-backend', name: 'PetPal 云端架构服务', description: 'Java Core 微服务与数据中台' }
+          {
+            id: 'proj-petpal',
+            name: 'PetPal 移动端主工程',
+            description: 'iOS / Android 宠物社交平台主工程'
+          },
+          {
+            id: 'proj-backend',
+            name: 'PetPal 云端架构服务',
+            description: 'Java Core 微服务与数据中台'
+          }
         ])
         setSelectedProjectId('proj-petpal')
         return
@@ -523,7 +575,9 @@ function WorkitemsTab({
       try {
         const [memberResult, ...typeResults] = await Promise.all([
           window.flywork.yunxiaoListProjectMembers(project.id),
-          ...categories.map(([id]) => window.flywork.yunxiaoListProjectWorkitemTypes(project.id, id))
+          ...categories.map(([id]) =>
+            window.flywork.yunxiaoListProjectWorkitemTypes(project.id, id)
+          )
         ])
         memberList = memberResult.success ? memberResult.members || [] : []
         types = typeResults.flatMap((result, index) =>
@@ -638,7 +692,9 @@ function WorkitemsTab({
 
   const statusOptionsFor = (item) => statusesByType[workitemTypeIdOf(item)] || []
   const filterStatuses = Array.from(
-    new Map(statuses.map((status) => [nameOf(status, displayValue(status, '未设置')), status])).values()
+    new Map(
+      statuses.map((status) => [nameOf(status, displayValue(status, '未设置')), status])
+    ).values()
   )
 
   const statusColorOf = (item) => {
@@ -789,8 +845,12 @@ function WorkitemsTab({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 18 }}>📋</span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>云效工作台看板</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>支持勾选云效缺陷一键导入智能研发编排</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                云效工作台看板
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                支持勾选云效缺陷一键导入智能研发编排
+              </div>
             </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
@@ -816,9 +876,13 @@ function WorkitemsTab({
                 padding: '4px 10px',
                 fontSize: 12,
                 borderRadius: 'var(--radius-md)',
-                background: categoryFilter === tab.id ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                background:
+                  categoryFilter === tab.id ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
                 color: categoryFilter === tab.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                border: categoryFilter === tab.id ? '1px solid var(--accent-blue)' : '1px solid var(--border)',
+                border:
+                  categoryFilter === tab.id
+                    ? '1px solid var(--accent-blue)'
+                    : '1px solid var(--border)',
                 cursor: 'pointer',
                 fontWeight: categoryFilter === tab.id ? 600 : 400
               }}
@@ -901,7 +965,10 @@ function WorkitemsTab({
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                   <input
                     type="checkbox"
-                    checked={visibleItems.length > 0 && visibleItems.every((i) => selectedBugIds.has(idOf(i)))}
+                    checked={
+                      visibleItems.length > 0 &&
+                      visibleItems.every((i) => selectedBugIds.has(idOf(i)))
+                    }
                     onChange={toggleSelectAllVisible}
                     style={{ cursor: 'pointer' }}
                   />
@@ -1079,7 +1146,9 @@ function WorkitemsTab({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                  已勾选 <strong style={{ color: 'var(--accent-blue)' }}>{selectedBugIds.size}</strong> 个云效工作项
+                  已勾选{' '}
+                  <strong style={{ color: 'var(--accent-blue)' }}>{selectedBugIds.size}</strong>{' '}
+                  个云效工作项
                 </span>
                 <button
                   className="btn btn-ghost btn-sm"
@@ -1216,54 +1285,73 @@ export function WorkitemDetailPanel({ item, detail, loading, error, onClose, sta
             ×
           </button>
         </div>
-        {loading && <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>正在加载详情…</div>}
+        {loading && (
+          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+            正在加载详情…
+          </div>
+        )}
         {error && (
           <div style={{ marginTop: 16, fontSize: 12, color: 'var(--accent-red)' }}>⚠️ {error}</div>
         )}
         {!loading && !error && (
           <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginTop: 14 }}>
-            <DetailField label="状态" value={displayValue(workitem.status, '未设置')} />
-            <DetailField label="类型" value={displayValue(workitem.workitemType, '未设置')} />
-            <DetailField label="负责人" value={displayValue(workitem.assignedTo, '未指派')} />
-            <DetailField label="创建人" value={displayValue(workitem.creator, '未设置')} />
-            <DetailField label="创建时间" value={formatDate(workitem.gmtCreate)} />
-            <DetailField label="更新时间" value={formatDate(workitem.gmtModified)} />
-            {workitem.sprint && <DetailField label="迭代" value={displayValue(workitem.sprint)} />}
-            {workitem.space && <DetailField label="项目" value={displayValue(workitem.space)} />}
-          </div>
-          {workitem.description && (
-            <section style={{ marginTop: 20 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>描述</div>
-              <div className="yunxiao-markdown">
-                <DescriptionContent
-                  description={workitem.description}
-                  formatType={workitem.formatType}
-                  workitemId={idOf(workitem)}
-                />
-              </div>
-            </section>
-          )}
-          {labels.length > 0 && (
-            <section style={{ marginTop: 20 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>标签</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {labels.map((label) => (
-                  <span className="badge badge-gray" key={idOf(label) || nameOf(label)}>
-                    {nameOf(label)}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-          {participants.length > 0 && (
-            <section style={{ marginTop: 20 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>参与人</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {participants.map((person) => nameOf(person)).join('、')}
-              </div>
-            </section>
-          )}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '10px 16px',
+                marginTop: 14
+              }}
+            >
+              <DetailField label="状态" value={displayValue(workitem.status, '未设置')} />
+              <DetailField label="类型" value={displayValue(workitem.workitemType, '未设置')} />
+              <DetailField label="负责人" value={displayValue(workitem.assignedTo, '未指派')} />
+              <DetailField label="创建人" value={displayValue(workitem.creator, '未设置')} />
+              <DetailField label="创建时间" value={formatDate(workitem.gmtCreate)} />
+              <DetailField label="更新时间" value={formatDate(workitem.gmtModified)} />
+              {workitem.sprint && (
+                <DetailField label="迭代" value={displayValue(workitem.sprint)} />
+              )}
+              {workitem.space && <DetailField label="项目" value={displayValue(workitem.space)} />}
+            </div>
+            {workitem.description && (
+              <section style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  描述
+                </div>
+                <div className="yunxiao-markdown">
+                  <DescriptionContent
+                    description={workitem.description}
+                    formatType={workitem.formatType}
+                    workitemId={idOf(workitem)}
+                  />
+                </div>
+              </section>
+            )}
+            {labels.length > 0 && (
+              <section style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  标签
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {labels.map((label) => (
+                    <span className="badge badge-gray" key={idOf(label) || nameOf(label)}>
+                      {nameOf(label)}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+            {participants.length > 0 && (
+              <section style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  参与人
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {participants.map((person) => nameOf(person)).join('、')}
+                </div>
+              </section>
+            )}
           </>
         )}
       </aside>
@@ -1275,7 +1363,9 @@ function DetailField({ label, value }) {
   return (
     <div>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 13, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{value}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>
+        {value}
+      </div>
     </div>
   )
 }

@@ -171,12 +171,19 @@ export default function WorkspaceAiRules({ workspace: ws }) {
   // Delete rule
   const handleDeleteRule = async () => {
     if (!selectedRule || !selectedRule.exists || !ws?.root) return
-    if (!window.confirm(`确定要从项目中删除规则文件 "${selectedRule.relativePath}" 吗？此操作无法撤销。`)) {
+    if (
+      !window.confirm(
+        `确定要从项目中删除规则文件 "${selectedRule.relativePath}" 吗？此操作无法撤销。`
+      )
+    ) {
       return
     }
 
     try {
-      const res = await window.flywork?.workspaceDeleteAgentRule?.(ws.root, selectedRule.relativePath)
+      const res = await window.flywork?.workspaceDeleteAgentRule?.(
+        ws.root,
+        selectedRule.relativePath
+      )
       if (res?.success) {
         showToast(`已删除规则文件：${selectedRule.relativePath}`)
         setIsDirty(false)
@@ -310,7 +317,8 @@ export default function WorkspaceAiRules({ workspace: ws }) {
     let relativePath = ''
     if (createRuleType === 'standard') {
       // Find primary rule definition
-      const primaryDef = agent.ruleDefinitions.find((d) => d.type === 'single') || agent.ruleDefinitions[0]
+      const primaryDef =
+        agent.ruleDefinitions.find((d) => d.type === 'single') || agent.ruleDefinitions[0]
       relativePath = primaryDef.relativePath
     } else {
       // Sub-rule or custom MDC/MD
@@ -412,7 +420,8 @@ export default function WorkspaceAiRules({ workspace: ws }) {
               width: 38,
               height: 38,
               borderRadius: 8,
-              background: 'linear-gradient(135deg, rgba(79,158,248,0.2) 0%, rgba(163,113,247,0.2) 100%)',
+              background:
+                'linear-gradient(135deg, rgba(79,158,248,0.2) 0%, rgba(163,113,247,0.2) 100%)',
               border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
@@ -435,7 +444,8 @@ export default function WorkspaceAiRules({ workspace: ws }) {
               </span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              在项目中配置各类常见 AI 智能体规范（Cursor、Claude Code、GitHub Copilot、Windsurf 等），让智能体更精准契合你的工程架构。
+              在项目中配置各类常见 AI 智能体规范（Cursor、Claude Code、GitHub Copilot、Windsurf
+              等），让智能体更精准契合你的工程架构。
             </div>
           </div>
         </div>
@@ -508,7 +518,12 @@ export default function WorkspaceAiRules({ workspace: ws }) {
               whiteSpace: 'nowrap'
             }}
           >
-            全部智能体 ({rulesData?.agents?.reduce((acc, a) => acc + (a.rules?.filter((r) => r.exists)?.length || 0), 0) || 0})
+            全部智能体 (
+            {rulesData?.agents?.reduce(
+              (acc, a) => acc + (a.rules?.filter((r) => r.exists)?.length || 0),
+              0
+            ) || 0}
+            )
           </button>
           {rulesData?.agents?.map((agent) => {
             const isActive = selectedAgentId === agent.id
@@ -741,7 +756,7 @@ export default function WorkspaceAiRules({ workspace: ws }) {
                                 flexShrink: 0
                               }}
                             >
-                              {Math.round(rule.size / 1024 * 10) / 10} KB
+                              {Math.round((rule.size / 1024) * 10) / 10} KB
                             </span>
                           </div>
                         )
@@ -867,7 +882,10 @@ export default function WorkspaceAiRules({ workspace: ws }) {
                         </span>
                       )}
                       {isDirty && (
-                        <span className="badge badge-amber" style={{ fontSize: 10, animation: 'pulse 1.5s infinite' }}>
+                        <span
+                          className="badge badge-amber"
+                          style={{ fontSize: 10, animation: 'pulse 1.5s infinite' }}
+                        >
                           ● 未保存修改
                         </span>
                       )}
@@ -1082,8 +1100,7 @@ export default function WorkspaceAiRules({ workspace: ws }) {
                 style={{
                   flex: 1,
                   display: 'grid',
-                  gridTemplateColumns:
-                    viewMode === 'split' ? '1fr 1fr' : '1fr',
+                  gridTemplateColumns: viewMode === 'split' ? '1fr 1fr' : '1fr',
                   minHeight: 0,
                   overflow: 'hidden'
                 }}
@@ -1170,15 +1187,15 @@ export default function WorkspaceAiRules({ workspace: ws }) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span>
-                    行数: {editorContent ? editorContent.split('\n').length : 0} 行
-                  </span>
+                  <span>行数: {editorContent ? editorContent.split('\n').length : 0} 行</span>
                   <span>字符数: {editorContent.length}</span>
                   <span>编码: UTF-8</span>
                 </div>
                 <div>
                   {isDirty ? (
-                    <span style={{ color: 'var(--accent-amber)' }}>● 有未保存改动 (按 ⌘+S 保存)</span>
+                    <span style={{ color: 'var(--accent-amber)' }}>
+                      ● 有未保存改动 (按 ⌘+S 保存)
+                    </span>
                   ) : (
                     <span style={{ color: 'var(--accent-green)' }}>✓ 与工程文件一致</span>
                   )}
@@ -1198,7 +1215,9 @@ export default function WorkspaceAiRules({ workspace: ws }) {
               }}
             >
               <div style={{ fontSize: 40 }}>📄</div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>请在左侧选择一个规则文件，或点击“新建 AI 规则”</div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>
+                请在左侧选择一个规则文件，或点击“新建 AI 规则”
+              </div>
             </div>
           )}
         </div>
@@ -1211,25 +1230,21 @@ export default function WorkspaceAiRules({ workspace: ws }) {
           onClick={() => setShowCreateModal(false)}
           style={{ zIndex: 1100 }}
         >
-          <div
-            className="modal"
-            style={{ width: 560 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 18 }}>➕</span>
                 <div className="modal-title">新建智能体 AI 规则</div>
               </div>
-              <button
-                className="btn btn-ghost btn-icon"
-                onClick={() => setShowCreateModal(false)}
-              >
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModal(false)}>
                 ✕
               </button>
             </div>
 
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div
+              className="modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            >
               {/* Target Agent Selection */}
               <div>
                 <label className="form-label">目标智能体 (Target Agent)</label>

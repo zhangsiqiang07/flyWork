@@ -38,7 +38,16 @@ export default function GitCreateBranchModal({ branches, currentBranch, onClose,
         </div>
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {error && (
-            <div style={{ background: 'var(--accent-red-dim)', color: 'var(--accent-red)', padding: '10px 14px', borderRadius: 8, fontSize: 12, border: '1px solid var(--accent-red)' }}>
+            <div
+              style={{
+                background: 'var(--accent-red-dim)',
+                color: 'var(--accent-red)',
+                padding: '10px 14px',
+                borderRadius: 8,
+                fontSize: 12,
+                border: '1px solid var(--accent-red)'
+              }}
+            >
               {error}
             </div>
           )}
@@ -80,7 +89,9 @@ export default function GitCreateBranchModal({ branches, currentBranch, onClose,
                 type="button"
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6 }}
-                onClick={() => setNewBranchName((prev) => (prev.startsWith(prefix) ? prev : `${prefix}${prev}`))}
+                onClick={() =>
+                  setNewBranchName((prev) => (prev.startsWith(prefix) ? prev : `${prefix}${prev}`))
+                }
               >
                 + {prefix}
               </button>
@@ -92,7 +103,11 @@ export default function GitCreateBranchModal({ branches, currentBranch, onClose,
           <button className="btn btn-secondary btn-sm" onClick={onClose}>
             取消
           </button>
-          <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!newBranchName.trim() || isSubmitting}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleCreate}
+            disabled={!newBranchName.trim() || isSubmitting}
+          >
             {isSubmitting ? '创建中...' : '创建并切换分支'}
           </button>
         </div>

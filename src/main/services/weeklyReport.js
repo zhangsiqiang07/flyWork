@@ -144,7 +144,13 @@ function parseGitLogOutput(stdout, repoName, repoPath, currentBranch) {
 /**
  * Extract weekly commits from one or multiple Git repositories
  */
-export async function getWeeklyCommits({ repoPaths = [], since = '', until = '', author = '', limit = 100 }) {
+export async function getWeeklyCommits({
+  repoPaths = [],
+  since = '',
+  until = '',
+  author = '',
+  limit = 100
+}) {
   const pathEnv = getExtendedPathEnv()
   const results = []
 
@@ -155,12 +161,13 @@ export async function getWeeklyCommits({ repoPaths = [], since = '', until = '',
       // 1. Resolve real repo root using git rev-parse
       let realRoot = repoPath
       try {
-        realRoot = execSync('git rev-parse --show-toplevel 2>/dev/null', {
-          cwd: repoPath,
-          env: { ...process.env, PATH: pathEnv },
-          encoding: 'utf-8',
-          timeout: 2000
-        }).trim() || repoPath
+        realRoot =
+          execSync('git rev-parse --show-toplevel 2>/dev/null', {
+            cwd: repoPath,
+            env: { ...process.env, PATH: pathEnv },
+            encoding: 'utf-8',
+            timeout: 2000
+          }).trim() || repoPath
       } catch {
         // Not a git repo
         continue
@@ -175,19 +182,21 @@ export async function getWeeklyCommits({ repoPaths = [], since = '', until = '',
 
       // Get branch, configured user, all authors in repo, and latest commit info
       try {
-        currentBranch = execSync('git rev-parse --abbrev-ref HEAD 2>/dev/null', {
-          cwd: realRoot,
-          env: { ...process.env, PATH: pathEnv },
-          encoding: 'utf-8',
-          timeout: 2000
-        }).trim() || 'main'
+        currentBranch =
+          execSync('git rev-parse --abbrev-ref HEAD 2>/dev/null', {
+            cwd: realRoot,
+            env: { ...process.env, PATH: pathEnv },
+            encoding: 'utf-8',
+            timeout: 2000
+          }).trim() || 'main'
 
-        repoAuthor = execSync('git config user.name 2>/dev/null', {
-          cwd: realRoot,
-          env: { ...process.env, PATH: pathEnv },
-          encoding: 'utf-8',
-          timeout: 2000
-        }).trim() || ''
+        repoAuthor =
+          execSync('git config user.name 2>/dev/null', {
+            cwd: realRoot,
+            env: { ...process.env, PATH: pathEnv },
+            encoding: 'utf-8',
+            timeout: 2000
+          }).trim() || ''
 
         const authorsRaw = execSync('git log -100 --pretty=format:"%an" 2>/dev/null', {
           cwd: realRoot,
@@ -195,17 +204,27 @@ export async function getWeeklyCommits({ repoPaths = [], since = '', until = '',
           encoding: 'utf-8',
           timeout: 3000
         })
-        allAuthors = Array.from(new Set(authorsRaw.split('\n').map((s) => s.trim()).filter(Boolean)))
+        allAuthors = Array.from(
+          new Set(
+            authorsRaw
+              .split('\n')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          )
+        )
         if (repoAuthor && !allAuthors.includes(repoAuthor)) {
           allAuthors.unshift(repoAuthor)
         }
 
-        const latestRaw = execSync('git log -1 --pretty=format:"%h|%an|%ad|%s" --date=short 2>/dev/null', {
-          cwd: realRoot,
-          env: { ...process.env, PATH: pathEnv },
-          encoding: 'utf-8',
-          timeout: 2000
-        }).trim()
+        const latestRaw = execSync(
+          'git log -1 --pretty=format:"%h|%an|%ad|%s" --date=short 2>/dev/null',
+          {
+            cwd: realRoot,
+            env: { ...process.env, PATH: pathEnv },
+            encoding: 'utf-8',
+            timeout: 2000
+          }
+        ).trim()
         if (latestRaw) {
           const [lHash, lAuthor, lDate, lSub] = latestRaw.split('|')
           latestCommitInfo = { hash: lHash, author: lAuthor, date: lDate, subject: lSub }
@@ -263,7 +282,12 @@ export async function getWeeklyCommits({ repoPaths = [], since = '', until = '',
             encoding: 'utf-8',
             timeout: 5000
           })
-          fallbackRecentCommits = parseGitLogOutput(fallbackRes.stdout, repoName, realRoot, currentBranch)
+          fallbackRecentCommits = parseGitLogOutput(
+            fallbackRes.stdout,
+            repoName,
+            realRoot,
+            currentBranch
+          )
         } catch {
           /* ignore */
         }
@@ -316,15 +340,38 @@ function generateBuiltinWeeklyReport({ commits = [], repoNames = [], dateRange =
 
   commits.forEach((c) => {
     const s = c.subject.toLowerCase()
-    if (s.startsWith('feat') || s.includes('新增') || s.includes('实现') || s.includes('支持') || s.includes('feature')) {
+    if (
+      s.startsWith('feat') ||
+      s.includes('新增') ||
+      s.includes('实现') ||
+      s.includes('支持') ||
+      s.includes('feature')
+    ) {
       features.push(c)
-    } else if (s.startsWith('fix') || s.includes('修复') || s.includes('bug') || s.includes('解决') || s.includes('问题')) {
+    } else if (
+      s.startsWith('fix') ||
+      s.includes('修复') ||
+      s.includes('bug') ||
+      s.includes('解决') ||
+      s.includes('问题')
+    ) {
       bugfixes.push(c)
-    } else if (s.startsWith('refactor') || s.includes('重构') || s.includes('优化') || s.includes('perf')) {
+    } else if (
+      s.startsWith('refactor') ||
+      s.includes('重构') ||
+      s.includes('优化') ||
+      s.includes('perf')
+    ) {
       refactors.push(c)
     } else if (s.startsWith('docs') || s.includes('文档') || s.includes('readme')) {
       docs.push(c)
-    } else if (s.startsWith('chore') || s.startsWith('ci') || s.startsWith('build') || s.includes('构建') || s.includes('发布')) {
+    } else if (
+      s.startsWith('chore') ||
+      s.startsWith('ci') ||
+      s.startsWith('build') ||
+      s.includes('构建') ||
+      s.includes('发布')
+    ) {
       improvements.push(c)
     } else {
       other.push(c)
@@ -337,7 +384,9 @@ function generateBuiltinWeeklyReport({ commits = [], repoNames = [], dateRange =
   const lines = []
   lines.push(`# 📊 工作周报 (${todayText(now)})`)
   lines.push('')
-  lines.push(`> **周期**：${timeText}  |  **关联仓库**：${reposText}  |  **提交总数**：${totalCommits} 次 Commit`)
+  lines.push(
+    `> **周期**：${timeText}  |  **关联仓库**：${reposText}  |  **提交总数**：${totalCommits} 次 Commit`
+  )
   lines.push('')
   lines.push('---')
   lines.push('')
@@ -355,9 +404,13 @@ function generateBuiltinWeeklyReport({ commits = [], repoNames = [], dateRange =
     features.forEach((f) => {
       const cleanSubject = f.subject.replace(/^(feat(\([^)]+\))?:\s*)/i, '')
       lines.push(`- **${cleanSubject}**`)
-      lines.push(`  - *仓库*：\`${f.repoName}\` (${f.branch}) · *提交*：\`${f.shortHash}\` · *作者*：${f.author} (${f.date})`)
+      lines.push(
+        `  - *仓库*：\`${f.repoName}\` (${f.branch}) · *提交*：\`${f.shortHash}\` · *作者*：${f.author} (${f.date})`
+      )
       if (f.stats && f.stats.filesChanged > 0) {
-        lines.push(`  - *变更规模*：${f.stats.filesChanged} 文件改动 (+${f.stats.insertions} / -${f.stats.deletions})`)
+        lines.push(
+          `  - *变更规模*：${f.stats.filesChanged} 文件改动 (+${f.stats.insertions} / -${f.stats.deletions})`
+        )
       }
     })
   } else {
@@ -370,14 +423,20 @@ function generateBuiltinWeeklyReport({ commits = [], repoNames = [], dateRange =
   if (bugfixes.length > 0 || refactors.length > 0 || improvements.length > 0) {
     bugfixes.forEach((f) => {
       const cleanSubject = f.subject.replace(/^(fix(\([^)]+\))?:\s*)/i, '')
-      lines.push(`- 🐞 **[修复]** ${cleanSubject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`)
+      lines.push(
+        `- 🐞 **[修复]** ${cleanSubject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`
+      )
     })
     refactors.forEach((f) => {
       const cleanSubject = f.subject.replace(/^(refactor(\([^)]+\))?:\s*)/i, '')
-      lines.push(`- ⚡ **[优化]** ${cleanSubject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`)
+      lines.push(
+        `- ⚡ **[优化]** ${cleanSubject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`
+      )
     })
     improvements.forEach((f) => {
-      lines.push(`- 🔧 **[工程]** ${f.subject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`)
+      lines.push(
+        `- 🔧 **[工程]** ${f.subject} (\`${f.repoName}\` · \`${f.shortHash}\` · ${f.author})`
+      )
     })
   } else if (other.length > 0) {
     other.forEach((f) => {
@@ -449,11 +508,17 @@ export async function generateWeeklyReport({
   const selectedAgent = agents[agentId] || agents.builtin
 
   onChunk({ type: 'info', text: `[引擎准备] 选择执行引擎: ${selectedAgent.displayName}\n` })
-  onChunk({ type: 'info', text: `[数据解析] 汇集 ${commits.length} 条提交记录，涉及仓库: ${repoNames.join(', ') || '未指定'}\n` })
+  onChunk({
+    type: 'info',
+    text: `[数据解析] 汇集 ${commits.length} 条提交记录，涉及仓库: ${repoNames.join(', ') || '未指定'}\n`
+  })
 
   // Format commits block for prompt injection
   const commitsText = commits
-    .map((c, i) => `${i + 1}. [${c.repoName || 'Repo'}] [${c.shortHash}] (${c.date} 作者:${c.author}): ${c.subject}${c.stats?.statSummary ? ` (${c.stats.statSummary})` : ''}`)
+    .map(
+      (c, i) =>
+        `${i + 1}. [${c.repoName || 'Repo'}] [${c.shortHash}] (${c.date} 作者:${c.author}): ${c.subject}${c.stats?.statSummary ? ` (${c.stats.statSummary})` : ''}`
+    )
     .join('\n')
 
   const resolvedPrompt = (prompt || '')

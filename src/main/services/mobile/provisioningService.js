@@ -67,7 +67,11 @@ function parsePlistXml(xmlStr) {
             pos++ // consume <key>
             const keyNameTok = tokenList[pos++]
             const keyName = decodeXml(keyNameTok?.val || '')
-            if (tokenList[pos]?.type === 'tag' && tokenList[pos]?.name === 'key' && tokenList[pos]?.isClose) {
+            if (
+              tokenList[pos]?.type === 'tag' &&
+              tokenList[pos]?.name === 'key' &&
+              tokenList[pos]?.isClose
+            ) {
               pos++ // consume </key>
             }
             const val = parseValue()
@@ -99,7 +103,12 @@ function parsePlistXml(xmlStr) {
         if (tokenList[pos] && tokenList[pos].type === 'text') {
           val = tokenList[pos++].val
         }
-        if (tokenList[pos] && tokenList[pos].type === 'tag' && tokenList[pos].name === tok.name && tokenList[pos].isClose) {
+        if (
+          tokenList[pos] &&
+          tokenList[pos].type === 'tag' &&
+          tokenList[pos].name === tok.name &&
+          tokenList[pos].isClose
+        ) {
           pos++
         }
         if (tok.name === 'integer') return parseInt(val, 10) || 0
@@ -294,7 +303,10 @@ export async function listKeychainCertificates() {
         let certType = 'other'
         if (fullName.includes('Apple Development') || fullName.includes('iPhone Developer')) {
           certType = 'development'
-        } else if (fullName.includes('Apple Distribution') || fullName.includes('iPhone Distribution')) {
+        } else if (
+          fullName.includes('Apple Distribution') ||
+          fullName.includes('iPhone Distribution')
+        ) {
           certType = 'distribution'
         }
 

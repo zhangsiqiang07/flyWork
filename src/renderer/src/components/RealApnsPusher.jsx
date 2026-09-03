@@ -36,7 +36,8 @@ const PUSH_TEMPLATES = {
     category: 'NEWS_CATEGORY',
     mutableContent: true,
     contentAvailable: false,
-    customJson: '{\n  "image_url": "https://developer.apple.com/assets/elements/icons/xcode/xcode-96x96_2x.png"\n}'
+    customJson:
+      '{\n  "image_url": "https://developer.apple.com/assets/elements/icons/xcode/xcode-96x96_2x.png"\n}'
   },
   silent: {
     name: '静默数据更新 (Background)',
@@ -66,14 +67,20 @@ const PUSH_TEMPLATES = {
 
 export default function RealApnsPusher({ defaultBundleId = 'com.example.app', showToast }) {
   // Config state saved to localStorage
-  const [environment, setEnvironment] = useState(() => localStorage.getItem('flywork_apns_env') || 'sandbox')
-  const [authMode, setAuthMode] = useState(() => localStorage.getItem('flywork_apns_auth_mode') || 'token')
+  const [environment, setEnvironment] = useState(
+    () => localStorage.getItem('flywork_apns_env') || 'sandbox'
+  )
+  const [authMode, setAuthMode] = useState(
+    () => localStorage.getItem('flywork_apns_auth_mode') || 'token'
+  )
   const [p8Path, setP8Path] = useState(() => localStorage.getItem('flywork_apns_p8_path') || '')
   const [keyId, setKeyId] = useState(() => localStorage.getItem('flywork_apns_key_id') || '')
   const [teamId, setTeamId] = useState(() => localStorage.getItem('flywork_apns_team_id') || '')
   const [p12Path, setP12Path] = useState(() => localStorage.getItem('flywork_apns_p12_path') || '')
   const [p12Password, setP12Password] = useState('')
-  const [bundleId, setBundleId] = useState(() => localStorage.getItem('flywork_apns_bundle_id') || defaultBundleId)
+  const [bundleId, setBundleId] = useState(
+    () => localStorage.getItem('flywork_apns_bundle_id') || defaultBundleId
+  )
 
   // Target device token
   const [rawTokenInput, setRawTokenInput] = useState('')
@@ -305,7 +312,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         reason: 'MissingBundleId',
         friendlyTitle: '缺少 Bundle ID',
         friendlyTip: '尚未填写目标 App 的 Bundle Identifier (Topic)。',
-        solutions: ['在 Xcode 的 Target General 设置中查阅 Bundle Identifier（例如 com.example.app）。']
+        solutions: [
+          '在 Xcode 的 Target General 设置中查阅 Bundle Identifier（例如 com.example.app）。'
+        ]
       }
       setLastResult(errRes)
       showToast?.('请输入 App Bundle ID')
@@ -371,7 +380,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
     try {
       if (!window.flywork?.apnsSendPush) {
-        throw new Error('未检测到主进程 APNs 接口 (window.flywork.apnsSendPush 为空)。请关闭并重新启动 flyWork 应用以加载最新模块。')
+        throw new Error(
+          '未检测到主进程 APNs 接口 (window.flywork.apnsSendPush 为空)。请关闭并重新启动 flyWork 应用以加载最新模块。'
+        )
       }
 
       const options = {
@@ -405,7 +416,10 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         showToast?.('✓ 推送已成功送达 Apple APNs 网关！')
         setTokenHistory((prev) => {
           const filtered = prev.filter((t) => t.token !== cleanToken)
-          const updated = [{ token: cleanToken, bundleId: bundleId.trim(), time: Date.now() }, ...filtered].slice(0, 10)
+          const updated = [
+            { token: cleanToken, bundleId: bundleId.trim(), time: Date.now() },
+            ...filtered
+          ].slice(0, 10)
           localStorage.setItem('flywork_apns_token_history', JSON.stringify(updated))
           return updated
         })
@@ -441,7 +455,10 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
     const report = {
       timestamp: new Date().toISOString(),
       environment,
-      host: environment === 'production' ? 'https://api.push.apple.com' : 'https://api.sandbox.push.apple.com',
+      host:
+        environment === 'production'
+          ? 'https://api.push.apple.com'
+          : 'https://api.sandbox.push.apple.com',
       authMode,
       bundleId,
       deviceToken: cleanToken,
@@ -467,7 +484,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>推送环境:</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            推送环境:
+          </span>
           <div style={{ display: 'flex', gap: 4 }}>
             <button
               className={`btn btn-sm ${environment === 'sandbox' ? 'btn-primary' : 'btn-ghost'}`}
@@ -489,7 +508,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>鉴权方式:</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            鉴权方式:
+          </span>
           <div style={{ display: 'flex', gap: 4 }}>
             <button
               className={`btn btn-sm ${authMode === 'token' ? 'btn-primary' : 'btn-ghost'}`}
@@ -513,16 +534,37 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
       {/* 2. Credentials Configuration Section */}
       <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            marginBottom: 12,
+            color: 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+        >
           <span>{authMode === 'token' ? '🔑' : '📜'}</span>
-          <span>{authMode === 'token' ? 'Apple Token (.p8) 凭证配置' : 'Apple Push Certificate (.p12) 凭证配置'}</span>
+          <span>
+            {authMode === 'token'
+              ? 'Apple Token (.p8) 凭证配置'
+              : 'Apple Push Certificate (.p12) 凭证配置'}
+          </span>
         </div>
 
         {authMode === 'token' ? (
           <div>
             {/* .p8 File selection */}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 4
+                }}
+              >
                 AuthKey 密钥文件 (.p8) <span style={{ color: 'var(--accent-red)' }}>*</span>
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -534,7 +576,11 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                   placeholder="拖拽或选择 AuthKey_XXXXXXXXXX.p8 文件路径"
                   style={{ flex: 1, fontSize: 11 }}
                 />
-                <button className="btn btn-secondary btn-sm" onClick={() => chooseFile('p8')} style={{ fontSize: 11, height: 30 }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => chooseFile('p8')}
+                  style={{ fontSize: 11, height: 30 }}
+                >
                   选择文件
                 </button>
               </div>
@@ -542,7 +588,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   Key ID (10位) <span style={{ color: 'var(--accent-red)' }}>*</span>
                 </label>
                 <input
@@ -557,7 +610,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   Team ID (10位) <span style={{ color: 'var(--accent-red)' }}>*</span>
                 </label>
                 <input
@@ -572,7 +632,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   App Bundle ID (Topic) <span style={{ color: 'var(--accent-red)' }}>*</span>
                 </label>
                 <input
@@ -590,7 +657,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
           <div>
             {/* .p12 File & Password */}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 4
+                }}
+              >
                 推送证书文件 (.p12) <span style={{ color: 'var(--accent-red)' }}>*</span>
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -602,7 +676,11 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                   placeholder="选择导出的 Apple Push Services .p12 证书"
                   style={{ flex: 1, fontSize: 11 }}
                 />
-                <button className="btn btn-secondary btn-sm" onClick={() => chooseFile('p12')} style={{ fontSize: 11, height: 30 }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => chooseFile('p12')}
+                  style={{ fontSize: 11, height: 30 }}
+                >
                   选择文件
                 </button>
               </div>
@@ -610,7 +688,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   证书导出密码 (Passphrase, 可空)
                 </label>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -634,7 +719,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   App Bundle ID (Topic) <span style={{ color: 'var(--accent-red)' }}>*</span>
                 </label>
                 <input
@@ -653,10 +745,28 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
       {/* 3. Target Device Token Section */}
       <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
             <span>📲</span>
-            <span>目标真机 Device Token <span style={{ color: 'var(--accent-red)' }}>*</span></span>
+            <span>
+              目标真机 Device Token <span style={{ color: 'var(--accent-red)' }}>*</span>
+            </span>
           </div>
 
           {tokenHistory.length > 0 && (
@@ -672,7 +782,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 }}
                 defaultValue=""
               >
-                <option value="" disabled>从历史记录选取...</option>
+                <option value="" disabled>
+                  从历史记录选取...
+                </option>
                 {tokenHistory.map((item, idx) => (
                   <option key={idx} value={item.token}>
                     {item.token.slice(0, 8)}...{item.token.slice(-8)} ({item.bundleId})
@@ -684,7 +796,8 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         </div>
 
         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
-          支持直接粘贴带尖括号或空格的原始格式（如 <code>&lt;740f4707 bebcf74f ...&gt;</code>），系统将自动清洗为纯十六进制。
+          支持直接粘贴带尖括号或空格的原始格式（如 <code>&lt;740f4707 bebcf74f ...&gt;</code>
+          ），系统将自动清洗为纯十六进制。
         </div>
 
         <textarea
@@ -696,7 +809,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
           style={{ width: '100%', fontSize: 11, fontFamily: 'monospace', resize: 'vertical' }}
         />
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 4
+          }}
+        >
           <div style={{ fontSize: 11 }}>
             {cleanToken ? (
               isTokenValid ? (
@@ -746,7 +866,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
       {/* 4. Payload Editor (Visual vs Raw JSON) */}
       <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>快捷模版:</span>
             {Object.entries(PUSH_TEMPLATES).map(([k, tpl]) => (
@@ -781,9 +908,18 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
         {editorMode === 'visual' ? (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}
+            >
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   通知标题 (Title)
                 </label>
                 <input
@@ -796,7 +932,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   副标题 (Subtitle, 可选)
                 </label>
                 <input
@@ -811,7 +954,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
             </div>
 
             <div style={{ marginBottom: 10 }}>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 4
+                }}
+              >
                 通知内容 (Body)
               </label>
               <textarea
@@ -824,9 +974,23 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 10,
+                marginBottom: 10
+              }}
+            >
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   角标 (Badge)
                 </label>
                 <input
@@ -839,7 +1003,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   提示音 (Sound)
                 </label>
                 <input
@@ -852,7 +1023,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    marginBottom: 4
+                  }}
+                >
                   分类 (Category)
                 </label>
                 <input
@@ -868,7 +1046,15 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
             {/* Checkbox options */}
             <div style={{ display: 'flex', gap: 20, marginBottom: 10 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11,
+                  cursor: 'pointer'
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={mutableContent}
@@ -876,7 +1062,15 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 />
                 <span>mutable-content: 1 (富媒体扩展)</span>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, cursor: 'pointer' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11,
+                  cursor: 'pointer'
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={contentAvailable}
@@ -888,7 +1082,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
             {/* Custom JSON payload */}
             <div>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 4
+                }}
+              >
                 业务自定义字段 (Custom JSON Payload)
               </label>
               <textarea
@@ -922,7 +1123,11 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
           style={{ width: '100%', height: 38, fontSize: 14, gap: 8, fontWeight: 600 }}
         >
           <span>🚀</span>
-          <span>{sending ? '正在直连 Apple APNs 网关发射推送...' : '向 Apple APNs 网关发射真实推送 (Send Push)'}</span>
+          <span>
+            {sending
+              ? '正在直连 Apple APNs 网关发射推送...'
+              : '向 Apple APNs 网关发射真实推送 (Send Push)'}
+          </span>
         </button>
       </div>
 
@@ -942,9 +1147,18 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
             : 'var(--bg-card)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>{lastResult ? (lastResult.success ? '✅' : '❌') : '📡'}</span>
+            <span style={{ fontSize: 16 }}>
+              {lastResult ? (lastResult.success ? '✅' : '❌') : '📡'}
+            </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
               APNs 实时通讯日志与真实原因诊断
             </span>
@@ -996,14 +1210,19 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
         {/* Ready / Idle state */}
         {!lastResult && !sending && (
           <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            填入上方鉴权凭证与真机 Device Token 后，点击发射推送。系统将直接发起 HTTP/2 连接至 Apple 网关，并在此完整输出通讯状态、往返耗时与底层错误诊断。
+            填入上方鉴权凭证与真机 Device Token 后，点击发射推送。系统将直接发起 HTTP/2 连接至 Apple
+            网关，并在此完整输出通讯状态、往返耗时与底层错误诊断。
           </div>
         )}
 
         {/* Sending state */}
         {sending && (
           <div style={{ fontSize: 12, color: 'var(--accent-blue)', lineHeight: 1.6 }}>
-            ⟳ 正在向 <code>{environment === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'}</code> 发起 HTTP/2 安全握手，等待 Apple 网关确认...
+            ⟳ 正在向{' '}
+            <code>
+              {environment === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'}
+            </code>{' '}
+            发起 HTTP/2 安全握手，等待 Apple 网关确认...
           </div>
         )}
 
@@ -1026,15 +1245,31 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
 
             {/* Success details */}
             {lastResult.success && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--text-primary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  color: 'var(--text-primary)'
+                }}
+              >
                 <div>
                   <strong>Apple 官方追踪 ID (apns-id):</strong>{' '}
-                  <code style={{ background: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace' }}>
+                  <code
+                    style={{
+                      background: 'var(--bg-elevated)',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      fontFamily: 'monospace'
+                    }}
+                  >
                     {lastResult.apnsId || '已由 Apple 分配'}
                   </code>
                 </div>
                 <div>
-                  <strong>往返耗时:</strong> {lastResult.duration || 0} ms · <strong>通道环境:</strong> {environment === 'production' ? '线上生产环境' : '开发沙盒环境'}
+                  <strong>往返耗时:</strong> {lastResult.duration || 0} ms ·{' '}
+                  <strong>通道环境:</strong>{' '}
+                  {environment === 'production' ? '线上生产环境' : '开发沙盒环境'}
                 </div>
                 <div style={{ color: 'var(--text-secondary)' }}>
                   目标真机硬件应已收到推送广播通知。若真机未亮屏弹窗，请核实真机是否开启了“专注模式/勿扰模式”或关闭了横幅通知权限。
@@ -1054,7 +1289,14 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                     padding: 12
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 4
+                    }}
+                  >
                     <span style={{ fontWeight: 600, color: 'var(--accent-red)' }}>
                       【真实失败原因】 {lastResult.reason || '未知原因'}
                     </span>
@@ -1071,7 +1313,9 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                   {/* Raw response snippet */}
                   {lastResult.rawResponse && (
                     <div style={{ marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Apple 原始返回消息体 (Raw Response):</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        Apple 原始返回消息体 (Raw Response):
+                      </span>
                       <pre
                         style={{
                           margin: '4px 0 0 0',
@@ -1116,10 +1360,32 @@ export default function RealApnsPusher({ defaultBundleId = 'com.example.app', sh
                 )}
 
                 {/* 3. Communication Context parameters */}
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                  <span>网关: <code>{environment === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'}</code></span>
-                  <span>Topic: <code>{bundleId || '-'}</code></span>
-                  <span>Token: <code>{cleanToken ? `${cleanToken.slice(0, 8)}... (${cleanToken.length}位)` : '-'}</code></span>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 12
+                  }}
+                >
+                  <span>
+                    网关:{' '}
+                    <code>
+                      {environment === 'production'
+                        ? 'api.push.apple.com'
+                        : 'api.sandbox.push.apple.com'}
+                    </code>
+                  </span>
+                  <span>
+                    Topic: <code>{bundleId || '-'}</code>
+                  </span>
+                  <span>
+                    Token:{' '}
+                    <code>
+                      {cleanToken ? `${cleanToken.slice(0, 8)}... (${cleanToken.length}位)` : '-'}
+                    </code>
+                  </span>
                   {lastResult.duration && <span>耗时: {lastResult.duration} ms</span>}
                 </div>
               </div>

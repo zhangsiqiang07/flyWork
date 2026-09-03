@@ -14,7 +14,15 @@ import { join, basename } from 'path'
 import { spawn, exec, execFileSync, execSync } from 'child_process'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, mkdtempSync, statSync } from 'fs'
+import {
+  writeFileSync,
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  mkdtempSync,
+  statSync
+} from 'fs'
 import { homedir, tmpdir } from 'os'
 
 // 云效服务模块
@@ -172,10 +180,7 @@ import {
   getAppContainer,
   setClipboard as simSetClipboard
 } from './services/mobile/simulatorService.js'
-import {
-  sendRealApnsPush,
-  validateP12Certificate
-} from './services/mobile/apnsService.js'
+import { sendRealApnsPush, validateP12Certificate } from './services/mobile/apnsService.js'
 import { analyzeIpa } from './services/mobile/ipaAnalyzerService.js'
 import {
   getNetworkInterfaces,
@@ -883,9 +888,7 @@ function setupIPC() {
   ipcMain.handle('open-path', async (_, filePath) => {
     try {
       if (!filePath) return { success: false, error: '路径为空' }
-      const resolved = filePath.startsWith('~')
-        ? join(homedir(), filePath.slice(1))
-        : filePath
+      const resolved = filePath.startsWith('~') ? join(homedir(), filePath.slice(1)) : filePath
       const err = await shell.openPath(resolved)
       if (err) {
         exec(`open "${resolved}"`)
@@ -947,18 +950,21 @@ function setupIPC() {
     return readWorkspaceAgentRule(workspaceRoot, relativePath)
   })
 
-  ipcMain.handle('workspace-save-agent-rule', async (_, { workspaceRoot, relativePath, content }) => {
-    const res = await saveWorkspaceAgentRule(workspaceRoot, relativePath, content)
-    writeAuditLog({
-      type: 'WORKSPACE_AGENT_RULE_SAVE',
-      workspaceRoot,
-      relativePath,
-      success: res.success,
-      size: res.size,
-      error: res.error
-    })
-    return res
-  })
+  ipcMain.handle(
+    'workspace-save-agent-rule',
+    async (_, { workspaceRoot, relativePath, content }) => {
+      const res = await saveWorkspaceAgentRule(workspaceRoot, relativePath, content)
+      writeAuditLog({
+        type: 'WORKSPACE_AGENT_RULE_SAVE',
+        workspaceRoot,
+        relativePath,
+        success: res.success,
+        size: res.size,
+        error: res.error
+      })
+      return res
+    }
+  )
 
   ipcMain.handle(
     'workspace-create-agent-rule',
@@ -2493,6 +2499,145 @@ function setupIPC() {
       return { success: false, error: err.message }
     }
   })
+
+  // AI Diagram Generation (免 CORS 跨域请求)
+  // AI Diagram Generation (免 CORS 跨域请求 + 支持流式打字机透出与多轮上下文)
+  ipcMain.handle(
+    'ai-generate-diagram',
+    async (event, { baseUrl, apiKey, model, prompt, systemPrompt, messages, streamId }) => {
+      try {
+        const cleanBase = (baseUrl || 'https://api.deepseek.com/v1').replace(/\/+$/, '')
+        const endpoint = `${cleanBase}/chat/completions`
+
+        const headers = {
+          'Content-Type': 'application/json'
+        }
+        if (apiKey && apiKey.trim()) {
+          headers['Authorization'] = `Bearer ${apiKey.trim()}`
+        }
+
+        const reqMessages =
+          messages && Array.isArray(messages) && messages.length > 0
+            ? messages
+            : [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt }
+              ]
+
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 90000)
+
+        const useStreaming = Boolean(streamId)
+
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: model || 'deepseek-chat',
+            messages: reqMessages,
+            temperature: 0.2,
+            stream: useStreaming
+          }),
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!res.ok) {
+          const errBody = await res.text()
+          return {
+            success: false,
+            error: `API 接口返回错误 [HTTP ${res.status}]: ${errBody}`
+          }
+        }
+
+        // 如果开启了流式输出
+        if (useStreaming && res.body) {
+          let fullText = ''
+          const reader = res.body.getReader()
+          const decoder = new TextDecoder('utf-8')
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              const trimmed = line.trim()
+              if (!trimmed || trimmed.startsWith(':')) continue
+              if (trimmed === 'data: [DONE]') {
+                break
+              }
+              if (trimmed.startsWith('data: ')) {
+                try {
+                  const parsed = JSON.parse(trimmed.slice(6))
+                  const delta = parsed.choices?.[0]?.delta?.content || ''
+                  if (delta) {
+                    fullText += delta
+                    event.sender.send('ai-diagram-stream-chunk', {
+                      streamId,
+                      chunk: delta,
+                      fullText,
+                      done: false
+                    })
+                  }
+                } catch {
+                  // 忽略不完整 JSON 分块
+                }
+              }
+            }
+          }
+
+          event.sender.send('ai-diagram-stream-chunk', {
+            streamId,
+            chunk: '',
+            fullText,
+            done: true
+          })
+
+          const match = fullText.match(/```(?:mermaid)?([\s\S]*?)```/)
+          const parsedMermaid = match ? match[1].trim() : fullText.trim()
+
+          return {
+            success: true,
+            mermaid: parsedMermaid,
+            fullText
+          }
+        }
+
+        // 非流式兜底
+        const data = await res.json()
+        const content = data.choices?.[0]?.message?.content || ''
+        const match = content.match(/```(?:mermaid)?([\s\S]*?)```/)
+        const parsedMermaid = match ? match[1].trim() : content.trim()
+
+        if (!parsedMermaid) {
+          return {
+            success: false,
+            error: '大模型未返回有效的图表内容'
+          }
+        }
+
+        return {
+          success: true,
+          mermaid: parsedMermaid,
+          fullText: content
+        }
+      } catch (err) {
+        const isAbort = err.name === 'AbortError'
+        return {
+          success: false,
+          error: isAbort
+            ? '请求大模型超时（超过 90 秒），请检查网络连接或更换模型'
+            : `网络请求失败: ${err.message}`
+        }
+      }
+    }
+  )
 }
 
 app.whenReady().then(() => {

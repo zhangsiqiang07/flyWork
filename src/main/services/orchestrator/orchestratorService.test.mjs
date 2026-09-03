@@ -130,11 +130,23 @@ describe('Development Orchestrator Engine Tests', () => {
       tasks: [...sampleTasks]
     }
     const mockBugs = [
-      { identifier: 'YX-BUG-001', serialNumber: 'PROJ-101', subject: '视频 Tab 页离线闪退问题', severity: 'urgent' },
-      { identifier: 'YX-BUG-002', serialNumber: 'PROJ-102', subject: '健康报告图表偶现白屏', severity: 'normal' }
+      {
+        identifier: 'YX-BUG-001',
+        serialNumber: 'PROJ-101',
+        subject: '视频 Tab 页离线闪退问题',
+        severity: 'urgent'
+      },
+      {
+        identifier: 'YX-BUG-002',
+        serialNumber: 'PROJ-102',
+        subject: '健康报告图表偶现白屏',
+        severity: 'normal'
+      }
     ]
 
-    const updatedPlan = BugOrchestratorEngine.bindBugsToPlan(mockPlan, mockBugs, { policy: 'parallel' })
+    const updatedPlan = BugOrchestratorEngine.bindBugsToPlan(mockPlan, mockBugs, {
+      policy: 'parallel'
+    })
     assert.strictEqual(updatedPlan.tasks.length, sampleTasks.length + 2)
 
     const bugTask1 = updatedPlan.tasks.find((t) => t.sources?.bug?.id === 'YX-BUG-001')
@@ -148,7 +160,9 @@ describe('Development Orchestrator Engine Tests', () => {
     const mockBugs = [
       { identifier: 'YX-BUG-003', serialNumber: 'PROJ-103', subject: '网络重试拦截死循环' }
     ]
-    const standalonePlan = BugOrchestratorEngine.createStandaloneBugPlan(mockBugs, { project: 'PetPal-iOS' })
+    const standalonePlan = BugOrchestratorEngine.createStandaloneBugPlan(mockBugs, {
+      project: 'PetPal-iOS'
+    })
     assert.ok(standalonePlan.id.startsWith('PLAN-BUG-'))
     assert.strictEqual(standalonePlan.tasks.length, 3)
 

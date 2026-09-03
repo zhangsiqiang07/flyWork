@@ -179,9 +179,7 @@ export default function WorkloadHeader({
             disabled={ready === 0 || isRunningAll}
             style={{
               background:
-                ready > 0
-                  ? 'linear-gradient(135deg, #238636, #2ea043)'
-                  : 'var(--bg-elevated)',
+                ready > 0 ? 'linear-gradient(135deg, #238636, #2ea043)' : 'var(--bg-elevated)',
               border: '1px solid ' + (ready > 0 ? '#3fb950' : 'var(--border)'),
               color: ready > 0 ? '#fff' : 'var(--text-muted)',
               borderRadius: 'var(--radius-md)',
@@ -310,7 +308,9 @@ export default function WorkloadHeader({
           border: '1px solid var(--border)'
         }}
       >
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}>
+        <span
+          style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}
+        >
           🤖 智能体负载分布 (Agent Workload):
         </span>
 

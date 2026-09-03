@@ -268,6 +268,14 @@ const flyworkAPI = {
   // Notifications
   notify: (title, body) => ipcRenderer.invoke('notify', { title, body }),
 
+  // AI Diagram Generation (免 CORS + 流式实时监听)
+  requestAiDiagram: (params) => ipcRenderer.invoke('ai-generate-diagram', params),
+  onAiDiagramChunk: (callback) => {
+    const handler = (_, data) => callback(data)
+    ipcRenderer.on('ai-diagram-stream-chunk', handler)
+    return () => ipcRenderer.removeListener('ai-diagram-stream-chunk', handler)
+  },
+
   // Navigation events from main process
   onNavigate: (callback) => ipcRenderer.on('navigate', (_, view) => callback(view)),
   onToggleCommandCenter: (callback) => ipcRenderer.on('toggle-command-center', () => callback()),

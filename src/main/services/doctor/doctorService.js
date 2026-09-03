@@ -48,7 +48,10 @@ async function runCmd(cmd) {
  */
 function findBin(name) {
   try {
-    const p = execSync(`which ${name} 2>/dev/null || command -v ${name} 2>/dev/null`, envOpts).trim()
+    const p = execSync(
+      `which ${name} 2>/dev/null || command -v ${name} 2>/dev/null`,
+      envOpts
+    ).trim()
     return p || null
   } catch {
     return null
@@ -84,7 +87,8 @@ async function checkNetwork(url, displayName) {
       status,
       version: `${latencyMs} ms`,
       path: url,
-      message: status === 'ok' ? `网络联通正常 (${resp.status})` : `服务器返回异常状态码: ${resp.status}`,
+      message:
+        status === 'ok' ? `网络联通正常 (${resp.status})` : `服务器返回异常状态码: ${resp.status}`,
       remedy: null
     }
   } catch (err) {
@@ -209,8 +213,10 @@ export async function runDiagnostics(options = {}) {
         status: totalDevices > 0 ? 'ok' : 'warning',
         version: `${totalDevices} 台可用设备`,
         path: '/Library/Developer/CoreSimulator',
-        message: totalDevices > 0 ? '已就绪，支持通用链接测试与应用调试' : '未检测到可用的模拟器运行时',
-        remedy: totalDevices === 0 ? '打开 Xcode -> Settings -> Platforms 下载 iOS Simulator 镜像' : null
+        message:
+          totalDevices > 0 ? '已就绪，支持通用链接测试与应用调试' : '未检测到可用的模拟器运行时',
+        remedy:
+          totalDevices === 0 ? '打开 Xcode -> Settings -> Platforms 下载 iOS Simulator 镜像' : null
       })
     } catch {
       results.push({
@@ -257,7 +263,9 @@ export async function runDiagnostics(options = {}) {
       message: hasIdentity
         ? `提交身份: ${gitUserRes.output} <${gitEmailRes.output}>`
         : '已安装但未配置全局 user.name / user.email',
-      remedy: hasIdentity ? null : '配置命令: git config --global user.name "Your Name" && git config --global user.email "you@example.com"'
+      remedy: hasIdentity
+        ? null
+        : '配置命令: git config --global user.name "Your Name" && git config --global user.email "you@example.com"'
     })
   } else {
     results.push({
@@ -282,7 +290,8 @@ export async function runDiagnostics(options = {}) {
       id: 'node',
       name: 'Node.js & npm',
       status: 'ok',
-      version: `${nodeVerRes.ok ? nodeVerRes.output : ''} (npm ${npmVerRes.ok ? npmVerRes.output : '-'})`.trim(),
+      version:
+        `${nodeVerRes.ok ? nodeVerRes.output : ''} (npm ${npmVerRes.ok ? npmVerRes.output : '-'})`.trim(),
       path: nodePath,
       message: '本地前端与工具链运行时就绪',
       remedy: null
@@ -379,7 +388,8 @@ export async function runDiagnostics(options = {}) {
       version: '未安装',
       path: null,
       message: '建议安装 Homebrew 以便于管理开发包与 CLI 依赖',
-      remedy: '官网安装命令: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+      remedy:
+        '官网安装命令: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
     })
   }
 
@@ -475,7 +485,9 @@ export async function runDiagnostics(options = {}) {
   ]
 
   if (jenkinsBaseUrl && jenkinsBaseUrl.startsWith('http')) {
-    networkChecks.push(checkNetwork(jenkinsBaseUrl, `Jenkins 实例 (${new URL(jenkinsBaseUrl).hostname})`))
+    networkChecks.push(
+      checkNetwork(jenkinsBaseUrl, `Jenkins 实例 (${new URL(jenkinsBaseUrl).hostname})`)
+    )
   }
 
   const netResults = await Promise.all(networkChecks)

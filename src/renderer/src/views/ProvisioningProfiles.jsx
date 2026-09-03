@@ -233,8 +233,18 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
 
       {/* Page Header */}
       {!hideHeader ? (
-        <div className="page-header" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div
+          className="page-header"
+          style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12
+            }}
+          >
             <div>
               <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>🔏</span>
@@ -252,7 +262,12 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                 disabled={loading}
                 style={{ gap: 6 }}
               >
-                <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    animation: loading ? 'spin 1s linear infinite' : 'none'
+                  }}
+                >
                   🔄
                 </span>
                 <span>{loading ? '刷新中' : '刷新'}</span>
@@ -326,7 +341,12 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
               disabled={loading}
               style={{ gap: 6, fontSize: 11, height: 26 }}
             >
-              <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  animation: loading ? 'spin 1s linear infinite' : 'none'
+                }}
+              >
                 🔄
               </span>
               <span>{loading ? '刷新中' : '刷新'}</span>
@@ -361,9 +381,21 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                 marginBottom: 16
               }}
             >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 300 }}>
-                <div className="quick-input" style={{ padding: '6px 12px', flex: 1, maxWidth: 440 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
+              <div
+                style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, minWidth: 300 }}
+              >
+                <div
+                  className="quick-input"
+                  style={{ padding: '6px 12px', flex: 1, maxWidth: 440 }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--text-muted)"
+                    strokeWidth="2"
+                  >
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                   </svg>
@@ -389,8 +421,16 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                   {[
                     { id: 'all', label: `全部 (${summary.total})` },
                     { id: 'valid', label: `有效 (${summary.valid})` },
-                    { id: 'expiring', label: `即将过期 (${summary.expiring})`, color: 'var(--accent-amber)' },
-                    { id: 'expired', label: `已过期 (${summary.expired})`, color: 'var(--accent-red)' },
+                    {
+                      id: 'expiring',
+                      label: `即将过期 (${summary.expiring})`,
+                      color: 'var(--accent-amber)'
+                    },
+                    {
+                      id: 'expired',
+                      label: `已过期 (${summary.expired})`,
+                      color: 'var(--accent-red)'
+                    },
                     { id: 'development', label: '开发' },
                     { id: 'enterprise', label: '企业' }
                   ].map((f) => {
@@ -421,26 +461,58 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
 
             {/* List */}
             {filteredProfiles.length === 0 ? (
-              <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <div
+                className="card"
+                style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}
+              >
                 <div style={{ fontSize: 36, marginBottom: 12 }}>🔏</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    marginBottom: 6
+                  }}
+                >
                   {searchQuery ? '未找到匹配的描述文件' : '本地暂未检测到描述文件'}
                 </div>
-                <div style={{ fontSize: 12, maxWidth: 520, margin: '0 auto', lineHeight: 1.6, marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    maxWidth: 520,
+                    margin: '0 auto',
+                    lineHeight: 1.6,
+                    marginBottom: 16
+                  }}
+                >
                   {searchQuery ? (
                     '尝试使用更短的关键词，或搜索其他 UDID 设备号'
                   ) : (
                     <>
-                      <div>系统默认扫描目录为：<code style={{ background: 'var(--bg-elevated)', padding: '2px 6px', borderRadius: 4 }}>~/Library/MobileDevice/Provisioning Profiles</code></div>
+                      <div>
+                        系统默认扫描目录为：
+                        <code
+                          style={{
+                            background: 'var(--bg-elevated)',
+                            padding: '2px 6px',
+                            borderRadius: 4
+                          }}
+                        >
+                          ~/Library/MobileDevice/Provisioning Profiles
+                        </code>
+                      </div>
                       <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>
-                        若使用 Xcode 自动签名 (Automatic Signing)，Xcode 不一定会自动落盘物理文件。您可通过以下方式载入：
+                        若使用 Xcode 自动签名 (Automatic Signing)，Xcode
+                        不一定会自动落盘物理文件。您可通过以下方式载入：
                       </div>
                     </>
                   )}
                 </div>
 
                 {!searchQuery && (
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div
+                    style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}
+                  >
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={handleOpenProfilesDir}
@@ -449,7 +521,14 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                       <span>📂</span>
                       <span>打开系统扫描目录</span>
                     </button>
-                    <div style={{ fontSize: 11, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--accent-blue)',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
                       或直接从桌面/下载目录将 .mobileprovision 文件拖入此处
                     </div>
                   </div>
@@ -478,10 +557,26 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
 
                   // Type label
                   const typeLabels = {
-                    development: { label: '开发版 (Dev)', bg: 'var(--accent-blue-dim)', color: 'var(--accent-blue)' },
-                    adhoc: { label: '分发版 (AdHoc)', bg: 'var(--accent-purple-dim)', color: 'var(--accent-purple)' },
-                    appstore: { label: 'App Store', bg: 'var(--accent-teal-dim)', color: 'var(--accent-teal)' },
-                    enterprise: { label: '企业版 (In-House)', bg: 'var(--accent-amber-dim)', color: 'var(--accent-amber)' }
+                    development: {
+                      label: '开发版 (Dev)',
+                      bg: 'var(--accent-blue-dim)',
+                      color: 'var(--accent-blue)'
+                    },
+                    adhoc: {
+                      label: '分发版 (AdHoc)',
+                      bg: 'var(--accent-purple-dim)',
+                      color: 'var(--accent-purple)'
+                    },
+                    appstore: {
+                      label: 'App Store',
+                      bg: 'var(--accent-teal-dim)',
+                      color: 'var(--accent-teal)'
+                    },
+                    enterprise: {
+                      label: '企业版 (In-House)',
+                      bg: 'var(--accent-amber-dim)',
+                      color: 'var(--accent-amber)'
+                    }
                   }
                   const typeConf = typeLabels[p.profileType] || {
                     label: p.profileType,
@@ -492,7 +587,9 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                   // Filter devices if searching inside profile
                   const devicesList = p.devices || []
                   const filteredDevices = udidSearch
-                    ? devicesList.filter((d) => d.toLowerCase().includes(udidSearch.toLowerCase().trim()))
+                    ? devicesList.filter((d) =>
+                        d.toLowerCase().includes(udidSearch.toLowerCase().trim())
+                      )
                     : devicesList
 
                   return (
@@ -509,20 +606,53 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                       }}
                     >
                       {/* Card Top Row */}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          gap: 16
+                        }}
+                      >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              marginBottom: 6,
+                              flexWrap: 'wrap'
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 15,
+                                fontWeight: 600,
+                                color: 'var(--text-primary)'
+                              }}
+                            >
                               {p.name}
                             </span>
-                            <span className="badge" style={{ background: typeConf.bg, color: typeConf.color, fontSize: 10 }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: typeConf.bg,
+                                color: typeConf.color,
+                                fontSize: 10
+                              }}
+                            >
                               {typeConf.label}
                             </span>
-                            <span className="badge" style={{ background: expiryBg, color: expiryColor, fontSize: 10 }}>
+                            <span
+                              className="badge"
+                              style={{ background: expiryBg, color: expiryColor, fontSize: 10 }}
+                            >
                               {expiryLabel}
                             </span>
                             {p.provisionsAllDevices ? (
-                              <span className="badge badge-gray" style={{ fontSize: 10 }}>全设备支持</span>
+                              <span className="badge badge-gray" style={{ fontSize: 10 }}>
+                                全设备支持
+                              </span>
                             ) : (
                               <span className="badge badge-gray" style={{ fontSize: 10 }}>
                                 {p.devicesCount} 台注册设备
@@ -530,7 +660,15 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: 16,
+                              fontSize: 12,
+                              color: 'var(--text-secondary)'
+                            }}
+                          >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{ color: 'var(--text-muted)' }}>App ID:</span>
                               <code
@@ -557,18 +695,26 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                             <div>
                               <span style={{ color: 'var(--text-muted)' }}>Team: </span>
                               <span>{p.teamName}</span>
-                              {p.teamId && <span style={{ color: 'var(--text-muted)' }}> ({p.teamId})</span>}
+                              {p.teamId && (
+                                <span style={{ color: 'var(--text-muted)' }}> ({p.teamId})</span>
+                              )}
                             </div>
 
                             <div>
                               <span style={{ color: 'var(--text-muted)' }}>到期时间: </span>
-                              <span>{p.expirationDate ? new Date(p.expirationDate).toLocaleDateString() : '-'}</span>
+                              <span>
+                                {p.expirationDate
+                                  ? new Date(p.expirationDate).toLocaleDateString()
+                                  : '-'}
+                              </span>
                             </div>
                           </div>
                         </div>
 
                         {/* Actions */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+                        >
                           <button
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleReveal(p.filePath)}
@@ -618,21 +764,27 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                             <button
                               className={`btn btn-sm ${currentSubTab === 'devices' ? 'btn-primary' : 'btn-ghost'}`}
-                              onClick={() => setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'devices' }))}
+                              onClick={() =>
+                                setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'devices' }))
+                              }
                               style={{ fontSize: 11, height: 26 }}
                             >
                               📱 注册设备 ({devicesList.length})
                             </button>
                             <button
                               className={`btn btn-sm ${currentSubTab === 'entitlements' ? 'btn-primary' : 'btn-ghost'}`}
-                              onClick={() => setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'entitlements' }))}
+                              onClick={() =>
+                                setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'entitlements' }))
+                              }
                               style={{ fontSize: 11, height: 26 }}
                             >
                               🔐 权限 Entitlements ({Object.keys(p.entitlements || {}).length})
                             </button>
                             <button
                               className={`btn btn-sm ${currentSubTab === 'meta' ? 'btn-primary' : 'btn-ghost'}`}
-                              onClick={() => setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'meta' }))}
+                              onClick={() =>
+                                setProfileSubTab((prev) => ({ ...prev, [p.uuid]: 'meta' }))
+                              }
                               style={{ fontSize: 11, height: 26 }}
                             >
                               ℹ️ 完整路径与元数据
@@ -643,11 +795,24 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                           {currentSubTab === 'devices' && (
                             <div>
                               {p.provisionsAllDevices ? (
-                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
-                                  🏢 此描述文件为企业级 (ProvisionsAllDevices)，支持在所有合规 iOS 设备上直接安装运行。
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: 'var(--text-secondary)',
+                                    padding: '8px 0'
+                                  }}
+                                >
+                                  🏢 此描述文件为企业级 (ProvisionsAllDevices)，支持在所有合规 iOS
+                                  设备上直接安装运行。
                                 </div>
                               ) : devicesList.length === 0 ? (
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: 'var(--text-muted)',
+                                    padding: '8px 0'
+                                  }}
+                                >
                                   无注册设备（App Store 发布模式或未关联测试机）
                                 </div>
                               ) : (
@@ -670,7 +835,9 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                                     />
                                     <button
                                       className="btn btn-secondary btn-sm"
-                                      onClick={() => handleCopy(devicesList.join('\n'), '全部 UDID 列表')}
+                                      onClick={() =>
+                                        handleCopy(devicesList.join('\n'), '全部 UDID 列表')
+                                      }
                                       style={{ fontSize: 11 }}
                                     >
                                       导出全部 UDID ({devicesList.length})
@@ -703,7 +870,9 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                                           fontFamily: 'monospace'
                                         }}
                                       >
-                                        <span style={{ color: 'var(--text-secondary)' }}>{udid}</span>
+                                        <span style={{ color: 'var(--text-secondary)' }}>
+                                          {udid}
+                                        </span>
                                         <button
                                           className="btn btn-ghost btn-icon btn-sm"
                                           onClick={() => handleCopy(udid, 'UDID')}
@@ -736,12 +905,25 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <tbody>
                                   {Object.entries(p.entitlements || {}).map(([key, val]) => (
-                                    <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
-                                      <td style={{ padding: '6px 8px', color: 'var(--accent-blue)', width: '40%' }}>
+                                    <tr
+                                      key={key}
+                                      style={{ borderBottom: '1px solid var(--border)' }}
+                                    >
+                                      <td
+                                        style={{
+                                          padding: '6px 8px',
+                                          color: 'var(--accent-blue)',
+                                          width: '40%'
+                                        }}
+                                      >
                                         {key}
                                       </td>
-                                      <td style={{ padding: '6px 8px', color: 'var(--text-primary)' }}>
-                                        {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                      <td
+                                        style={{ padding: '6px 8px', color: 'var(--text-primary)' }}
+                                      >
+                                        {typeof val === 'object'
+                                          ? JSON.stringify(val)
+                                          : String(val)}
                                       </td>
                                     </tr>
                                   ))}
@@ -752,18 +934,30 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
 
                           {/* Sub-tab 3: Metadata */}
                           {currentSubTab === 'meta' && (
-                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.8
+                              }}
+                            >
                               <div>
                                 <strong>UUID: </strong>
                                 <code style={{ color: 'var(--accent-blue)' }}>{p.uuid}</code>
                               </div>
                               <div>
                                 <strong>创建时间: </strong>
-                                <span>{p.creationDate ? new Date(p.creationDate).toLocaleString() : '-'}</span>
+                                <span>
+                                  {p.creationDate ? new Date(p.creationDate).toLocaleString() : '-'}
+                                </span>
                               </div>
                               <div>
                                 <strong>到期时间: </strong>
-                                <span>{p.expirationDate ? new Date(p.expirationDate).toLocaleString() : '-'}</span>
+                                <span>
+                                  {p.expirationDate
+                                    ? new Date(p.expirationDate).toLocaleString()
+                                    : '-'}
+                                </span>
                               </div>
                               <div>
                                 <strong>文件体积: </strong>
@@ -791,17 +985,29 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
         {activeTab === 'certs' && (
           <div>
             <div style={{ marginBottom: 16, fontSize: 12, color: 'var(--text-secondary)' }}>
-              检测自当前 macOS 用户 Keychain 登录钥匙串中所有合法的代码签名身份 (Code Signing Identities)。
+              检测自当前 macOS 用户 Keychain 登录钥匙串中所有合法的代码签名身份 (Code Signing
+              Identities)。
             </div>
 
             {certs.length === 0 ? (
-              <div className="card" style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <div
+                className="card"
+                style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)' }}
+              >
                 <div style={{ fontSize: 36, marginBottom: 12 }}>🔑</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    marginBottom: 6
+                  }}
+                >
                   未在 Keychain 中检测到有效签名证书
                 </div>
                 <div style={{ fontSize: 12, maxWidth: 440, margin: '0 auto', lineHeight: 1.6 }}>
-                  请在 Xcode → Settings → Accounts 中下载您的 Apple Developer 开发者证书，或在钥匙串访问中导入 .p12 证书
+                  请在 Xcode → Settings → Accounts 中下载您的 Apple Developer
+                  开发者证书，或在钥匙串访问中导入 .p12 证书
                 </div>
               </div>
             ) : (
@@ -823,8 +1029,12 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}
+                        >
+                          <span
+                            style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}
+                          >
                             {c.fullName}
                           </span>
                           <span
@@ -843,13 +1053,25 @@ export default function ProvisioningProfiles({ hideHeader = false }) {
                               fontSize: 10
                             }}
                           >
-                            {isDist ? 'Distribution (发布)' : isDevId ? 'Developer ID' : 'Development (开发)'}
+                            {isDist
+                              ? 'Distribution (发布)'
+                              : isDevId
+                                ? 'Developer ID'
+                                : 'Development (开发)'}
                           </span>
                         </div>
 
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 16 }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-muted)',
+                            display: 'flex',
+                            gap: 16
+                          }}
+                        >
                           <span>
-                            指纹 SHA-1: <code style={{ color: 'var(--text-secondary)' }}>{c.thumbprint}</code>
+                            指纹 SHA-1:{' '}
+                            <code style={{ color: 'var(--text-secondary)' }}>{c.thumbprint}</code>
                           </span>
                           {c.teamOrUserId && (
                             <span>

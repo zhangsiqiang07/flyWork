@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import EditWorkspaceModal from '../components/EditWorkspaceModal'
 
-export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAddWorkspace, onUpdateWorkspace, onDeleteWorkspace }) {
+export default function Workspaces({
+  workspaces,
+  sessions,
+  onOpenWorkspace,
+  onAddWorkspace,
+  onUpdateWorkspace,
+  onDeleteWorkspace
+}) {
   const [editingWorkspace, setEditingWorkspace] = useState(null)
 
   return (
@@ -13,7 +20,17 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
             <div className="page-subtitle">{workspaces.length} 个项目 · 管理长期项目和域</div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={onAddWorkspace}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
             选择本地工程目录
           </button>
         </div>
@@ -22,7 +39,9 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
       <div className="page-content" style={{ overflowY: 'auto' }}>
         <div className="workspace-grid">
           {workspaces.map((ws, i) => {
-            const wsSession = sessions.filter(s => s.workspaceId === ws.id && s.status === 'active')
+            const wsSession = sessions.filter(
+              (s) => s.workspaceId === ws.id && s.status === 'active'
+            )
             return (
               <div
                 key={ws.id}
@@ -40,13 +59,19 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
                   </div>
                   <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
                     {ws.buildStatus === 'failed' && (
-                      <span className="badge badge-red" style={{ fontSize: 10 }}>构建失败</span>
+                      <span className="badge badge-red" style={{ fontSize: 10 }}>
+                        构建失败
+                      </span>
                     )}
                     {ws.buildStatus === 'success' && wsSession.length > 0 && (
-                      <span className="badge badge-green" style={{ fontSize: 10 }}>工作中</span>
+                      <span className="badge badge-green" style={{ fontSize: 10 }}>
+                        工作中
+                      </span>
                     )}
                     {ws.buildStatus === 'success' && wsSession.length === 0 && (
-                      <span className="badge badge-gray" style={{ fontSize: 10 }}>正常</span>
+                      <span className="badge badge-gray" style={{ fontSize: 10 }}>
+                        正常
+                      </span>
                     )}
                     {onUpdateWorkspace && (
                       <button
@@ -81,22 +106,59 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
 
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)' }}>⑂ {ws.gitBranch || 'main'}</span>
+                    <span
+                      style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)' }}
+                    >
+                      ⑂ {ws.gitBranch || 'main'}
+                    </span>
                     {ws.gitModifiedFiles?.length > 0 && (
-                      <span className="badge badge-amber" style={{ fontSize: 10 }}>{ws.gitModifiedFiles.length} 个修改</span>
+                      <span className="badge badge-amber" style={{ fontSize: 10 }}>
+                        {ws.gitModifiedFiles.length} 个修改
+                      </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-secondary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
                     {ws.lastCommit}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{ws.lastCommitTime}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {ws.lastCommitTime}
+                  </div>
                 </div>
 
                 {ws.services?.length > 0 && (
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {ws.services.map(svc => (
-                      <span key={svc.name} className="badge" style={{ fontSize: 10, background: svc.status === 'online' ? 'var(--accent-green-dim)' : 'var(--accent-red-dim)', color: svc.status === 'online' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 3 }}/>
+                    {ws.services.map((svc) => (
+                      <span
+                        key={svc.name}
+                        className="badge"
+                        style={{
+                          fontSize: 10,
+                          background:
+                            svc.status === 'online'
+                              ? 'var(--accent-green-dim)'
+                              : 'var(--accent-red-dim)',
+                          color:
+                            svc.status === 'online' ? 'var(--accent-green)' : 'var(--accent-red)'
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: '50%',
+                            background: 'currentColor',
+                            display: 'inline-block',
+                            marginRight: 3
+                          }}
+                        />
                         {svc.name}
                       </span>
                     ))}
@@ -105,12 +167,28 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
 
                 <div className="workspace-card-stats">
                   <div className="workspace-card-stat">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
                     {ws.actions?.length || 0} 个动作
                   </div>
                   {wsSession.length > 0 && (
                     <div className="workspace-card-stat" style={{ color: 'var(--accent-green)' }}>
-                      <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-green)' }}/>
+                      <span
+                        style={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: '50%',
+                          background: 'var(--accent-green)'
+                        }}
+                      />
                       活跃会话
                     </div>
                   )}
@@ -126,7 +204,14 @@ export default function Workspaces({ workspaces, sessions, onOpenWorkspace, onAd
           <div
             className="card card-clickable workspace-card"
             onClick={onAddWorkspace}
-            style={{ border: '1px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160 }}
+            style={{
+              border: '1px dashed var(--border)',
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 160
+            }}
           >
             <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>

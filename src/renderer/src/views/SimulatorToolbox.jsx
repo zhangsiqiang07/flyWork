@@ -239,7 +239,11 @@ export default function SimulatorToolbox({ hideHeader = false }) {
         ...customDataObj
       }
 
-      const res = await window.flywork?.simulatorPush(selectedDevice.udid, pushBundleId.trim(), payload)
+      const res = await window.flywork?.simulatorPush(
+        selectedDevice.udid,
+        pushBundleId.trim(),
+        payload
+      )
       if (res?.success) {
         showToast('✓ 模拟推送已发射成功！请在模拟器中查看横幅通知')
       } else {
@@ -259,7 +263,11 @@ export default function SimulatorToolbox({ hideHeader = false }) {
       return
     }
     try {
-      const res = await window.flywork?.simulatorSetLocation(selectedDevice.udid, latitude, longitude)
+      const res = await window.flywork?.simulatorSetLocation(
+        selectedDevice.udid,
+        latitude,
+        longitude
+      )
       if (res?.success) {
         showToast(`✓ 已成功注入 GPS 坐标: (${latitude}, ${longitude})`)
       } else {
@@ -291,7 +299,10 @@ export default function SimulatorToolbox({ hideHeader = false }) {
       return
     }
     try {
-      const res = await window.flywork?.simulatorGetAppContainer(selectedDevice.udid, sandboxBundleId.trim())
+      const res = await window.flywork?.simulatorGetAppContainer(
+        selectedDevice.udid,
+        sandboxBundleId.trim()
+      )
       if (res?.success) {
         showToast('已在 Finder 中打开应用沙盒数据目录')
       } else {
@@ -411,7 +422,10 @@ export default function SimulatorToolbox({ hideHeader = false }) {
 
       {/* Page Header */}
       {!hideHeader ? (
-        <div className="page-header" style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
+        <div
+          className="page-header"
+          style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -430,7 +444,12 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 disabled={loading}
                 style={{ gap: 6 }}
               >
-                <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    animation: loading ? 'spin 1s linear infinite' : 'none'
+                  }}
+                >
                   🔄
                 </span>
                 <span>{loading ? '刷新中' : '刷新设备'}</span>
@@ -466,7 +485,8 @@ export default function SimulatorToolbox({ hideHeader = false }) {
           }}
         >
           <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto' }}>
-            已发现 <strong>{physicalDevices.length}</strong> 台物理真机，<strong>{simulators.length}</strong> 台 iOS 模拟器
+            已发现 <strong>{physicalDevices.length}</strong> 台物理真机，
+            <strong>{simulators.length}</strong> 台 iOS 模拟器
           </span>
           <button
             className="btn btn-secondary btn-sm"
@@ -474,7 +494,12 @@ export default function SimulatorToolbox({ hideHeader = false }) {
             disabled={loading}
             style={{ gap: 6, fontSize: 11, height: 26 }}
           >
-            <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                animation: loading ? 'spin 1s linear infinite' : 'none'
+              }}
+            >
               🔄
             </span>
             <span>{loading ? '扫描中' : '刷新设备'}</span>
@@ -585,12 +610,27 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                           marginBottom: 4,
                           cursor: 'pointer',
                           background: isSelected ? 'var(--bg-elevated)' : 'transparent',
-                          border: isSelected ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                          border: isSelected
+                            ? '1px solid var(--accent-blue)'
+                            : '1px solid transparent',
                           transition: 'all 120ms ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: 2
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: isSelected ? 600 : 500,
+                              color: 'var(--text-primary)'
+                            }}
+                          >
                             {dev.name}
                           </span>
                           {isOnline ? (
@@ -606,17 +646,29 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                               ● 在线
                             </span>
                           ) : (
-                            <span className="badge badge-gray" style={{ fontSize: 9, padding: '1px 5px' }}>
+                            <span
+                              className="badge badge-gray"
+                              style={{ fontSize: 9, padding: '1px 5px' }}
+                            >
                               已配对
                             </span>
                           )}
                         </div>
 
-                        <div style={{ fontSize: 10, color: 'var(--text-secondary)', display: 'flex', gap: 6 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            gap: 6
+                          }}
+                        >
                           <span>{dev.marketingName}</span>
                           {dev.osVersion && <span>· iOS {dev.osVersion}</span>}
                           {dev.developerMode === 'enabled' && (
-                            <span style={{ color: 'var(--accent-teal)', marginLeft: 'auto' }}>DevMode✓</span>
+                            <span style={{ color: 'var(--accent-teal)', marginLeft: 'auto' }}>
+                              DevMode✓
+                            </span>
                           )}
                         </div>
                       </div>
@@ -663,12 +715,27 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                           marginBottom: 4,
                           cursor: 'pointer',
                           background: isSelected ? 'var(--bg-elevated)' : 'transparent',
-                          border: isSelected ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                          border: isSelected
+                            ? '1px solid var(--accent-blue)'
+                            : '1px solid transparent',
                           transition: 'all 120ms ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: 2
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: isSelected ? 600 : 500,
+                              color: 'var(--text-primary)'
+                            }}
+                          >
                             {dev.name}
                           </span>
                           {isBooted ? (
@@ -684,7 +751,10 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                               ● 运行中
                             </span>
                           ) : (
-                            <span className="badge badge-gray" style={{ fontSize: 9, padding: '1px 5px' }}>
+                            <span
+                              className="badge badge-gray"
+                              style={{ fontSize: 9, padding: '1px 5px' }}
+                            >
                               关机
                             </span>
                           )}
@@ -692,7 +762,9 @@ export default function SimulatorToolbox({ hideHeader = false }) {
 
                         <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                           <span>{dev.runtime}</span>
-                          {dev.deviceType && <span style={{ color: 'var(--text-muted)' }}> · {dev.deviceType}</span>}
+                          {dev.deviceType && (
+                            <span style={{ color: 'var(--text-muted)' }}> · {dev.deviceType}</span>
+                          )}
                         </div>
                       </div>
                     )
@@ -711,13 +783,24 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 background: 'var(--bg-card)'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6
+                }}
+              >
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>当前选中设备:</span>
                 <span
                   className="badge"
                   style={{
-                    background: selectedDevice.isPhysical ? 'var(--accent-purple-dim)' : 'var(--accent-blue-dim)',
-                    color: selectedDevice.isPhysical ? 'var(--accent-purple)' : 'var(--accent-blue)',
+                    background: selectedDevice.isPhysical
+                      ? 'var(--accent-purple-dim)'
+                      : 'var(--accent-blue-dim)',
+                    color: selectedDevice.isPhysical
+                      ? 'var(--accent-purple)'
+                      : 'var(--accent-blue)',
                     fontSize: 9
                   }}
                 >
@@ -725,11 +808,21 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 </span>
               </div>
 
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: 2
+                }}
+              >
                 {selectedDevice.name}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 10 }}>
-                {selectedDevice.marketingName || selectedDevice.runtime} · {selectedDevice.osVersion ? `iOS ${selectedDevice.osVersion}` : selectedDevice.state}
+                {selectedDevice.marketingName || selectedDevice.runtime} ·{' '}
+                {selectedDevice.osVersion
+                  ? `iOS ${selectedDevice.osVersion}`
+                  : selectedDevice.state}
               </div>
 
               {/* Controls specific to Simulator vs Physical */}
@@ -746,7 +839,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 6 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 6,
+                      marginBottom: 6
+                    }}
+                  >
                     {selectedDevice.state === 'Booted' ? (
                       <>
                         <button
@@ -814,11 +914,16 @@ export default function SimulatorToolbox({ hideHeader = false }) {
             }}
           >
             {[
-              { id: 'app', label: selectedDevice?.isPhysical ? '📦 应用安装与唤起' : '📦 沙盒与应用' },
+              {
+                id: 'app',
+                label: selectedDevice?.isPhysical ? '📦 应用安装与唤起' : '📦 沙盒与应用'
+              },
               { id: 'push', label: '🔔 APNs 模拟推送' },
               { id: 'location', label: '📍 定位模拟 (Mock)' },
               { id: 'url', label: '🔗 快捷链接与剪贴板' },
-              ...(selectedDevice?.isPhysical ? [{ id: 'hardware', label: 'ℹ️ 硬件与系统信息' }] : [])
+              ...(selectedDevice?.isPhysical
+                ? [{ id: 'hardware', label: 'ℹ️ 硬件与系统信息' }]
+                : [])
             ].map((t) => {
               const isCur = activeTab === t.id
               return (
@@ -848,7 +953,9 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 lineHeight: 1.5
               }}
             >
-              <strong>💡 物理真机环境提示：</strong> 物理真机系统级 GPS 注入需通过 Xcode 运行模式或特定调试描述文件注入。如需即时测试坐标逻辑，推荐在左侧选取一台「iOS 模拟器」。
+              <strong>💡 物理真机环境提示：</strong> 物理真机系统级 GPS 注入需通过 Xcode
+              运行模式或特定调试描述文件注入。如需即时测试坐标逻辑，推荐在左侧选取一台「iOS
+              模拟器」。
             </div>
           )}
 
@@ -862,7 +969,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 {/* Physical Device: Launch App */}
                 {selectedDevice?.isPhysical && (
                   <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        marginBottom: 8,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
                       🚀 唤起真机应用 (Process Launch)
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
@@ -893,11 +1007,26 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 {/* Simulator only: Sandbox Container Opener */}
                 {!selectedDevice?.isPhysical && (
                   <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        marginBottom: 8,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
                       📂 穿透打开 App 沙盒数据目录 (Sandbox Container)
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
-                      直接在 macOS Finder 中打开该应用沙盒目录，快速排查 <code>Documents</code>、<code>Library/Caches</code> 及 <code>Preferences</code> 内部文件。
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--text-secondary)',
+                        marginBottom: 12,
+                        lineHeight: 1.5
+                      }}
+                    >
+                      直接在 macOS Finder 中打开该应用沙盒目录，快速排查 <code>Documents</code>、
+                      <code>Library/Caches</code> 及 <code>Preferences</code> 内部文件。
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -922,11 +1051,22 @@ export default function SimulatorToolbox({ hideHeader = false }) {
 
                 {/* Universal: Drag and Drop Install App (.app or .ipa) */}
                 <div className="card" style={{ padding: 18 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      marginBottom: 8,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     📦 安装包快速安装 ({selectedDevice?.isPhysical ? '.ipa / .app' : '.app'})
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                    将构建好的 {selectedDevice?.isPhysical ? 'iOS 签名安装包 (.ipa / .app)' : '模拟器编译产物 (.app)'} 拖入此区域，直接部署至 <strong>{selectedDevice?.name || '当前设备'}</strong>。
+                    将构建好的{' '}
+                    {selectedDevice?.isPhysical
+                      ? 'iOS 签名安装包 (.ipa / .app)'
+                      : '模拟器编译产物 (.app)'}{' '}
+                    拖入此区域，直接部署至 <strong>{selectedDevice?.name || '当前设备'}</strong>。
                   </div>
 
                   <div
@@ -971,7 +1111,9 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                   >
                     <div style={{ fontSize: 28, marginBottom: 6 }}>⬇️</div>
                     <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>
-                      {isInstalling ? '正在部署安装中...' : `拖拽 ${selectedDevice?.isPhysical ? '.ipa' : '.app'} 安装包至此处直接安装`}
+                      {isInstalling
+                        ? '正在部署安装中...'
+                        : `拖拽 ${selectedDevice?.isPhysical ? '.ipa' : '.app'} 安装包至此处直接安装`}
                     </div>
                   </div>
                 </div>
@@ -1030,7 +1172,15 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                   <div>
                     {/* Presets Row */}
                     <div style={{ marginBottom: 16 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 12,
+                          fontWeight: 500,
+                          marginBottom: 8,
+                          color: 'var(--text-secondary)'
+                        }}
+                      >
                         快捷模版预设
                       </label>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -1056,8 +1206,16 @@ export default function SimulatorToolbox({ hideHeader = false }) {
 
                     <div className="card" style={{ padding: 18, marginBottom: 16 }}>
                       <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
-                          目标应用 Bundle Identifier <span style={{ color: 'var(--accent-red)' }}>*</span>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            marginBottom: 6
+                          }}
+                        >
+                          目标应用 Bundle Identifier{' '}
+                          <span style={{ color: 'var(--accent-red)' }}>*</span>
                         </label>
                         <input
                           type="text"
@@ -1069,9 +1227,23 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: 12,
+                          marginBottom: 12
+                        }}
+                      >
                         <div>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 12,
+                              fontWeight: 500,
+                              marginBottom: 6
+                            }}
+                          >
                             通知标题 (Title)
                           </label>
                           <input
@@ -1084,7 +1256,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 12,
+                              fontWeight: 500,
+                              marginBottom: 6
+                            }}
+                          >
                             应用角标数字 (Badge)
                           </label>
                           <input
@@ -1099,7 +1278,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                       </div>
 
                       <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            marginBottom: 6
+                          }}
+                        >
                           通知正文 (Body)
                         </label>
                         <textarea
@@ -1113,7 +1299,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                       </div>
 
                       <div style={{ marginBottom: 16 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            marginBottom: 6
+                          }}
+                        >
                           自定义 Payload 扩展数据 (JSON 字典)
                         </label>
                         <textarea
@@ -1121,7 +1314,12 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                           value={pushCustomJson}
                           onChange={(e) => setPushCustomJson(e.target.value)}
                           rows={4}
-                          style={{ width: '100%', fontSize: 11, fontFamily: 'monospace', resize: 'vertical' }}
+                          style={{
+                            width: '100%',
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            resize: 'vertical'
+                          }}
                         />
                       </div>
 
@@ -1132,9 +1330,7 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                         style={{ width: '100%', height: 34, fontSize: 13, gap: 6 }}
                       >
                         <span>🚀</span>
-                        <span>
-                          {isSendingPush ? '正在推送...' : '向选中模拟器发射本地推送'}
-                        </span>
+                        <span>{isSendingPush ? '正在推送...' : '向选中模拟器发射本地推送'}</span>
                       </button>
                     </div>
                   </div>
@@ -1149,7 +1345,15 @@ export default function SimulatorToolbox({ hideHeader = false }) {
               <div style={{ maxWidth: 640 }}>
                 {/* City Preset Buttons */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      marginBottom: 8,
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
                     常用城市坐标一键应用
                   </label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -1172,9 +1376,18 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 </div>
 
                 <div className="card" style={{ padding: 18 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 12,
+                      marginBottom: 16
+                    }}
+                  >
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                      <label
+                        style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}
+                      >
                         纬度 (Latitude)
                       </label>
                       <input
@@ -1187,7 +1400,9 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}>
+                      <label
+                        style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6 }}
+                      >
                         经度 (Longitude)
                       </label>
                       <input
@@ -1230,7 +1445,14 @@ export default function SimulatorToolbox({ hideHeader = false }) {
               <div style={{ maxWidth: 640 }}>
                 {/* URL Opener */}
                 <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      marginBottom: 8,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     🌐 唤起 URL / Universal Link / Scheme
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
@@ -1246,7 +1468,11 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                       placeholder="例如: https://... 或 petpal://..."
                       style={{ flex: 1, fontSize: 12 }}
                     />
-                    <button className="btn btn-primary btn-sm" onClick={handleOpenUrl} style={{ height: 32 }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleOpenUrl}
+                      style={{ height: 32 }}
+                    >
                       唤起跳转
                     </button>
                   </div>
@@ -1255,11 +1481,19 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                 {/* Clipboard (Simulators only) */}
                 {!selectedDevice?.isPhysical && (
                   <div className="card" style={{ padding: 18 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        marginBottom: 8,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
                       📋 同步至模拟器剪贴板 (pbcopy)
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                      输入长文本、复杂 Token 或 JSON，直接推入模拟器剪切板，无需在模拟器键盘上手动输入。
+                      输入长文本、复杂 Token 或
+                      JSON，直接推入模拟器剪切板，无需在模拟器键盘上手动输入。
                     </div>
 
                     <textarea
@@ -1290,28 +1524,54 @@ export default function SimulatorToolbox({ hideHeader = false }) {
             {activeTab === 'hardware' && selectedDevice?.isPhysical && (
               <div style={{ maxWidth: 640 }}>
                 <div className="card" style={{ padding: 18, marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      marginBottom: 12,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     📲 物理真机硬件规格与 CoreDevice 状态
                   </div>
 
                   <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
                     <tbody>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)', width: '35%' }}>设备名称</td>
-                        <td style={{ padding: '8px 4px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedDevice.name}</td>
-                      </tr>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>市场型号</td>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-primary)' }}>{selectedDevice.marketingName}</td>
-                      </tr>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>iOS 系统版本</td>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-primary)' }}>
-                          iOS {selectedDevice.osVersion} {selectedDevice.osBuild ? `(${selectedDevice.osBuild})` : ''}
+                        <td
+                          style={{ padding: '8px 4px', color: 'var(--text-muted)', width: '35%' }}
+                        >
+                          设备名称
+                        </td>
+                        <td
+                          style={{
+                            padding: '8px 4px',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)'
+                          }}
+                        >
+                          {selectedDevice.name}
                         </td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>设备硬件 UDID</td>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>市场型号</td>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-primary)' }}>
+                          {selectedDevice.marketingName}
+                        </td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          iOS 系统版本
+                        </td>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-primary)' }}>
+                          iOS {selectedDevice.osVersion}{' '}
+                          {selectedDevice.osBuild ? `(${selectedDevice.osBuild})` : ''}
+                        </td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          设备硬件 UDID
+                        </td>
                         <td style={{ padding: '8px 4px', fontFamily: 'monospace' }}>
                           <span style={{ color: 'var(--accent-blue)' }}>{selectedDevice.udid}</span>
                           <button
@@ -1324,36 +1584,74 @@ export default function SimulatorToolbox({ hideHeader = false }) {
                         </td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>序列号 (Serial)</td>
-                        <td style={{ padding: '8px 4px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          序列号 (Serial)
+                        </td>
+                        <td
+                          style={{
+                            padding: '8px 4px',
+                            fontFamily: 'monospace',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
                           {selectedDevice.serialNumber || '-'}
                         </td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>硬件标识 (ECID)</td>
-                        <td style={{ padding: '8px 4px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          硬件标识 (ECID)
+                        </td>
+                        <td
+                          style={{
+                            padding: '8px 4px',
+                            fontFamily: 'monospace',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
                           {selectedDevice.ecid || '-'}
                         </td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>开发者模式 (Developer Mode)</td>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          开发者模式 (Developer Mode)
+                        </td>
                         <td style={{ padding: '8px 4px' }}>
                           {selectedDevice.developerMode === 'enabled' ? (
-                            <span className="badge" style={{ background: 'var(--accent-green-dim)', color: 'var(--accent-green)' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: 'var(--accent-green-dim)',
+                                color: 'var(--accent-green)'
+                              }}
+                            >
                               已开启 (Enabled)
                             </span>
                           ) : (
-                            <span className="badge" style={{ background: 'var(--accent-amber-dim)', color: 'var(--accent-amber)' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: 'var(--accent-amber-dim)',
+                                color: 'var(--accent-amber)'
+                              }}
+                            >
                               未开启 (请在真机设置 → 隐私与安全性开启)
                             </span>
                           )}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>连接状态 (Tunnel)</td>
+                        <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>
+                          连接状态 (Tunnel)
+                        </td>
                         <td style={{ padding: '8px 4px' }}>
                           {selectedDevice.state === 'Connected' ? (
-                            <span className="badge" style={{ background: 'var(--accent-green-dim)', color: 'var(--accent-green)' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                background: 'var(--accent-green-dim)',
+                                color: 'var(--accent-green)'
+                              }}
+                            >
                               ● 在线连接 (Connected via CoreDevice)
                             </span>
                           ) : (

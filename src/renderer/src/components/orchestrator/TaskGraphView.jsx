@@ -123,19 +123,54 @@ export default function TaskGraphView({
   const getStatusBadge = (status) => {
     switch (status) {
       case 'DONE':
-        return { label: '✓ DONE', bg: 'rgba(63,185,80,0.15)', color: '#3fb950', border: 'rgba(63,185,80,0.4)' }
+        return {
+          label: '✓ DONE',
+          bg: 'rgba(63,185,80,0.15)',
+          color: '#3fb950',
+          border: 'rgba(63,185,80,0.4)'
+        }
       case 'RUNNING':
-        return { label: '● RUNNING', bg: 'rgba(79,158,248,0.2)', color: '#4f9ef8', border: 'rgba(79,158,248,0.5)' }
+        return {
+          label: '● RUNNING',
+          bg: 'rgba(79,158,248,0.2)',
+          color: '#4f9ef8',
+          border: 'rgba(79,158,248,0.5)'
+        }
       case 'READY':
-        return { label: '⚡ READY', bg: 'rgba(79,158,248,0.15)', color: '#4f9ef8', border: 'rgba(79,158,248,0.4)' }
+        return {
+          label: '⚡ READY',
+          bg: 'rgba(79,158,248,0.15)',
+          color: '#4f9ef8',
+          border: 'rgba(79,158,248,0.4)'
+        }
       case 'BLOCKED':
-        return { label: '⛔ BLOCKED', bg: 'rgba(210,153,34,0.15)', color: '#d29922', border: 'rgba(210,153,34,0.4)' }
+        return {
+          label: '⛔ BLOCKED',
+          bg: 'rgba(210,153,34,0.15)',
+          color: '#d29922',
+          border: 'rgba(210,153,34,0.4)'
+        }
       case 'WAITING_API':
-        return { label: '⏳ WAIT API', bg: 'rgba(163,113,247,0.15)', color: '#a371f7', border: 'rgba(163,113,247,0.4)' }
+        return {
+          label: '⏳ WAIT API',
+          bg: 'rgba(163,113,247,0.15)',
+          color: '#a371f7',
+          border: 'rgba(163,113,247,0.4)'
+        }
       case 'WAITING_DESIGN':
-        return { label: '🎨 WAIT DESIGN', bg: 'rgba(224,92,92,0.15)', color: '#f87171', border: 'rgba(224,92,92,0.4)' }
+        return {
+          label: '🎨 WAIT DESIGN',
+          bg: 'rgba(224,92,92,0.15)',
+          color: '#f87171',
+          border: 'rgba(224,92,92,0.4)'
+        }
       default:
-        return { label: status, bg: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'var(--border)' }
+        return {
+          label: status,
+          bg: 'var(--bg-elevated)',
+          color: 'var(--text-secondary)',
+          border: 'var(--border)'
+        }
     }
   }
 
@@ -258,7 +293,10 @@ export default function TaskGraphView({
                 id: 'waiting',
                 label: `待资产 ${tasks.filter((t) => t.status === 'WAITING_API' || t.status === 'WAITING_DESIGN').length}`
               },
-              { id: 'blocked', label: `阻塞 ${tasks.filter((t) => t.status === 'BLOCKED').length}` },
+              {
+                id: 'blocked',
+                label: `阻塞 ${tasks.filter((t) => t.status === 'BLOCKED').length}`
+              },
               { id: 'done', label: `完成 ${tasks.filter((t) => t.status === 'DONE').length}` }
             ].map((tab) => (
               <button
@@ -267,7 +305,8 @@ export default function TaskGraphView({
                 style={{
                   background: activeTab === tab.id ? 'var(--bg-elevated)' : 'transparent',
                   color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  border: activeTab === tab.id ? '1px solid var(--border)' : '1px solid transparent',
+                  border:
+                    activeTab === tab.id ? '1px solid var(--border)' : '1px solid transparent',
                   padding: '3px 6px',
                   borderRadius: 4,
                   fontSize: 11,
@@ -283,7 +322,16 @@ export default function TaskGraphView({
 
         {/* Right: Select All */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontSize: 11,
+              color: 'var(--text-secondary)',
+              cursor: 'pointer'
+            }}
+          >
             <input
               type="checkbox"
               checked={tasks.length > 0 && selectedTaskIds.size === tasks.length}
@@ -319,7 +367,10 @@ export default function TaskGraphView({
                 const isChecked = selectedTaskIds.has(task.id)
                 const badge = getStatusBadge(task.status)
                 const layerColor = getLayerColor(task.layer)
-                const agentId = task.execution?.selected?.agent_id || task.execution?.recommended?.agent_id || 'chatgpt'
+                const agentId =
+                  task.execution?.selected?.agent_id ||
+                  task.execution?.recommended?.agent_id ||
+                  'chatgpt'
                 const matchScore = task.execution?.recommended?.score || 90
 
                 return (
@@ -328,7 +379,9 @@ export default function TaskGraphView({
                     onClick={() => onSelectTask(task.id)}
                     style={{
                       background: isSelected ? 'var(--bg-elevated)' : 'var(--bg-surface)',
-                      border: isSelected ? '1px solid var(--accent-blue)' : '1px solid var(--border)',
+                      border: isSelected
+                        ? '1px solid var(--accent-blue)'
+                        : '1px solid var(--border)',
                       borderRadius: 'var(--radius-lg)',
                       padding: '10px 12px',
                       cursor: 'pointer',
@@ -340,7 +393,14 @@ export default function TaskGraphView({
                     }}
                   >
                     {/* Top Row: Checkbox + ID + Layer Badge (Left) | Status Badge + Run Button (Right) */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8
+                      }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                         <input
                           type="checkbox"
@@ -374,7 +434,9 @@ export default function TaskGraphView({
                         >
                           {task.layer}
                         </span>
-                        {(task.sources?.bug || task.type === 'bugfix' || task.type === 'bug-diagnosis') && (
+                        {(task.sources?.bug ||
+                          task.type === 'bugfix' ||
+                          task.type === 'bug-diagnosis') && (
                           <span
                             style={{
                               color: 'var(--accent-red)',
@@ -391,7 +453,11 @@ export default function TaskGraphView({
                             }}
                           >
                             <span>🐛</span>
-                            <span>{task.sources?.bug?.serialNumber ? `${task.sources.bug.serialNumber}` : '云效Bug'}</span>
+                            <span>
+                              {task.sources?.bug?.serialNumber
+                                ? `${task.sources.bug.serialNumber}`
+                                : '云效Bug'}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -459,8 +525,12 @@ export default function TaskGraphView({
                         color: 'var(--text-secondary)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{task.project}</span>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
+                      >
+                        <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                          {task.project}
+                        </span>
                         {task.dependencies && task.dependencies.length > 0 && (
                           <>
                             <span style={{ fontSize: 10 }}>•</span>
@@ -500,7 +570,9 @@ export default function TaskGraphView({
                         }}
                       >
                         <span>{getAgentAvatar(agentId)}</span>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{agentId}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                          {agentId}
+                        </span>
                         <span
                           style={{
                             color: 'var(--accent-green)',
@@ -591,7 +663,10 @@ export default function TaskGraphView({
                 const isSelected = selectedTaskId === task.id
                 const badge = getStatusBadge(task.status)
                 const layerColor = getLayerColor(task.layer)
-                const agentId = task.execution?.selected?.agent_id || task.execution?.recommended?.agent_id || 'chatgpt'
+                const agentId =
+                  task.execution?.selected?.agent_id ||
+                  task.execution?.recommended?.agent_id ||
+                  'chatgpt'
 
                 return (
                   <g
@@ -615,24 +690,31 @@ export default function TaskGraphView({
                     <rect width="5" height="80" rx="3" fill={layerColor} />
 
                     {/* Task ID & Status Badge */}
-                    <text x="14" y="20" fill="#4f9ef8" fontSize="11" fontWeight="700" fontFamily="monospace">
+                    <text
+                      x="14"
+                      y="20"
+                      fill="#4f9ef8"
+                      fontSize="11"
+                      fontWeight="700"
+                      fontFamily="monospace"
+                    >
                       {task.id}
                     </text>
 
                     <rect x="110" y="8" width="80" height="18" rx="4" fill={badge.bg} />
-                    <text x="150" y="21" fill={badge.color} fontSize="9" fontWeight="700" textAnchor="middle">
+                    <text
+                      x="150"
+                      y="21"
+                      fill={badge.color}
+                      fontSize="9"
+                      fontWeight="700"
+                      textAnchor="middle"
+                    >
                       {badge.label}
                     </text>
 
                     {/* Task Title */}
-                    <text
-                      x="14"
-                      y="42"
-                      fill="#e6edf3"
-                      fontSize="11"
-                      fontWeight="600"
-                      width="175"
-                    >
+                    <text x="14" y="42" fill="#e6edf3" fontSize="11" fontWeight="600" width="175">
                       {task.title.length > 22 ? task.title.slice(0, 20) + '...' : task.title}
                     </text>
 

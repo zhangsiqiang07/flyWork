@@ -101,7 +101,14 @@ export default function NetworkHelper({ showToast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 1. LAN IP & Network Interfaces Card */}
       <div className="card" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🌐</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -115,7 +122,12 @@ export default function NetworkHelper({ showToast }) {
             disabled={loadingNets}
             style={{ fontSize: 11, height: 26, gap: 4 }}
           >
-            <span style={{ display: 'inline-block', animation: loadingNets ? 'spin 1s linear infinite' : 'none' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                animation: loadingNets ? 'spin 1s linear infinite' : 'none'
+              }}
+            >
               🔄
             </span>
             <span>刷新接口</span>
@@ -142,10 +154,24 @@ export default function NetworkHelper({ showToast }) {
               推荐真机 / 局域网连接 IP (Primary Wi-Fi):
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', color: 'var(--accent-blue)' }}>
+              <span
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  color: 'var(--accent-blue)'
+                }}
+              >
                 {networkData.primaryIp || '127.0.0.1'}
               </span>
-              <span className="badge" style={{ background: 'var(--accent-green-dim)', color: 'var(--accent-green)', fontSize: 10 }}>
+              <span
+                className="badge"
+                style={{
+                  background: 'var(--accent-green-dim)',
+                  color: 'var(--accent-green)',
+                  fontSize: 10
+                }}
+              >
                 ● 当前活动
               </span>
             </div>
@@ -164,7 +190,9 @@ export default function NetworkHelper({ showToast }) {
         </div>
 
         {/* Other interfaces table */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+        <div
+          style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}
+        >
           全部物理与虚拟网卡清单 ({networkData.interfaces.length})
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -185,17 +213,33 @@ export default function NetworkHelper({ showToast }) {
                 <span className="badge" style={{ fontSize: 10, background: 'var(--bg-hover)' }}>
                   {net.name}
                 </span>
-                <span style={{ fontWeight: 600, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                <span
+                  style={{ fontWeight: 600, fontFamily: 'monospace', color: 'var(--text-primary)' }}
+                >
                   {net.address}
                 </span>
                 <span style={{ color: 'var(--text-muted)' }}>({net.family})</span>
                 {net.isWifi && (
-                  <span className="badge" style={{ background: 'var(--accent-blue-dim)', color: 'var(--accent-blue)', fontSize: 9 }}>
+                  <span
+                    className="badge"
+                    style={{
+                      background: 'var(--accent-blue-dim)',
+                      color: 'var(--accent-blue)',
+                      fontSize: 9
+                    }}
+                  >
                     Wi-Fi
                   </span>
                 )}
                 {net.isEthernet && (
-                  <span className="badge" style={{ background: 'var(--accent-purple-dim)', color: 'var(--accent-purple)', fontSize: 9 }}>
+                  <span
+                    className="badge"
+                    style={{
+                      background: 'var(--accent-purple-dim)',
+                      color: 'var(--accent-purple)',
+                      fontSize: 9
+                    }}
+                  >
                     有线以太网
                   </span>
                 )}
@@ -203,7 +247,9 @@ export default function NetworkHelper({ showToast }) {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {net.mac && net.mac !== '00:00:00:00:00:00' && (
-                  <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>MAC: {net.mac}</span>
+                  <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                    MAC: {net.mac}
+                  </span>
                 )}
                 <button
                   className="btn btn-ghost btn-sm"
@@ -220,7 +266,16 @@ export default function NetworkHelper({ showToast }) {
 
       {/* 2. Developer Ports Inspector & Process Killer */}
       <div className="card" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+            flexWrap: 'wrap',
+            gap: 10
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>🔌</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -239,7 +294,11 @@ export default function NetworkHelper({ showToast }) {
                 style={{ width: 140, fontSize: 11, height: 26, padding: '2px 8px' }}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddPort()}
               />
-              <button className="btn btn-secondary btn-sm" onClick={handleAddPort} style={{ fontSize: 11, height: 26 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleAddPort}
+                style={{ fontSize: 11, height: 26 }}
+              >
                 + 添加
               </button>
             </div>
@@ -250,7 +309,12 @@ export default function NetworkHelper({ showToast }) {
               disabled={loadingPorts}
               style={{ fontSize: 11, height: 26, gap: 4 }}
             >
-              <span style={{ display: 'inline-block', animation: loadingPorts ? 'spin 1s linear infinite' : 'none' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  animation: loadingPorts ? 'spin 1s linear infinite' : 'none'
+                }}
+              >
                 🔄
               </span>
               <span>重新扫描</span>
@@ -258,8 +322,11 @@ export default function NetworkHelper({ showToast }) {
           </div>
         </div>
 
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
-          移动端与前端开发经常遇到 <code>Port 3000/5173/8080/8081 is already in use</code> 的僵尸进程占用问题。在此可一目了然定位占用程序并一键强制释放。
+        <div
+          style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}
+        >
+          移动端与前端开发经常遇到 <code>Port 3000/5173/8080/8081 is already in use</code>{' '}
+          的僵尸进程占用问题。在此可一目了然定位占用程序并一键强制释放。
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -305,7 +372,8 @@ export default function NetworkHelper({ showToast }) {
                   <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>
                     {p.inUse ? (
                       <span>
-                        进程：<strong>{p.command}</strong> (PID: <code>{p.pid}</code>) · 用户: <code>{p.user}</code>
+                        进程：<strong>{p.command}</strong> (PID: <code>{p.pid}</code>) · 用户:{' '}
+                        <code>{p.user}</code>
                       </span>
                     ) : (
                       <span style={{ color: 'var(--text-muted)' }}>端口未被任何程序监听</span>
@@ -346,22 +414,49 @@ export default function NetworkHelper({ showToast }) {
           </span>
         </div>
 
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.6,
+            marginBottom: 12
+          }}
+        >
           真机联调网络请求或接口抓包时，需在 iPhone 上将 Wi-Fi 代理指向当前 Mac 本机：
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-          <div style={{ padding: 12, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Charles 默认抓包配置</div>
+          <div
+            style={{
+              padding: 12,
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)'
+            }}
+          >
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+              Charles 默认抓包配置
+            </div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-              服务器：<code>{networkData.primaryIp || '192.168.x.x'}</code> · 端口：<code>8888</code>
+              服务器：<code>{networkData.primaryIp || '192.168.x.x'}</code> · 端口：
+              <code>8888</code>
             </div>
           </div>
 
-          <div style={{ padding: 12, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Proxyman 默认抓包配置</div>
+          <div
+            style={{
+              padding: 12,
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)'
+            }}
+          >
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+              Proxyman 默认抓包配置
+            </div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-              服务器：<code>{networkData.primaryIp || '192.168.x.x'}</code> · 端口：<code>9090</code>
+              服务器：<code>{networkData.primaryIp || '192.168.x.x'}</code> · 端口：
+              <code>9090</code>
             </div>
           </div>
         </div>
@@ -370,10 +465,17 @@ export default function NetworkHelper({ showToast }) {
           <strong>操作步骤：</strong>
           <ol style={{ margin: '4px 0 0 0', paddingLeft: 18 }}>
             <li>确保 iPhone 与本 Mac 连接在同一个 Wi-Fi 无线路由器下；</li>
-            <li>在 iPhone 打开「设置」→「无线局域网」→ 点击当前 Wi-Fi 旁的 <code>(i)</code> 详情图标；</li>
+            <li>
+              在 iPhone 打开「设置」→「无线局域网」→ 点击当前 Wi-Fi 旁的 <code>(i)</code> 详情图标；
+            </li>
             <li>向下滑动至底部，点击「配置代理」选择「手动」；</li>
-            <li>在服务器输入框填入上述 IP，端口填写 <code>8888</code> 或 <code>9090</code> 并保存；</li>
-            <li>iPhone Safari 浏览器访问 <code>chls.pro/ssl</code> 或 <code>proxy.man/ssl</code> 安装并信任证书即可。</li>
+            <li>
+              在服务器输入框填入上述 IP，端口填写 <code>8888</code> 或 <code>9090</code> 并保存；
+            </li>
+            <li>
+              iPhone Safari 浏览器访问 <code>chls.pro/ssl</code> 或 <code>proxy.man/ssl</code>{' '}
+              安装并信任证书即可。
+            </li>
           </ol>
         </div>
       </div>

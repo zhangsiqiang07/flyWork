@@ -61,7 +61,9 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
             <span style={{ fontSize: 20 }}>🤖</span>
             <div>
               <div className="modal-title">AI 智能 Git Commit 生成</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>基于完整 Git Diff 的 Conventional Commits 生成</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                基于完整 Git Diff 的 Conventional Commits 生成
+              </div>
             </div>
           </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>
@@ -72,11 +74,31 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {loading ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 28, marginBottom: 10, animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⟳</div>
-              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>正在通过 AI 智能分析工作区未提交的文件变更...</div>
+              <div
+                style={{
+                  fontSize: 28,
+                  marginBottom: 10,
+                  animation: 'spin 1.2s linear infinite',
+                  display: 'inline-block'
+                }}
+              >
+                ⟳
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                正在通过 AI 智能分析工作区未提交的文件变更...
+              </div>
             </div>
           ) : error ? (
-            <div style={{ background: 'var(--accent-red-dim)', color: 'var(--accent-red)', padding: '12px 14px', borderRadius: 8, fontSize: 13, border: '1px solid var(--accent-red)' }}>
+            <div
+              style={{
+                background: 'var(--accent-red-dim)',
+                color: 'var(--accent-red)',
+                padding: '12px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                border: '1px solid var(--accent-red)'
+              }}
+            >
               {error}
             </div>
           ) : (
@@ -101,9 +123,20 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
               )}
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label className="form-label" style={{ marginBottom: 0 }}>生成的 Commit 提交信息 (可修正)</label>
-                  <span style={{ fontSize: 10, color: 'var(--accent-blue)' }}>{engine || 'Claude Code CLI'}</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 6
+                  }}
+                >
+                  <label className="form-label" style={{ marginBottom: 0 }}>
+                    生成的 Commit 提交信息 (可修正)
+                  </label>
+                  <span style={{ fontSize: 10, color: 'var(--accent-blue)' }}>
+                    {engine || 'Claude Code CLI'}
+                  </span>
                 </div>
                 <textarea
                   className="form-control"
@@ -127,7 +160,11 @@ export default function GitAiCommitModal({ workspace, onClose, onCommitSuccess }
             <button className="btn btn-secondary btn-sm" onClick={onClose}>
               取消
             </button>
-            <button className="btn btn-primary btn-sm" onClick={handleCommit} disabled={!commitMessage.trim() || isSubmitting}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleCommit}
+              disabled={!commitMessage.trim() || isSubmitting}
+            >
               {isSubmitting ? '提交中...' : '确认并 Git Add & Commit'}
             </button>
           </div>

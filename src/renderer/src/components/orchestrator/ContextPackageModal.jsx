@@ -77,7 +77,13 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
         </div>
 
         {/* Tab Selector */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-surface)'
+          }}
+        >
           {[
             { id: 'summary', label: '切片结构概览' },
             { id: 'raw', label: 'Raw JSON Package' }
@@ -90,7 +96,8 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
                 padding: '8px 0',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === tab.id ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                borderBottom:
+                  activeTab === tab.id ? '2px solid var(--accent-blue)' : '2px solid transparent',
                 color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontSize: 12,
                 fontWeight: activeTab === tab.id ? 600 : 400,
@@ -107,21 +114,45 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
           {activeTab === 'summary' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Section 1: PRD Snippet */}
-              <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: 6, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-blue)', marginBottom: 6 }}>
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '12px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--accent-blue)',
+                    marginBottom: 6
+                  }}
+                >
                   📋 1. PRD 需求切片 (§ {contextPackage?.prdSnippet?.sectionId || '3.2'})
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  {contextPackage?.prdSnippet?.content || '包含对应状态流、分页拉取与离线读取规则。'}
+                  {contextPackage?.prdSnippet?.content ||
+                    '包含对应状态流、分页拉取与离线读取规则。'}
                 </div>
               </div>
 
               {/* Section 2: API Contract */}
-              <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '12px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)'
+                }}
+              >
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#a371f7', marginBottom: 6 }}>
                   🔌 2. API 接口契约
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                <div
+                  style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: 'monospace' }}
+                >
                   {contextPackage?.apiContract ? (
                     <div>
                       <div>Endpoint: {contextPackage.apiContract.endpoint}</div>
@@ -134,8 +165,22 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
               </div>
 
               {/* Section 3: Rules & Skills */}
-              <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: 6, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-green)', marginBottom: 6 }}>
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '12px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--accent-green)',
+                    marginBottom: 6
+                  }}
+                >
                   📐 3. 注入的 Rules 与 Skills
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -171,7 +216,14 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
               </div>
 
               {/* Section 4: Upstream Contracts */}
-              <div style={{ background: 'var(--bg-elevated)', padding: '12px', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div
+                style={{
+                  background: 'var(--bg-elevated)',
+                  padding: '12px',
+                  borderRadius: 6,
+                  border: '1px solid var(--border)'
+                }}
+              >
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#d29922', marginBottom: 6 }}>
                   🔗 4. 前置任务产出与上游契约
                 </div>
@@ -179,7 +231,11 @@ export default function ContextPackageModal({ isOpen, onClose, task, contextPack
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {contextPackage.upstreamContracts.map((u, i) => (
                       <div key={i} style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                        • <span style={{ color: 'var(--accent-blue)', fontFamily: 'monospace' }}>{u.taskId}</span>: {u.title}
+                        •{' '}
+                        <span style={{ color: 'var(--accent-blue)', fontFamily: 'monospace' }}>
+                          {u.taskId}
+                        </span>
+                        : {u.title}
                       </div>
                     ))}
                   </div>

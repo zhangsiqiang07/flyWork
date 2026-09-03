@@ -124,7 +124,8 @@ export default function BatchAssignModal({
               padding: '10px 0',
               background: 'transparent',
               border: 'none',
-              borderBottom: mode === 'layer' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+              borderBottom:
+                mode === 'layer' ? '2px solid var(--accent-blue)' : '2px solid transparent',
               color: mode === 'layer' ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: 12,
               fontWeight: mode === 'layer' ? 600 : 400,
@@ -140,7 +141,8 @@ export default function BatchAssignModal({
               padding: '10px 0',
               background: 'transparent',
               border: 'none',
-              borderBottom: mode === 'selection' ? '2px solid var(--accent-blue)' : '2px solid transparent',
+              borderBottom:
+                mode === 'selection' ? '2px solid var(--accent-blue)' : '2px solid transparent',
               color: mode === 'selection' ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: 12,
               fontWeight: mode === 'selection' ? 600 : 400,
@@ -173,7 +175,14 @@ export default function BatchAssignModal({
                     border: '1px solid var(--border)'
                   }}
                 >
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)', textTransform: 'uppercase' }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--accent-blue)',
+                      textTransform: 'uppercase'
+                    }}
+                  >
                     {layer}
                   </span>
 
@@ -203,7 +212,9 @@ export default function BatchAssignModal({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                将当前选中的 <strong style={{ color: 'var(--text-primary)' }}>{selectedTaskCount}</strong> 个任务统一指派给指定智能体：
+                将当前选中的{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedTaskCount}</strong>{' '}
+                个任务统一指派给指定智能体：
               </div>
 
               {selectedTaskCount === 0 && (
@@ -222,7 +233,15 @@ export default function BatchAssignModal({
               )}
 
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, fontWeight: 600 }}>
+                <label
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    display: 'block',
+                    marginBottom: 6,
+                    fontWeight: 600
+                  }}
+                >
                   目标执行智能体 (Agent):
                 </label>
                 <select

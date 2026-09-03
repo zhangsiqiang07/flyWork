@@ -12,7 +12,13 @@ export default function FeatureTreePanel({
   onSearchChange
 }) {
   const [expandedNodes, setExpandedNodes] = useState(
-    new Set(['req-root', 'feat-HealthReport', 'proj-PetPal-iOS', 'proj-PetPal-Backend', 'proj-PetPal-Android'])
+    new Set([
+      'req-root',
+      'feat-HealthReport',
+      'proj-PetPal-iOS',
+      'proj-PetPal-Backend',
+      'proj-PetPal-Android'
+    ])
   )
 
   const toggleExpand = (id) => {
@@ -133,7 +139,8 @@ export default function FeatureTreePanel({
                 borderRadius: 10,
                 background: statusFilter === f.id ? 'var(--accent-blue-dim)' : 'transparent',
                 color: statusFilter === f.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                border: statusFilter === f.id ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                border:
+                  statusFilter === f.id ? '1px solid var(--accent-blue)' : '1px solid transparent',
                 cursor: 'pointer',
                 fontWeight: statusFilter === f.id ? 600 : 400
               }}
@@ -171,7 +178,9 @@ export default function FeatureTreePanel({
               {requirement?.title || '宠物健康报告与应激分析'}
             </span>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, paddingLeft: 20 }}>
+          <div
+            style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, paddingLeft: 20 }}
+          >
             REQ-2026-003 · v2.4 Active
           </div>
         </div>
@@ -209,8 +218,7 @@ export default function FeatureTreePanel({
                     const isProjExp = expandedNodes.has(proj.id)
                     const projTaskCount = Object.values(proj.domains).reduce(
                       (acc, d) =>
-                        acc +
-                        Object.values(d.layers).reduce((lAcc, l) => lAcc + l.tasks.length, 0),
+                        acc + Object.values(d.layers).reduce((lAcc, l) => lAcc + l.tasks.length, 0),
                       0
                     )
 
@@ -299,7 +307,13 @@ export default function FeatureTreePanel({
                                                 : 'var(--text-secondary)'
                                             }}
                                           >
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <span
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 4
+                                              }}
+                                            >
                                               <span
                                                 style={{
                                                   width: 5,

@@ -1,12 +1,5 @@
 import { exec } from 'child_process'
-import {
-  existsSync,
-  statSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  mkdtempSync
-} from 'fs'
+import { existsSync, statSync, readdirSync, readFileSync, rmSync, mkdtempSync } from 'fs'
 import { join, basename, extname } from 'path'
 import { tmpdir } from 'os'
 import { promisify } from 'util'
@@ -80,7 +73,9 @@ export async function inspectMachOBinary(binaryPath) {
     // 1. Get architectures via lipo
     let architectures = []
     try {
-      const { stdout: lipoOut } = await execAsync(`/usr/bin/lipo -info "${binaryPath}"`, { timeout: 6000 })
+      const { stdout: lipoOut } = await execAsync(`/usr/bin/lipo -info "${binaryPath}"`, {
+        timeout: 6000
+      })
       const archMatch = lipoOut.match(/are:\s+(.*)$/m) || lipoOut.match(/architecture:\s+(.*)$/m)
       if (archMatch) {
         architectures = archMatch[1].trim().split(/\s+/)
@@ -89,7 +84,9 @@ export async function inspectMachOBinary(binaryPath) {
 
     if (architectures.length === 0) {
       try {
-        const { stdout: fileOut } = await execAsync(`/usr/bin/file "${binaryPath}"`, { timeout: 6000 })
+        const { stdout: fileOut } = await execAsync(`/usr/bin/file "${binaryPath}"`, {
+          timeout: 6000
+        })
         if (fileOut.includes('arm64')) architectures.push('arm64')
         if (fileOut.includes('x86_64')) architectures.push('x86_64')
         if (fileOut.includes('armv7')) architectures.push('armv7')
@@ -102,7 +99,9 @@ export async function inspectMachOBinary(binaryPath) {
     let totalBinarySize = 0
 
     try {
-      const { stdout: sizeOut } = await execAsync(`/usr/bin/size -m "${binaryPath}"`, { timeout: 8000 })
+      const { stdout: sizeOut } = await execAsync(`/usr/bin/size -m "${binaryPath}"`, {
+        timeout: 8000
+      })
       const lines = sizeOut.split('\n')
       let currentSegment = null
 
@@ -150,7 +149,9 @@ export async function inspectMachOBinary(binaryPath) {
     // 3. Run otool -L to get linked dependencies
     const linkedLibraries = []
     try {
-      const { stdout: otoolOut } = await execAsync(`/usr/bin/otool -L "${binaryPath}"`, { timeout: 8000 })
+      const { stdout: otoolOut } = await execAsync(`/usr/bin/otool -L "${binaryPath}"`, {
+        timeout: 8000
+      })
       const otoolLines = otoolOut.split('\n').slice(1)
       for (const line of otoolLines) {
         const trimmed = line.trim()
@@ -220,7 +221,17 @@ function scanDirectory(dirPath, rootAppPath, executableName) {
   }
 
   const FONT_EXTS = new Set(['.ttf', '.otf', '.ttc', '.woff', '.woff2'])
-  const SCRIPT_EXTS = new Set(['.jsbundle', '.js', '.mjs', '.cjs', '.map', '.html', '.htm', '.css', '.wasm'])
+  const SCRIPT_EXTS = new Set([
+    '.jsbundle',
+    '.js',
+    '.mjs',
+    '.cjs',
+    '.map',
+    '.html',
+    '.htm',
+    '.css',
+    '.wasm'
+  ])
   const MODEL_EXTS = new Set([
     '.mlmodelc',
     '.mlmodel',
@@ -234,10 +245,49 @@ function scanDirectory(dirPath, rootAppPath, executableName) {
     '.obj',
     '.gltf'
   ])
-  const DATA_EXTS = new Set(['.sqlite', '.sqlite3', '.db', '.realm', '.json', '.geojson', '.xml', '.csv', '.dat'])
-  const LOCALIZATION_EXTS = new Set(['.strings', '.stringsdict', '.plist', '.mobileprovision', '.nib', '.storyboardc'])
-  const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.heic', '.pdf', '.ico', '.bmp', '.tiff'])
-  const MEDIA_EXTS = new Set(['.mp3', '.wav', '.m4a', '.caf', '.aac', '.mp4', '.mov', '.m4v', '.ogg'])
+  const DATA_EXTS = new Set([
+    '.sqlite',
+    '.sqlite3',
+    '.db',
+    '.realm',
+    '.json',
+    '.geojson',
+    '.xml',
+    '.csv',
+    '.dat'
+  ])
+  const LOCALIZATION_EXTS = new Set([
+    '.strings',
+    '.stringsdict',
+    '.plist',
+    '.mobileprovision',
+    '.nib',
+    '.storyboardc'
+  ])
+  const IMAGE_EXTS = new Set([
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.webp',
+    '.svg',
+    '.gif',
+    '.heic',
+    '.pdf',
+    '.ico',
+    '.bmp',
+    '.tiff'
+  ])
+  const MEDIA_EXTS = new Set([
+    '.mp3',
+    '.wav',
+    '.m4a',
+    '.caf',
+    '.aac',
+    '.mp4',
+    '.mov',
+    '.m4v',
+    '.ogg'
+  ])
 
   function traverse(currentPath) {
     let entries = []
@@ -358,7 +408,11 @@ function scanDirectory(dirPath, rootAppPath, executableName) {
         } else if (FONT_EXTS.has(ext)) {
           result.fontsSize += size
           fileType = 'fonts'
-        } else if (SCRIPT_EXTS.has(ext) || entry.name === 'main.jsbundle' || entry.name.includes('.bundle')) {
+        } else if (
+          SCRIPT_EXTS.has(ext) ||
+          entry.name === 'main.jsbundle' ||
+          entry.name.includes('.bundle')
+        ) {
           result.scriptsSize += size
           fileType = 'scripts'
         } else if (MODEL_EXTS.has(ext)) {
@@ -608,7 +662,9 @@ export async function analyzeIpa(filePath) {
     const debugBinaries = scan.allFiles.filter(
       (f) =>
         (f.ext === '.dylib' || f.type === 'frameworks' || f.type === 'executable') &&
-        (f.name.toLowerCase().includes('.debug.') || f.name.toLowerCase().includes('debug') || f.isDebug)
+        (f.name.toLowerCase().includes('.debug.') ||
+          f.name.toLowerCase().includes('debug') ||
+          f.isDebug)
     )
 
     if (debugBinaries.length > 0) {
@@ -633,7 +689,8 @@ export async function analyzeIpa(filePath) {
         title: `检测到 ${largeLooseImages.length} 个大于 150KB 的散落图片`,
         desc: '散落存放在 Bundle 中的离散图片不会被 Assets.car 进行矢量化与切图压缩。',
         impact: `潜在可节省约 ${formatBytes(largeLooseImages.reduce((sum, i) => sum + i.size * 0.4, 0))}`,
-        solution: '建议将散落图片迁移至 Xcode Assets Catalog (Images.xcassets) 中统一管理并启用压缩。'
+        solution:
+          '建议将散落图片迁移至 Xcode Assets Catalog (Images.xcassets) 中统一管理并启用压缩。'
       })
     }
 
@@ -645,7 +702,8 @@ export async function analyzeIpa(filePath) {
         title: `发现 ${heavyFrameworks.length} 个超大动态库 / SDK (> 5MB)`,
         desc: `以下库体积较大：${heavyFrameworks.map((f) => `${f.name} (${formatBytes(f.size)})`).join(', ')}。`,
         impact: `占总动态库体积 ${((heavyFrameworks.reduce((sum, f) => sum + f.size, 0) / (scan.frameworksSize || 1)) * 100).toFixed(1)}%`,
-        solution: '检查是否引入了不需要的子模块，或考虑转为静态库 (Static Framework) 以便编译器执行死代码剥离。'
+        solution:
+          '检查是否引入了不需要的子模块，或考虑转为静态库 (Static Framework) 以便编译器执行死代码剥离。'
       })
     }
 
@@ -671,7 +729,8 @@ export async function analyzeIpa(filePath) {
         title: `检测到 ${heavyFonts.length} 个超大字体文件 (> 2MB)`,
         desc: `字体文件：${heavyFonts.map((f) => `${f.name} (${formatBytes(f.size)})`).join(', ')} 占比较大。中文字库通常包含两万多字形，绝大多数未在 App 中用到。`,
         impact: `子集化裁剪后潜在可节省约 ${formatBytes(fontTotal * 0.7)}`,
-        solution: '建议使用字蛛 (Font-Spider) 或 Python fonttools 工具进行字体子集化 (Subsetting)，仅保留 App 常用字符。'
+        solution:
+          '建议使用字蛛 (Font-Spider) 或 Python fonttools 工具进行字体子集化 (Subsetting)，仅保留 App 常用字符。'
       })
     }
 

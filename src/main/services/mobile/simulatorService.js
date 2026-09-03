@@ -21,7 +21,9 @@ export async function listSimulators() {
     const list = []
 
     for (const [runtimeKey, devices] of Object.entries(devicesMap)) {
-      let runtimeName = runtimeKey.replace('com.apple.CoreSimulator.SimRuntime.', '').replace(/-/g, ' ')
+      let runtimeName = runtimeKey
+        .replace('com.apple.CoreSimulator.SimRuntime.', '')
+        .replace(/-/g, ' ')
       if (runtimeName.startsWith('iOS ')) {
         runtimeName = runtimeName.replace('iOS ', 'iOS ')
       }
@@ -64,7 +66,10 @@ export async function listSimulators() {
  * List physical iOS devices (connected or paired via USB/WiFi) from xcrun devicectl
  */
 export async function listPhysicalDevices() {
-  const tmpFile = join(tmpdir(), `devicectl_${Date.now()}_${Math.random().toString(36).slice(2)}.json`)
+  const tmpFile = join(
+    tmpdir(),
+    `devicectl_${Date.now()}_${Math.random().toString(36).slice(2)}.json`
+  )
   try {
     await execAsync(`xcrun devicectl list devices -j "${tmpFile}"`, {
       timeout: 5000,
@@ -111,7 +116,9 @@ export async function listPhysicalDevices() {
     return []
   } finally {
     if (existsSync(tmpFile)) {
-      try { unlinkSync(tmpFile) } catch {}
+      try {
+        unlinkSync(tmpFile)
+      } catch {}
     }
   }
 }
@@ -120,10 +127,7 @@ export async function listPhysicalDevices() {
  * List all devices (simulators + physical devices)
  */
 export async function listAllDevices() {
-  const [simulators, physicalDevices] = await Promise.all([
-    listSimulators(),
-    listPhysicalDevices()
-  ])
+  const [simulators, physicalDevices] = await Promise.all([listSimulators(), listPhysicalDevices()])
   return {
     simulators,
     physicalDevices
@@ -198,7 +202,10 @@ export async function setAppearance(udid, appearance) {
  * Send simulated APNs push notification to simulator
  */
 export async function sendPushNotification(udid, bundleId, payload) {
-  const tmpFile = join(tmpdir(), `sim_push_${Date.now()}_${Math.random().toString(36).slice(2)}.json`)
+  const tmpFile = join(
+    tmpdir(),
+    `sim_push_${Date.now()}_${Math.random().toString(36).slice(2)}.json`
+  )
   try {
     const jsonContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)
     writeFileSync(tmpFile, jsonContent, 'utf-8')
@@ -208,7 +215,9 @@ export async function sendPushNotification(udid, bundleId, payload) {
     return { success: false, error: err.message }
   } finally {
     if (existsSync(tmpFile)) {
-      try { unlinkSync(tmpFile) } catch {}
+      try {
+        unlinkSync(tmpFile)
+      } catch {}
     }
   }
 }
@@ -294,7 +303,9 @@ export async function launchApp(udid, bundleId, isPhysical = false) {
  */
 export async function getAppContainer(udid, bundleId) {
   try {
-    const { stdout } = await execAsync(`xcrun simctl get_app_container "${udid}" "${bundleId}" data`)
+    const { stdout } = await execAsync(
+      `xcrun simctl get_app_container "${udid}" "${bundleId}" data`
+    )
     const containerPath = stdout.trim()
     return { success: true, path: containerPath }
   } catch (err) {

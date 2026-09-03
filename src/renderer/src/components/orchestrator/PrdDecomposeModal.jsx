@@ -40,9 +40,27 @@ export default function PrdDecomposeModal({
     workspaces.length > 0
       ? workspaces
       : [
-          { id: 'PetPal-iOS', name: 'PetPal-iOS', icon: '📱', root: '/Projects/PetPal-iOS', gitBranch: 'main' },
-          { id: 'PetPal-Android', name: 'PetPal-Android', icon: '🤖', root: '/Projects/PetPal-Android', gitBranch: 'develop' },
-          { id: 'PetPal-Backend', name: 'PetPal-Backend', icon: '☕', root: '/Projects/PetPal-Backend', gitBranch: 'main' }
+          {
+            id: 'PetPal-iOS',
+            name: 'PetPal-iOS',
+            icon: '📱',
+            root: '/Projects/PetPal-iOS',
+            gitBranch: 'main'
+          },
+          {
+            id: 'PetPal-Android',
+            name: 'PetPal-Android',
+            icon: '🤖',
+            root: '/Projects/PetPal-Android',
+            gitBranch: 'develop'
+          },
+          {
+            id: 'PetPal-Backend',
+            name: 'PetPal-Backend',
+            icon: '☕',
+            root: '/Projects/PetPal-Backend',
+            gitBranch: 'main'
+          }
         ]
 
   const handleToggleWorkspace = (id) => {
@@ -123,7 +141,10 @@ export default function PrdDecomposeModal({
         title: '选择 PRD 需求文档',
         properties: ['openFile'],
         filters: [
-          { name: 'PRD Documents (*.md, *.txt, *.markdown, *.json)', extensions: ['md', 'txt', 'markdown', 'json', 'yaml', 'yml'] },
+          {
+            name: 'PRD Documents (*.md, *.txt, *.markdown, *.json)',
+            extensions: ['md', 'txt', 'markdown', 'json', 'yaml', 'yml']
+          },
           { name: 'All Files', extensions: ['*'] }
         ]
       })
@@ -218,7 +239,9 @@ export default function PrdDecomposeModal({
                 status: 'READY',
                 project: selectedProjectsData[0]?.name || 'App-Client',
                 dependencies: [],
-                execution: { recommended: { agent_id: 'trae', model_id: 'claude-3-5-sonnet', score: 92 } }
+                execution: {
+                  recommended: { agent_id: 'trae', model_id: 'claude-3-5-sonnet', score: 92 }
+                }
               }
             ]
           })
@@ -335,11 +358,28 @@ export default function PrdDecomposeModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '18px 22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}
+        >
           {/* Section 1: Meta Inputs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: 4,
+                  fontWeight: 600
+                }}
+              >
                 需求标题 (Requirement Title):
               </label>
               <input
@@ -361,7 +401,15 @@ export default function PrdDecomposeModal({
             </div>
 
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: 4,
+                  fontWeight: 600
+                }}
+              >
                 功能特性名 (Feature Name):
               </label>
               <input
@@ -383,7 +431,15 @@ export default function PrdDecomposeModal({
             </div>
 
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 4, fontWeight: 600 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: 4,
+                  fontWeight: 600
+                }}
+              >
                 规划智能体 (Planner Agent):
               </label>
               <select
@@ -415,12 +471,21 @@ export default function PrdDecomposeModal({
               border: '1px solid var(--border)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
                   📁 关联当前工作空间工程 (Workspaces)
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>（多选，任务将分配至对应工程）</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  （多选，任务将分配至对应工程）
+                </span>
               </div>
 
               {onAddWorkspace && (
@@ -443,7 +508,13 @@ export default function PrdDecomposeModal({
             </div>
 
             {/* Workspace Checkbox Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 8
+              }}
+            >
               {availableWorkspaces.map((ws) => {
                 const isSelected = selectedWorkspaceIds.includes(ws.id)
                 return (
@@ -452,7 +523,9 @@ export default function PrdDecomposeModal({
                     onClick={() => handleToggleWorkspace(ws.id)}
                     style={{
                       background: isSelected ? 'rgba(79,158,248,0.12)' : 'var(--bg-surface)',
-                      border: isSelected ? '1px solid var(--accent-blue)' : '1px solid var(--border)',
+                      border: isSelected
+                        ? '1px solid var(--accent-blue)'
+                        : '1px solid var(--border)',
                       borderRadius: 6,
                       padding: '8px 10px',
                       cursor: 'pointer',
@@ -505,13 +578,28 @@ export default function PrdDecomposeModal({
 
           {/* Section 3: PRD Multi-Modal Import (文件选择 / 拖拽 / 文本) */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
                   📄 PRD 需求内容导入方式
                 </span>
                 {/* Mode Tabs */}
-                <div style={{ display: 'flex', background: 'var(--bg-elevated)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    background: 'var(--bg-elevated)',
+                    padding: 2,
+                    borderRadius: 6,
+                    border: '1px solid var(--border)'
+                  }}
+                >
                   <button
                     onClick={() => setImportMode('file')}
                     style={{
@@ -588,8 +676,17 @@ export default function PrdDecomposeModal({
                   />
 
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-                    {isDragging ? '松开鼠标立即导入文档' : '拖拽 PRD 文档至此处，或点击浏览本地文件'}
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      marginBottom: 4
+                    }}
+                  >
+                    {isDragging
+                      ? '松开鼠标立即导入文档'
+                      : '拖拽 PRD 文档至此处，或点击浏览本地文件'}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                     支持 Markdown (.md, .markdown)、纯文本 (.txt)、Swagger/Apifox (.json, .yaml)
@@ -611,10 +708,15 @@ export default function PrdDecomposeModal({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>✓ 已加载文件:</span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{importedFileInfo.name}</span>
+                      <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>
+                        ✓ 已加载文件:
+                      </span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {importedFileInfo.name}
+                      </span>
                       <span style={{ color: 'var(--text-secondary)' }}>
-                        ({(importedFileInfo.size / 1024).toFixed(1)} KB · {importedFileInfo.charCount} 字符)
+                        ({(importedFileInfo.size / 1024).toFixed(1)} KB ·{' '}
+                        {importedFileInfo.charCount} 字符)
                       </span>
                     </div>
 
@@ -641,11 +743,20 @@ export default function PrdDecomposeModal({
 
             {/* Mode 2: Direct Text Editor (also preview when file is loaded) */}
             <div style={{ marginTop: importMode === 'file' ? 10 : 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 4
+                }}
+              >
                 <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   {importMode === 'file' ? 'PRD 解析预览 / 可编辑内容:' : '编辑 PRD Markdown 内容:'}
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{prdText.length} 字符</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                  {prdText.length} 字符
+                </span>
               </div>
               <textarea
                 rows={importMode === 'file' ? 5 : 8}
@@ -690,7 +801,9 @@ export default function PrdDecomposeModal({
               }}
             >
               <span>{isDecomposing ? '⏳' : '⚡'}</span>
-              {isDecomposing ? 'AI 架构规划中（推导工程任务与 DAG 依赖）...' : '启动智能拆解 (Decompose PRD)'}
+              {isDecomposing
+                ? 'AI 架构规划中（推导工程任务与 DAG 依赖）...'
+                : '启动智能拆解 (Decompose PRD)'}
             </button>
           </div>
 
@@ -704,7 +817,9 @@ export default function PrdDecomposeModal({
                 padding: '12px 16px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-green)' }}>
                   ✓ 拆解成功：已生成 {generatedPlan.tasks?.length || 0} 个工程分层任务
                 </span>
@@ -713,7 +828,16 @@ export default function PrdDecomposeModal({
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, maxHeight: 160, overflowY: 'auto' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  marginTop: 10,
+                  maxHeight: 160,
+                  overflowY: 'auto'
+                }}
+              >
                 {(generatedPlan.tasks || []).map((t) => (
                   <div
                     key={t.id}
@@ -729,10 +853,18 @@ export default function PrdDecomposeModal({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: 'var(--accent-blue)', fontFamily: 'monospace', fontWeight: 700 }}>
+                      <span
+                        style={{
+                          color: 'var(--accent-blue)',
+                          fontFamily: 'monospace',
+                          fontWeight: 700
+                        }}
+                      >
                         {t.id}
                       </span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t.title}</span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                        {t.title}
+                      </span>
                       <span style={{ color: 'var(--text-secondary)' }}>({t.layer})</span>
                     </div>
                     <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>

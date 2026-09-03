@@ -1,6 +1,27 @@
 import { useState } from 'react'
 
-const PRESET_ICONS = ['📁', '🐾', '🧠', '🐛', '⚡️', '🚀', '💻', '🛠️', '📦', '🌐', '🎨', '🔒', '📝', '⚙️', '🎯', '🔥', '📊', '💼', '💡', '🌟']
+const PRESET_ICONS = [
+  '📁',
+  '🐾',
+  '🧠',
+  '🐛',
+  '⚡️',
+  '🚀',
+  '💻',
+  '🛠️',
+  '📦',
+  '🌐',
+  '🎨',
+  '🔒',
+  '📝',
+  '⚙️',
+  '🎯',
+  '🔥',
+  '📊',
+  '💼',
+  '💡',
+  '🌟'
+]
 
 export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
   const [name, setName] = useState(workspace?.name || '')
@@ -8,8 +29,12 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
   const [defaultAgent, setDefaultAgent] = useState(workspace?.defaultAgent || 'Claude Code')
   const [root, setRoot] = useState(workspace?.root || '')
   const [customAgentPath, setCustomAgentPath] = useState(workspace?.customAgentPath || '')
-  const [claudeProjectPath, setClaudeProjectPath] = useState(workspace?.claudeProjectPath || workspace?.root || '')
-  const [codexProjectPath, setCodexProjectPath] = useState(workspace?.codexProjectPath || workspace?.root || '')
+  const [claudeProjectPath, setClaudeProjectPath] = useState(
+    workspace?.claudeProjectPath || workspace?.root || ''
+  )
+  const [codexProjectPath, setCodexProjectPath] = useState(
+    workspace?.codexProjectPath || workspace?.root || ''
+  )
 
   const handleSave = () => {
     if (!name.trim()) return
@@ -52,7 +77,10 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
                     padding: 0,
                     fontSize: 18,
                     borderRadius: 8,
-                    border: icon === emoji ? '2px solid var(--accent-blue)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    border:
+                      icon === emoji
+                        ? '2px solid var(--accent-blue)'
+                        : '1px solid rgba(255, 255, 255, 0.08)',
                     background: icon === emoji ? 'var(--accent-blue-dim)' : 'transparent'
                   }}
                   onClick={() => setIcon(emoji)}
@@ -126,7 +154,6 @@ export default function EditWorkspaceModal({ workspace, onClose, onSave }) {
               placeholder="如 /Users/dimoo/Desktop/works/PetPal"
             />
           </div>
-
         </div>
 
         <div className="modal-footer">

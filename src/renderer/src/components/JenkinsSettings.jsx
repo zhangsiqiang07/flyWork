@@ -89,7 +89,14 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
     <div className={isModal ? '' : 'card'} style={{ padding: isModal ? 0 : 20 }}>
       {/* Title block when rendered in non-modal setting */}
       {!isModal && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -117,7 +124,14 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
           </div>
           <div>
             {isConfigured ? (
-              <span className="badge" style={{ background: 'var(--accent-green-dim)', color: 'var(--accent-green)', padding: '4px 10px' }}>
+              <span
+                className="badge"
+                style={{
+                  background: 'var(--accent-green-dim)',
+                  color: 'var(--accent-green)',
+                  padding: '4px 10px'
+                }}
+              >
                 ✓ 已连接并就绪
               </span>
             ) : (
@@ -169,7 +183,15 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
 
       <form onSubmit={handleValidateAndSave}>
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--text-primary)' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 6,
+              color: 'var(--text-primary)'
+            }}
+          >
             Jenkins 服务器 URL <span style={{ color: 'var(--accent-red)' }}>*</span>
           </label>
           <input
@@ -188,13 +210,23 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
               fontSize: 13
             }}
           />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+          <span
+            style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}
+          >
             Jenkins 服务的根访问路径，末尾无需斜杠
           </span>
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--text-primary)' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 6,
+              color: 'var(--text-primary)'
+            }}
+          >
             用户名 (Username) <span style={{ color: 'var(--accent-red)' }}>*</span>
           </label>
           <input
@@ -216,14 +248,27 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, marginBottom: 6, color: 'var(--text-primary)' }}>
-            API Token <span style={{ color: 'var(--accent-red)' }}>{isConfigured ? '(已配置，留空表示保持现有凭据)' : '*'}</span>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              marginBottom: 6,
+              color: 'var(--text-primary)'
+            }}
+          >
+            API Token{' '}
+            <span style={{ color: 'var(--accent-red)' }}>
+              {isConfigured ? '(已配置，留空表示保持现有凭据)' : '*'}
+            </span>
           </label>
           <input
             type="password"
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder={isConfigured ? '••••••••••••••••••••••••' : '粘贴您的 Jenkins 用户 API Token'}
+            placeholder={
+              isConfigured ? '••••••••••••••••••••••••' : '粘贴您的 Jenkins 用户 API Token'
+            }
             className="input"
             style={{
               width: '100%',
@@ -236,11 +281,21 @@ export default function JenkinsSettings({ onConfigChange, isModal = false, onClo
             }}
           />
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
-            💡 如何获取: 登录 Jenkins → 点击右上角用户头像 → 点击左侧 <strong>设置 (Configure)</strong> → 在 <strong>API Token</strong> 处点击 <strong>Add new Token</strong> 生成并复制。
+            💡 如何获取: 登录 Jenkins → 点击右上角用户头像 → 点击左侧{' '}
+            <strong>设置 (Configure)</strong> → 在 <strong>API Token</strong> 处点击{' '}
+            <strong>Add new Token</strong> 生成并复制。
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: 10,
+            borderTop: '1px solid var(--border)'
+          }}
+        >
           {isConfigured ? (
             <button
               type="button"

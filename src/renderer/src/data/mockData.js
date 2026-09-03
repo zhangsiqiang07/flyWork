@@ -473,6 +473,7 @@ export const AGENTS = [
 export const COMMAND_SUGGESTIONS = [
   { type: 'navigation', label: '打开 PetPal iOS', icon: '🐾', action: 'navigate:petpal-ios' },
   { type: 'navigation', label: '打开 KnowledgeOS', icon: '🧠', action: 'navigate:knowledge-os' },
+  { type: 'navigation', label: '打开画板 / 架构图', icon: '🎨', action: 'navigate:whiteboard' },
   {
     type: 'session',
     label: '继续 TabBar 修复会话',

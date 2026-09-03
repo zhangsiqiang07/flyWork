@@ -7,7 +7,9 @@ export default function AssetReconcileModal({
   onApplyReconciliation
 }) {
   const [assetType, setAssetType] = useState('design') // 'design' | 'api'
-  const [figmaUrl, setFigmaUrl] = useState('https://www.figma.com/file/xyzPetHealthV2?node-id=302%3A104')
+  const [figmaUrl, setFigmaUrl] = useState(
+    'https://www.figma.com/file/xyzPetHealthV2?node-id=302%3A104'
+  )
   const [apiEndpoint, setApiEndpoint] = useState('/api/v2/pet/health/reports')
   const [reconcileResult, setReconcileResult] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -34,11 +36,14 @@ export default function AssetReconcileModal({
         // Fallback simulation
         setTimeout(() => {
           const unlocked = tasks
-            .filter((t) => (assetType === 'design' ? t.status === 'WAITING_DESIGN' : t.status === 'WAITING_API'))
+            .filter((t) =>
+              assetType === 'design' ? t.status === 'WAITING_DESIGN' : t.status === 'WAITING_API'
+            )
             .map((t) => t.id)
 
           const updated = tasks.map((t) => {
-            if (assetType === 'design' && t.status === 'WAITING_DESIGN') return { ...t, status: 'READY' }
+            if (assetType === 'design' && t.status === 'WAITING_DESIGN')
+              return { ...t, status: 'READY' }
             if (assetType === 'api' && t.status === 'WAITING_API') return { ...t, status: 'READY' }
             return t
           })
@@ -135,7 +140,16 @@ export default function AssetReconcileModal({
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14
+          }}
+        >
           {/* Asset Type Selector */}
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -190,7 +204,15 @@ export default function AssetReconcileModal({
           {/* Form Input based on Asset Type */}
           {assetType === 'design' ? (
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, fontWeight: 600 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: 6,
+                  fontWeight: 600
+                }}
+              >
                 Figma Frame 链接 / 导出文件:
               </label>
               <input
@@ -211,7 +233,15 @@ export default function AssetReconcileModal({
             </div>
           ) : (
             <div>
-              <label style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, fontWeight: 600 }}>
+              <label
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: 6,
+                  fontWeight: 600
+                }}
+              >
                 API 接口 Endpoint 契约:
               </label>
               <input
@@ -266,7 +296,14 @@ export default function AssetReconcileModal({
                 marginTop: 6
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-green)', marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--accent-green)',
+                  marginBottom: 4
+                }}
+              >
                 ✓ {reconcileResult.changeSet?.summary || 'Reconcile 成功'}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>

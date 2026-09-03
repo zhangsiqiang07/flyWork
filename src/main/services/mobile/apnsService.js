@@ -53,9 +53,7 @@ const APNS_ERRORS = {
   ExpiredProviderToken: {
     title: '鉴权令牌已过期 (ExpiredProviderToken)',
     desc: '.p8 鉴权 JWT 的有效时长已超过 Apple 规定的 60 分钟。',
-    solutions: [
-      '系统已为您自动清除旧缓存并重新签发，请重新尝试发送。'
-    ]
+    solutions: ['系统已为您自动清除旧缓存并重新签发，请重新尝试发送。']
   },
   InvalidProviderToken: {
     title: '鉴权密钥信息有误 (InvalidProviderToken)',
@@ -82,9 +80,7 @@ const APNS_ERRORS = {
   Unregistered: {
     title: '设备已注销或卸载 (Unregistered)',
     desc: '该真机上已卸载该应用，或用户在系统设置中彻底关闭了通知权限。',
-    solutions: [
-      '重新在真机上运行该 App，重新授权推送并获取最新的 Device Token。'
-    ]
+    solutions: ['重新在真机上运行该 App，重新授权推送并获取最新的 Device Token。']
   },
   PayloadTooLarge: {
     title: '推送内容过大 (PayloadTooLarge)',
@@ -141,7 +137,9 @@ export function generateApnsJwt(p8ContentOrPath, keyId, teamId) {
     return cached.token
   }
 
-  const header = Buffer.from(JSON.stringify({ alg: 'ES256', kid: keyId.trim() })).toString('base64url')
+  const header = Buffer.from(JSON.stringify({ alg: 'ES256', kid: keyId.trim() })).toString(
+    'base64url'
+  )
   const claims = Buffer.from(
     JSON.stringify({
       iss: teamId.trim(),
@@ -171,9 +169,7 @@ export function generateApnsJwt(p8ContentOrPath, keyId, teamId) {
  */
 export function cleanDeviceToken(rawToken) {
   if (!rawToken) return ''
-  return rawToken
-    .replace(/[<>\s-]/g, '')
-    .trim()
+  return rawToken.replace(/[<>\s-]/g, '').trim()
 }
 
 /**
@@ -364,7 +360,9 @@ export async function sendRealApnsPush(options) {
         duration,
         meta
       })
-      try { client.close() } catch {}
+      try {
+        client.close()
+      } catch {}
     })
 
     client.on('timeout', () => {
@@ -379,11 +377,12 @@ export async function sendRealApnsPush(options) {
         duration,
         meta
       })
-      try { client.destroy() } catch {}
+      try {
+        client.destroy()
+      } catch {}
     })
 
-    const payloadString =
-      typeof payload === 'string' ? payload : JSON.stringify(payload)
+    const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload)
 
     const headers = {
       ':method': 'POST',
@@ -418,7 +417,9 @@ export async function sendRealApnsPush(options) {
       const status = responseHeaders[':status']
       const apnsId = responseHeaders['apns-id'] || ''
 
-      try { client.close() } catch {}
+      try {
+        client.close()
+      } catch {}
 
       if (status === 200) {
         resolve({
@@ -470,7 +471,9 @@ export async function sendRealApnsPush(options) {
 
     req.on('error', (err) => {
       const duration = Date.now() - startTime
-      try { client.close() } catch {}
+      try {
+        client.close()
+      } catch {}
       resolve({
         success: false,
         status: 'STREAM_ERROR',
