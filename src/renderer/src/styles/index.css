@@ -1961,3 +1961,110 @@ select optgroup {
   text-align: left;
   border: 1px solid var(--border);
 }
+
+.ai-rules-markdown {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.ai-rules-markdown > :first-child {
+  margin-top: 0;
+}
+
+.ai-rules-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.ai-rules-markdown h1,
+.ai-rules-markdown h2,
+.ai-rules-markdown h3,
+.ai-rules-markdown h4 {
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin: 18px 0 8px;
+}
+
+.ai-rules-markdown h1 { font-size: 20px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.ai-rules-markdown h2 { font-size: 16px; font-weight: 600; margin-top: 20px; }
+.ai-rules-markdown h3,
+.ai-rules-markdown h4 { font-size: 14px; font-weight: 600; }
+
+.ai-rules-markdown p,
+.ai-rules-markdown ul,
+.ai-rules-markdown ol,
+.ai-rules-markdown blockquote {
+  margin: 0 0 12px;
+}
+
+.ai-rules-markdown ul,
+.ai-rules-markdown ol {
+  padding-left: 20px;
+}
+
+.ai-rules-markdown li {
+  margin-bottom: 4px;
+}
+
+.ai-rules-markdown blockquote {
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border-left: 3px solid var(--accent-blue);
+  border-radius: 0 6px 6px 0;
+}
+
+.ai-rules-markdown code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--accent-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.ai-rules-markdown pre {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-base);
+}
+
+.ai-rules-markdown pre code {
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.ai-rules-markdown a {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+.ai-rules-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.ai-rules-markdown table {
+  width: 100%;
+  margin: 0 0 14px;
+  border-collapse: collapse;
+}
+
+.ai-rules-markdown th,
+.ai-rules-markdown td {
+  padding: 7px 10px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+
+.ai-rules-markdown th {
+  background: var(--bg-elevated);
+  font-weight: 600;
+  color: var(--text-primary);
+}

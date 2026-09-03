@@ -136,6 +136,17 @@ import {
 // Environment Doctor 服务模块
 import { runDiagnostics } from './services/doctor/doctorService.js'
 
+// 工作空间智能体 AI 规则服务模块
+import {
+  listWorkspaceAgentRules,
+  readWorkspaceAgentRule,
+  saveWorkspaceAgentRule,
+  createWorkspaceAgentRule,
+  deleteWorkspaceAgentRule,
+  RULE_TEMPLATES,
+  RULE_SNIPPETS
+} from './services/rules/agentRulesService.js'
+
 // Mobile Tools (Provisioning & Simulator)
 import {
   listInstalledProfiles,
@@ -924,6 +935,68 @@ function setupIPC() {
       }
     } catch (err) {
       return { success: false, error: err.message }
+    }
+  })
+
+  // ===== 工作空间智能体 AI 规则管理 =====
+  ipcMain.handle('workspace-list-agent-rules', async (_, { workspaceRoot }) => {
+    return listWorkspaceAgentRules(workspaceRoot)
+  })
+
+  ipcMain.handle('workspace-read-agent-rule', async (_, { workspaceRoot, relativePath }) => {
+    return readWorkspaceAgentRule(workspaceRoot, relativePath)
+  })
+
+  ipcMain.handle('workspace-save-agent-rule', async (_, { workspaceRoot, relativePath, content }) => {
+    const res = await saveWorkspaceAgentRule(workspaceRoot, relativePath, content)
+    writeAuditLog({
+      type: 'WORKSPACE_AGENT_RULE_SAVE',
+      workspaceRoot,
+      relativePath,
+      success: res.success,
+      size: res.size,
+      error: res.error
+    })
+    return res
+  })
+
+  ipcMain.handle(
+    'workspace-create-agent-rule',
+    async (_, { workspaceRoot, relativePath, templateId, customContent }) => {
+      const res = await createWorkspaceAgentRule(
+        workspaceRoot,
+        relativePath,
+        templateId,
+        customContent
+      )
+      writeAuditLog({
+        type: 'WORKSPACE_AGENT_RULE_CREATE',
+        workspaceRoot,
+        relativePath,
+        templateId,
+        success: res.success,
+        error: res.error
+      })
+      return res
+    }
+  )
+
+  ipcMain.handle('workspace-delete-agent-rule', async (_, { workspaceRoot, relativePath }) => {
+    const res = await deleteWorkspaceAgentRule(workspaceRoot, relativePath)
+    writeAuditLog({
+      type: 'WORKSPACE_AGENT_RULE_DELETE',
+      workspaceRoot,
+      relativePath,
+      success: res.success,
+      error: res.error
+    })
+    return res
+  })
+
+  ipcMain.handle('workspace-get-rule-templates', async () => {
+    return {
+      templates: RULE_TEMPLATES,
+      snippets: RULE_SNIPPETS
     }
   })
 

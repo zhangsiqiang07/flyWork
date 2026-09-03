@@ -3,6 +3,7 @@ import ActionRunner from '../components/ActionRunner'
 import EditWorkspaceModal from '../components/EditWorkspaceModal'
 import GitCreateBranchModal from '../components/GitCreateBranchModal'
 import GitAiCommitModal from '../components/GitAiCommitModal'
+import WorkspaceAiRules from '../components/WorkspaceAiRules'
 
 function formatRelTime(iso) {
   const d = new Date(iso)
@@ -14,7 +15,7 @@ function formatRelTime(iso) {
   return `${Math.floor(diff / 86400000)}天前`
 }
 
-const TABS = ['概览', 'Git', '动作', '构建', '会话', '活动']
+const TABS = ['概览', 'Git', 'AI 规则', '动作', '构建', '会话', '活动']
 
 const RISK_CONFIG = {
   readonly: { label: '只读', color: 'var(--text-secondary)', bg: 'var(--bg-hover)' },
@@ -184,6 +185,24 @@ export default function WorkspaceDetail({
     setCurrentPage(1)
   }, [ws, selectedAgentTab])
 
+  const [agentRulesSummary, setAgentRulesSummary] = useState(null)
+
+  const loadRulesSummary = useCallback(async () => {
+    if (!ws?.root || !window.flywork?.workspaceListAgentRules) return
+    try {
+      const res = await window.flywork.workspaceListAgentRules(ws.root)
+      if (res) {
+        setAgentRulesSummary({
+          totalConfigured: res.totalConfigured || 0,
+          totalAgentsConfigured: res.totalAgentsConfigured || 0,
+          agents: res.agents || []
+        })
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [ws?.root])
+
   useEffect(() => {
     if (activeTab === 'Git' || activeTab === '概览') {
       refreshGitData()
@@ -191,7 +210,10 @@ export default function WorkspaceDetail({
     if (activeTab === '会话') {
       loadNativeSessions()
     }
-  }, [refreshGitData, loadNativeSessions, activeTab, selectedAgentTab])
+    if (activeTab === '概览' || activeTab === 'AI 规则') {
+      loadRulesSummary()
+    }
+  }, [refreshGitData, loadNativeSessions, loadRulesSummary, activeTab, selectedAgentTab])
 
   const showGitToast = (msg) => {
     setGitNotice(msg)
@@ -700,6 +722,83 @@ export default function WorkspaceDetail({
                 })}
               </div>
             </div>
+
+            {/* AI Agent Rules Card */}
+            <div className="card" style={{ padding: 16 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 12
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  AI 智能体规则
+                </div>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => setActiveTab('AI 规则')}
+                  style={{ fontSize: 11, color: 'var(--accent-blue)' }}
+                >
+                  管理全部规则 →
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 8,
+                    background: 'var(--accent-blue-dim)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20
+                  }}
+                >
+                  🤖
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {agentRulesSummary
+                      ? `${agentRulesSummary.totalConfigured} 个生效规则`
+                      : '未检测到配置'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                    {agentRulesSummary?.totalAgentsConfigured > 0
+                      ? `已覆盖 ${agentRulesSummary.totalAgentsConfigured} 个主流智能体`
+                      : '尚未配置智能体规范，点击初始化'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {['cursor', 'claude', 'copilot', 'agent-dir', 'windsurf', 'cline', 'opencode'].map((agentId) => {
+                  const agentInfo = agentRulesSummary?.agents?.find((a) => a.id === agentId)
+                  const isConfigured = (agentInfo?.rules?.filter((r) => r.exists)?.length || 0) > 0
+                  return (
+                    <span
+                      key={agentId}
+                      className={`badge ${isConfigured ? 'badge-green' : 'badge-gray'}`}
+                      style={{ fontSize: 10, padding: '2px 7px', opacity: isConfigured ? 1 : 0.6 }}
+                    >
+                      {agentInfo?.icon || '•'} {agentInfo?.name || agentId}
+                      {isConfigured ? ' ✓' : ''}
+                    </span>
+                  )
+                })}
+              </div>
+
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setActiveTab('AI 规则')}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                ✏️ 查看与编辑智能体规则
+              </button>
+            </div>
           </div>
         )}
 
@@ -1004,6 +1103,12 @@ export default function WorkspaceDetail({
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'AI 规则' && (
+          <div style={{ height: '100%', minHeight: 650 }}>
+            <WorkspaceAiRules workspace={ws} />
           </div>
         )}
 

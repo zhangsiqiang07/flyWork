@@ -92,6 +92,24 @@ const flyworkAPI = {
   getNativeThreadMessages: (sessionId) =>
     ipcRenderer.invoke('get-native-thread-messages', { sessionId }),
 
+  // Workspace AI Agent Rules (工作空间智能体 AI 规则)
+  workspaceListAgentRules: (workspaceRoot) =>
+    ipcRenderer.invoke('workspace-list-agent-rules', { workspaceRoot }),
+  workspaceReadAgentRule: (workspaceRoot, relativePath) =>
+    ipcRenderer.invoke('workspace-read-agent-rule', { workspaceRoot, relativePath }),
+  workspaceSaveAgentRule: (workspaceRoot, relativePath, content) =>
+    ipcRenderer.invoke('workspace-save-agent-rule', { workspaceRoot, relativePath, content }),
+  workspaceCreateAgentRule: (workspaceRoot, relativePath, templateId = '', customContent = '') =>
+    ipcRenderer.invoke('workspace-create-agent-rule', {
+      workspaceRoot,
+      relativePath,
+      templateId,
+      customContent
+    }),
+  workspaceDeleteAgentRule: (workspaceRoot, relativePath) =>
+    ipcRenderer.invoke('workspace-delete-agent-rule', { workspaceRoot, relativePath }),
+  workspaceGetRuleTemplates: () => ipcRenderer.invoke('workspace-get-rule-templates'),
+
   // 周报 (Weekly Report) APIs
   getWeeklyCommits: (options) => ipcRenderer.invoke('weekly-report-get-commits', options),
   generateWeeklyReport: (params) => ipcRenderer.invoke('weekly-report-generate', params),
