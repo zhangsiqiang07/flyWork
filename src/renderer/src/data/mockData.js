@@ -475,6 +475,12 @@ export const COMMAND_SUGGESTIONS = [
   { type: 'navigation', label: '打开 KnowledgeOS', icon: '🧠', action: 'navigate:knowledge-os' },
   { type: 'navigation', label: '打开画板 / 架构图', icon: '🎨', action: 'navigate:whiteboard' },
   {
+    type: 'navigation',
+    label: '打开视频工坊 (AI 视频生成)',
+    icon: '🎬',
+    action: 'navigate:video-studio'
+  },
+  {
     type: 'session',
     label: '继续 TabBar 修复会话',
     icon: '▶️',

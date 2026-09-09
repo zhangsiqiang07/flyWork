@@ -14,6 +14,7 @@ export default function Sidebar({
     { id: 'today', label: '今日', icon: <SunIcon /> },
     { id: 'orchestrator', label: '智能编排', icon: <OrchestratorIcon />, badge: 'AI' },
     { id: 'whiteboard', label: '画板', icon: <WhiteboardIcon />, badge: 'AI' },
+    { id: 'video-studio', label: '视频工坊', icon: <VideoStudioIcon />, badge: 'AI' },
     { id: 'weekly-report', label: '周报', icon: <ReportIcon /> },
     { id: 'automations', label: '自动化', icon: <AutoIcon /> },
     { id: 'ios-tools', label: 'iOS 工具箱', icon: <AppleToolboxIcon /> },
@@ -388,6 +389,24 @@ function WhiteboardIcon() {
       <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z" />
       <path d="m15 5 3 3" />
       <path d="M4 20h16" />
+    </svg>
+  )
+}
+
+function VideoStudioIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m22 8-6 4 6 4V8Z" />
+      <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
     </svg>
   )
 }

@@ -81,6 +81,10 @@ const flyworkAPI = {
   showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
   readTextFile: (filePath) => ipcRenderer.invoke('read-text-file', filePath),
 
+  // AI 短剧工作空间与资产
+  dramaCreateWorkspace: (options) => ipcRenderer.invoke('drama-create-workspace', options),
+  dramaSaveAsset: (options) => ipcRenderer.invoke('drama-save-asset', options),
+
   // Resolve a file path from a drag-drop File object.
   // Electron 32+ removed File.path in renderer; webUtils.getPathForFile is the replacement.
   getPathForFile: webUtils.getPathForFile,

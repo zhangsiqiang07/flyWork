@@ -21,6 +21,7 @@ const JenkinsDashboard = lazy(() => import('./views/JenkinsDashboard'))
 const PrdIterationHub = lazy(() => import('./views/PrdIterationHub'))
 const Orchestrator = lazy(() => import('./views/Orchestrator'))
 const Whiteboard = lazy(() => import('./views/Whiteboard'))
+const VideoStudio = lazy(() => import('./views/VideoStudio'))
 
 function ViewSkeleton() {
   return (
@@ -609,6 +610,15 @@ export default function App() {
         return <JenkinsDashboard />
       case 'whiteboard':
         return <Whiteboard />
+      case 'video-studio':
+        return (
+          <VideoStudio
+            workspaces={workspaces}
+            onNavigate={navigateTo}
+            onOpenWorkspace={openWorkspace}
+            onAddNewWorkspace={(newWs) => setWorkspaces((prev) => [newWs, ...prev])}
+          />
+        )
       default:
         return null
     }

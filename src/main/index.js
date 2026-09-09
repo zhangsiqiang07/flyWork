@@ -941,6 +941,102 @@ function setupIPC() {
     }
   })
 
+  // ===== AI 短剧工作空间与资产管理 =====
+  ipcMain.handle('drama-create-workspace', async (_, { projectName, parentDir }) => {
+    try {
+      const baseDir = parentDir || join(homedir(), 'Documents', 'FlyWorkDramas')
+      const cleanName = (projectName || '新短剧项目').replace(/[/\\?%*:|"<>]/g, '_')
+      const targetDir = join(baseDir, cleanName)
+
+      if (!existsSync(targetDir)) {
+        mkdirSync(targetDir, { recursive: true })
+      }
+      const dirs = ['assets/characters', 'assets/locations', 'assets/shots', 'scripts']
+      for (const d of dirs) {
+        const full = join(targetDir, d)
+        if (!existsSync(full)) {
+          mkdirSync(full, { recursive: true })
+        }
+      }
+
+      const configPath = join(targetDir, 'drama.config.json')
+      if (!existsSync(configPath)) {
+        writeFileSync(
+          configPath,
+          JSON.stringify(
+            {
+              projectName,
+              format: '9:16',
+              platform: '红果短剧',
+              createdAt: new Date().toISOString()
+            },
+            null,
+            2
+          )
+        )
+      }
+
+      const readmePath = join(targetDir, 'README.md')
+      if (!existsSync(readmePath)) {
+        writeFileSync(
+          readmePath,
+          `# ${projectName}\n\nFlyWork AI 短剧生产工程\n- 包含角色资产 (assets/characters)\n- 场景资产 (assets/locations)\n- 镜头回填资产 (assets/shots)\n- 剧本与分集 (scripts)\n`
+        )
+      }
+
+      const newWs = {
+        id: `ws-drama-${Date.now()}`,
+        name: projectName,
+        icon: '🎬',
+        color: '#a371f7',
+        bgColor: 'rgba(163,113,247,0.15)',
+        root: targetDir,
+        description: `红果 AI 短剧: ${projectName}`,
+        gitBranch: 'main',
+        gitModifiedFiles: [],
+        lastCommit: '短剧项目初始化',
+        lastCommitHash: '',
+        lastCommitTime: '刚刚',
+        buildStatus: 'success',
+        buildMessage: '资产就绪',
+        services: [],
+        actions: [
+          { id: 'open-finder', name: '打开资产目录', risk: 'readonly', icon: '📁' },
+          { id: 'open-terminal', name: '打开终端', risk: 'readonly', icon: '💻' }
+        ],
+        tags: ['AI短剧', '9:16']
+      }
+
+      return { success: true, workspace: newWs, folderPath: targetDir }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('drama-save-asset', async (_, { workspaceRoot, relativePath, base64Data }) => {
+    try {
+      if (!workspaceRoot || !relativePath) {
+        return { success: false, error: '缺少保存参数' }
+      }
+      const fullPath = join(workspaceRoot, relativePath)
+      const parent = join(fullPath, '..')
+      if (!existsSync(parent)) {
+        mkdirSync(parent, { recursive: true })
+      }
+      let buffer
+      if (base64Data.startsWith('data:')) {
+        const parts = base64Data.split(',')
+        buffer = Buffer.from(parts[1], 'base64')
+      } else {
+        buffer = Buffer.from(base64Data, 'base64')
+      }
+      writeFileSync(fullPath, buffer)
+      return { success: true, filePath: fullPath }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
   // ===== 工作空间智能体 AI 规则管理 =====
   ipcMain.handle('workspace-list-agent-rules', async (_, { workspaceRoot }) => {
     return listWorkspaceAgentRules(workspaceRoot)
