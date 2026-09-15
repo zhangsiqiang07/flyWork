@@ -115,6 +115,9 @@ import {
 import {
   detectLocalAgentsInfo,
   getWeeklyCommits,
+  getWeeklyAgentChats,
+  getAgentSessionMessages,
+  parseClaudeSessionFile,
   generateWeeklyReport,
   cancelWeeklyReportGeneration
 } from './services/weeklyReport.js'
@@ -1440,9 +1443,40 @@ function setupIPC() {
     }
   })
 
+  ipcMain.handle('weekly-report-get-agent-chats', async (_, options) => {
+    try {
+      const result = await getWeeklyAgentChats(options || {})
+      const chats = Array.isArray(result) ? result : (result.chats || [])
+      const fallbackRecentChats = result.fallbackRecentChats || []
+      const totalDiscoveredCount =
+        result.totalDiscoveredCount || (chats.length + fallbackRecentChats.length)
+      return { success: true, chats, fallbackRecentChats, totalDiscoveredCount }
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message,
+        chats: [],
+        fallbackRecentChats: [],
+        totalDiscoveredCount: 0
+      }
+    }
+  })
+
+  ipcMain.handle('weekly-report-get-chat-messages', async (_, { sessionId, agentType }) => {
+    try {
+      const messages = getAgentSessionMessages(sessionId, agentType || '')
+      return { success: true, messages }
+    } catch (err) {
+      return { success: false, error: err.message, messages: [] }
+    }
+  })
+
   ipcMain.handle(
     'weekly-report-generate',
-    async (event, { taskId, agentId, prompt, commits, repoNames, dateRange, workdir }) => {
+    async (
+      event,
+      { taskId, agentId, prompt, commits, chatRecords, repoNames, dateRange, workdir }
+    ) => {
       const sender = event.sender
       const sendChunk = (chunk) => {
         if (!sender.isDestroyed()) {
@@ -1455,7 +1489,8 @@ function setupIPC() {
         agentId,
         taskId,
         repoCount: repoNames?.length || 0,
-        commitCount: commits?.length || 0
+        commitCount: commits?.length || 0,
+        chatCount: chatRecords?.length || 0
       })
 
       try {
@@ -1464,6 +1499,7 @@ function setupIPC() {
           agentId,
           prompt,
           commits,
+          chatRecords,
           repoNames,
           dateRange,
           workdir,
@@ -1588,6 +1624,98 @@ function setupIPC() {
 
     // 2. Claude Code native parser
     if (!agent || agent.toLowerCase().includes('claude')) {
+      const claudeProjectsDir = join(homedir(), '.claude', 'projects')
+      if (existsSync(claudeProjectsDir)) {
+        try {
+          const pDirs = readdirSync(claudeProjectsDir, { withFileTypes: true })
+          for (const dirent of pDirs) {
+            if (!dirent.isDirectory()) continue
+            const dName = dirent.name
+            const fullProjDir = join(claudeProjectsDir, dName)
+            const dNameLower = dName.toLowerCase()
+
+            let isMatched = false
+            if (projectPath) {
+              const pLower = projectPath.toLowerCase()
+              const encoded = pLower.replace(/[/\\]/g, '-')
+              const encodedWithLeading =
+                '-' + pLower.replace(/^[/\\]+/, '').replace(/[/\\]/g, '-')
+              if (
+                dNameLower === encoded ||
+                dNameLower === encodedWithLeading ||
+                dNameLower.endsWith('-' + basename(projectPath).toLowerCase())
+              ) {
+                isMatched = true
+              }
+            }
+            if (!isMatched && workspaceName) {
+              const wsLower = workspaceName.toLowerCase()
+              if (dNameLower.endsWith('-' + wsLower) || dNameLower === wsLower) {
+                isMatched = true
+              }
+            }
+
+            let sessionFiles = []
+            try {
+              sessionFiles = readdirSync(fullProjDir).filter((f) => f.endsWith('.jsonl'))
+            } catch {}
+
+            if (!isMatched && sessionFiles.length > 0 && (projectPath || workspaceName)) {
+              try {
+                const sampleLines = readFileSync(join(fullProjDir, sessionFiles[0]), 'utf-8')
+                  .split('\n')
+                  .slice(0, 10)
+                for (const sl of sampleLines) {
+                  if (!sl) continue
+                  try {
+                    const it = JSON.parse(sl)
+                    if (it.cwd) {
+                      const cwdLower = it.cwd.toLowerCase()
+                      if (
+                        (projectPath && cwdLower === projectPath.toLowerCase()) ||
+                        (workspaceName && cwdLower.endsWith('/' + workspaceName.toLowerCase()))
+                      ) {
+                        isMatched = true
+                        break
+                      }
+                    }
+                  } catch {}
+                }
+              } catch {}
+            }
+
+            if (!isMatched) continue
+
+            for (const sFile of sessionFiles) {
+              const sId = basename(sFile, '.jsonl')
+              if (seenThreadIds.has(sId)) continue
+              const fullSFile = join(fullProjDir, sFile)
+
+              try {
+                const parsed = parseClaudeSessionFile(fullSFile)
+                if (!parsed) continue
+                seenThreadIds.add(sId)
+
+                const ts = parsed.latestTimestamp || statSync(fullSFile).mtimeMs
+                const dateObj = new Date(ts)
+                sessions.push({
+                  sessionId: sId,
+                  agent: 'Claude Code',
+                  summary: parsed.title || `Claude Code 会话 ${sId.slice(0, 6)}`,
+                  updatedAt: dateObj.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }),
+                  rawTimestamp: ts,
+                  isMatched: true
+                })
+              } catch {}
+            }
+          }
+        } catch {}
+      }
+
+      // Fallback: Also check ~/.claude/history.jsonl
       const claudeHist = join(homedir(), '.claude', 'history.jsonl')
       if (existsSync(claudeHist)) {
         try {
@@ -1638,98 +1766,11 @@ function setupIPC() {
   // Get full messages for a specific native agent session/thread
   ipcMain.handle('get-native-thread-messages', async (_, { sessionId }) => {
     if (!sessionId) return []
-    const messages = []
-
-    // Helper recursive search
-    const findFile = (dir, targetId) => {
-      if (!existsSync(dir)) return null
-      try {
-        const entries = readdirSync(dir, { withFileTypes: true })
-        for (const entry of entries) {
-          const fullPath = join(dir, entry.name)
-          if (entry.isDirectory()) {
-            const found = findFile(fullPath, targetId)
-            if (found) return found
-          } else if (entry.name.includes(targetId)) {
-            return fullPath
-          }
-        }
-      } catch {}
-      return null
-    }
-
-    // 1. Search in ~/.codex/sessions
-    const codexSessDir = join(homedir(), '.codex', 'sessions')
-    const foundCodexFile = findFile(codexSessDir, sessionId)
-    if (foundCodexFile) {
-      try {
-        const content = readFileSync(foundCodexFile, 'utf-8')
-        content
-          .split('\n')
-          .filter(Boolean)
-          .forEach((line) => {
-            try {
-              const item = JSON.parse(line)
-              if (item.type === 'event_msg' && item.payload) {
-                const pType = item.payload.type
-                if (pType === 'user_message' || pType === 'agent_message') {
-                  const role = pType === 'user_message' ? 'user' : 'assistant'
-                  const text =
-                    item.payload.message || item.payload.text || item.payload.content || ''
-                  if (text && typeof text === 'string') {
-                    messages.push({
-                      role,
-                      content: text,
-                      time: item.payload.timestamp
-                        ? new Date(item.payload.timestamp).toLocaleTimeString('zh-CN', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : ''
-                    })
-                  }
-                }
-              }
-            } catch {}
-          })
-      } catch {}
-      if (messages.length > 0) return messages
-    }
-
-    // 2. Search in ~/.claude/history.jsonl
-    const claudeHist = join(homedir(), '.claude', 'history.jsonl')
-    if (existsSync(claudeHist)) {
-      try {
-        const content = readFileSync(claudeHist, 'utf-8')
-        content
-          .split('\n')
-          .filter(Boolean)
-          .forEach((line) => {
-            try {
-              const item = JSON.parse(line)
-              if (item.sessionId === sessionId || String(item.timestamp) === sessionId) {
-                if (item.display && item.display !== 'status') {
-                  const role =
-                    item.display === 'assistant' || item.display === 'model' ? 'assistant' : 'user'
-                  const text = typeof item.display === 'string' ? item.display : `命令记录`
-                  messages.push({
-                    role,
-                    content: text,
-                    time: item.timestamp
-                      ? new Date(item.timestamp).toLocaleTimeString('zh-CN', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : ''
-                  })
-                }
-              }
-            } catch {}
-          })
-      } catch {}
-    }
-
-    return messages
+    try {
+      const msgs = getAgentSessionMessages(sessionId)
+      if (msgs && msgs.length > 0) return msgs
+    } catch {}
+    return []
   })
 
   // Generate AI Commit preview (Conventional Commit)

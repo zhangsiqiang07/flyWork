@@ -2,21 +2,25 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-const DEFAULT_PROMPT = `请根据以下 Git 提交记录，为我生成一份专业、精炼、结构清晰的本周工作周报（Markdown 格式）。
+const DEFAULT_PROMPT = `请根据以下 Git 提交记录以及各个智能体关联项目的研发会话记录，为我生成一份专业、精炼、结构清晰的本周工作周报（Markdown 格式）。
 
 周报内容结构要求：
-1. 🌟 本周工作概览（用 2-3 句话总结本周的核心产出与业务价值）
-2. 🚀 重点功能与需求交付（按模块/业务线分类，突出新功能与重要改动）
-3. 🛠️ 缺陷修复与工程优化（列出修复的 Bug、性能优化、重构及工程化改进）
-4. 📈 下周工作计划与展望（基于本周进展合理推演下周工作重点）
-5. ⚠️ 风险、阻塞点与协作建议（如有）
+1. 🌟 本周工作概览（用 2-3 句话总结本周的核心产出、业务价值与智能体协同成效）
+2. 🚀 重点功能与需求交付（按模块/业务线分类，结合代码提交与智能体方案讨论突出重要改动）
+3. 🤖 智能体研发协作与技术研讨（提炼与各个智能体协同解决的关键方案、架构设计、技术调研与问题排查）
+4. 🛠️ 缺陷修复与工程优化（列出修复的 Bug、性能优化、重构及工程化改进）
+5. 📈 下周工作计划与展望（基于本周进展与讨论合理推演下周工作重点）
+6. ⚠️ 风险、阻塞点与协作建议（如有）
 
 输出规范：
 - 使用标准 Markdown 语法，层次分明，可直接用于团队周报或邮件汇报。
 - 语言精炼专业，条理清晰，突出成果与业务价值。
 
-【本周提交记录详情】：
-{commits}`
+【本周 Git 提交记录详情】：
+{commits}
+
+【关联智能体研发会话记录】：
+{chatRecords}`
 
 const TIME_PRESETS = [
   { id: '7d', label: '最近 7 天' },
@@ -82,6 +86,8 @@ function computeSinceUntil(preset, customSince, customUntil) {
 
 export default function WeeklyReport({
   workspaces = [],
+  sessions = [],
+  chatHistories = {},
   weeklyReports = [],
   setWeeklyReports,
   cachedRepos = [],
@@ -105,6 +111,17 @@ export default function WeeklyReport({
   const [isLoadingCommits, setIsLoadingCommits] = useState(false)
   const [selectedCommitIds, setSelectedCommitIds] = useState(new Set())
   const [manualCommits, setManualCommits] = useState([])
+
+  // 3.1 Agent Chats state
+  const [chatsData, setChatsData] = useState([])
+  const [fallbackRecentChats, setFallbackRecentChats] = useState([])
+  const [totalDiscoveredChatsCount, setTotalDiscoveredChatsCount] = useState(0)
+  const [isLoadingChats, setIsLoadingChats] = useState(false)
+  const [selectedChatIds, setSelectedChatIds] = useState(new Set())
+  const [selectedChatAgent, setSelectedChatAgent] = useState('ALL')
+  const [activeDetailChat, setActiveDetailChat] = useState(null)
+  const [isLoadingDetailMessages, setIsLoadingDetailMessages] = useState(false)
+  const [recordListTab, setRecordListTab] = useState('commits') // 'commits' | 'chats'
 
   // 4. Prompt state
   const [promptTemplate, setPromptTemplate] = useState(cachedPrompt || DEFAULT_PROMPT)
@@ -130,6 +147,8 @@ export default function WeeklyReport({
   const [historySearch, setHistorySearch] = useState('')
 
   const logEndRef = useRef(null)
+  const fetchCommitSeqRef = useRef(0)
+  const fetchChatsSeqRef = useRef(0)
 
   // Initialize and merge repositories from workspaces + cached repos
   useEffect(() => {
@@ -162,14 +181,33 @@ export default function WeeklyReport({
     }
 
     const merged = Array.from(map.values())
-    setRepos(merged)
+    setRepos((prev) => {
+      if (
+        prev.length === merged.length &&
+        prev.every((r, i) => r.path === merged[i]?.path && r.name === merged[i]?.name)
+      ) {
+        return prev
+      }
+      return merged
+    })
 
-    // Default select initialRepoPath or all workspaces
-    if (initialRepoPath && map.has(initialRepoPath)) {
-      setSelectedRepoPaths(new Set([initialRepoPath]))
-    } else if (merged.length > 0) {
-      setSelectedRepoPaths(new Set(merged.map((r) => r.path)))
-    }
+    // Default select initialRepoPath or retain existing selection or select all
+    setSelectedRepoPaths((prev) => {
+      if (initialRepoPath && map.has(initialRepoPath)) {
+        if (prev.size === 1 && prev.has(initialRepoPath)) return prev
+        return new Set([initialRepoPath])
+      }
+      if (prev && prev.size > 0) {
+        const validSelections = Array.from(prev).filter((p) => map.has(p))
+        if (validSelections.length > 0) {
+          if (validSelections.length === prev.size) {
+            return prev
+          }
+          return new Set(validSelections)
+        }
+      }
+      return new Set(merged.map((r) => r.path))
+    })
   }, [workspaces, cachedRepos, initialRepoPath])
 
   // Detect local agents
@@ -264,6 +302,11 @@ export default function WeeklyReport({
     }
   }
 
+  const selectedRepoPathsKey = useMemo(
+    () => Array.from(selectedRepoPaths).sort().join(','),
+    [selectedRepoPaths]
+  )
+
   // Fetch commits from selected repositories
   const fetchCommits = useCallback(async () => {
     const activePaths = Array.from(selectedRepoPaths)
@@ -274,6 +317,7 @@ export default function WeeklyReport({
       return
     }
 
+    const seq = ++fetchCommitSeqRef.current
     setIsLoadingCommits(true)
     try {
       const { since, until } = computeSinceUntil(timePreset, customSince, customUntil)
@@ -286,6 +330,8 @@ export default function WeeklyReport({
           author: selectedAuthor === 'ALL' ? '' : selectedAuthor,
           limit: timePreset === 'all' ? 50 : 100
         })
+
+        if (seq !== fetchCommitSeqRef.current) return
 
         if (res.success && Array.isArray(res.results)) {
           setCommitsData(res.results)
@@ -300,16 +346,263 @@ export default function WeeklyReport({
         }
       }
     } catch (err) {
-      console.error('Failed to get commits:', err)
+      if (seq === fetchCommitSeqRef.current) {
+        console.error('Failed to get commits:', err)
+      }
     } finally {
-      setIsLoadingCommits(false)
+      if (seq === fetchCommitSeqRef.current) {
+        setIsLoadingCommits(false)
+      }
     }
-  }, [selectedRepoPaths, timePreset, customSince, customUntil, selectedAuthor])
+  }, [selectedRepoPathsKey, timePreset, customSince, customUntil, selectedAuthor])
 
   // Fetch commits whenever repos, time preset, or author changes
   useEffect(() => {
     fetchCommits()
   }, [fetchCommits])
+
+  // Fetch agent chats from selected repositories & workspaces
+  const fetchAgentChats = useCallback(async () => {
+    const activePaths = Array.from(selectedRepoPaths)
+    const activeRepoNames = repos
+      .filter((r) => selectedRepoPaths.has(r.path))
+      .map((r) => r.name)
+
+    if (activePaths.length === 0) {
+      setChatsData([])
+      setSelectedChatIds(new Set())
+      return
+    }
+
+    const seq = ++fetchChatsSeqRef.current
+    setIsLoadingChats(true)
+    try {
+      const { since, until } = computeSinceUntil(timePreset, customSince, customUntil)
+      let collectedChats = []
+
+      // 1. Fetch native agent chats from main process
+      if (window.flywork?.getWeeklyAgentChats) {
+        try {
+          const res = await window.flywork.getWeeklyAgentChats({
+            repoPaths: activePaths,
+            repoNames: activeRepoNames,
+            since,
+            until,
+            agent: 'ALL'
+          })
+          if (res?.success && Array.isArray(res.chats)) {
+            collectedChats.push(...res.chats)
+            setFallbackRecentChats(res.fallbackRecentChats || [])
+            setTotalDiscoveredChatsCount(res.totalDiscoveredCount || res.chats.length)
+          }
+        } catch (e) {
+          console.error('Failed to get native agent chats:', e)
+        }
+      }
+
+      if (seq !== fetchChatsSeqRef.current) return
+
+      // 2. Also incorporate in-app workspace sessions matching selected repositories
+      const seenSessionIds = new Set(collectedChats.map((c) => c.sessionId))
+
+      const matchingWorkspaces = workspaces.filter(
+        (ws) =>
+          ws &&
+          (activePaths.includes(ws.root) ||
+            activeRepoNames.some((n) => n && ws.name?.toLowerCase().includes(n.toLowerCase())))
+      )
+
+      const sinceMs = since ? new Date(`${since}T00:00:00`).getTime() : 0
+      const untilMs = until ? new Date(`${until}T23:59:59`).getTime() : Infinity
+
+      matchingWorkspaces.forEach((ws) => {
+        // A) Find sessions for this workspace
+        const wsSessions = (sessions || []).filter((s) => s.workspaceId === ws.id)
+        wsSessions.forEach((s) => {
+          if (seenSessionIds.has(s.id)) return
+          const dateObj = s.updatedAt ? new Date(s.updatedAt) : new Date()
+          const ts = dateObj.getTime()
+          if (ts > 0 && (ts < sinceMs || ts > untilMs)) return
+
+          seenSessionIds.add(s.id)
+
+          // Build messages list
+          let msgs = Array.isArray(s.messages) ? s.messages : []
+          if (msgs.length === 0 && s.notes) {
+            msgs = [
+              {
+                role: 'assistant',
+                content: s.notes,
+                time: s.updatedAt ? formatTime(s.updatedAt) : ''
+              }
+            ]
+          }
+
+          const defaultAgentName =
+            s.aiTasks?.[0]?.agent || ws.defaultAgent || 'FlyDeck AI'
+
+          collectedChats.push({
+            id: `app-sess-${s.id}`,
+            sessionId: s.id,
+            agent: defaultAgentName,
+            title: s.title || `会话 ${s.id}`,
+            summary: s.title || s.notes || '项目协作研讨',
+            repoName: ws.name || '工作空间',
+            repoPath: ws.root || '',
+            date: dateObj.toISOString().slice(0, 10),
+            updatedAt: formatTime(s.updatedAt),
+            rawTimestamp: ts,
+            messageCount: Math.max(msgs.length, s.aiTasks?.length || 1),
+            messages: msgs,
+            preview: s.notes || s.title || '工作空间研发推进',
+            notes: s.notes,
+            included: true
+          })
+        })
+
+        // B) Check chatHistories for this workspace without explicit session
+        if (chatHistories) {
+          Object.entries(chatHistories).forEach(([tKey, hMsgs]) => {
+            if (tKey.startsWith(ws.id) && Array.isArray(hMsgs) && hMsgs.length > 0) {
+              const syntheticId = `history-${tKey}`
+              if (!seenSessionIds.has(syntheticId)) {
+                seenSessionIds.add(syntheticId)
+                const parts = tKey.split('_')
+                const inferredAgent = parts[1] || ws.defaultAgent || 'FlyDeck AI'
+                collectedChats.push({
+                  id: syntheticId,
+                  sessionId: syntheticId,
+                  agent: inferredAgent,
+                  title: `《${ws.name} 智能分析与问答》`,
+                  summary: hMsgs[0]?.content?.slice(0, 60) || 'AI 研发问答与建议',
+                  repoName: ws.name,
+                  repoPath: ws.root,
+                  date: new Date().toISOString().slice(0, 10),
+                  updatedAt: '最近',
+                  rawTimestamp: Date.now(),
+                  messageCount: hMsgs.length,
+                  messages: hMsgs,
+                  preview: hMsgs[0]?.content || '',
+                  included: true
+                })
+              }
+            }
+          })
+        }
+      })
+
+      if (seq !== fetchChatsSeqRef.current) return
+
+      // Sort chats descending by time
+      collectedChats.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+      setChatsData(collectedChats)
+
+      // Default check all fetched chats
+      setSelectedChatIds(new Set(collectedChats.map((c) => c.id)))
+    } catch (err) {
+      if (seq === fetchChatsSeqRef.current) {
+        console.error('Failed to get agent chats:', err)
+      }
+    } finally {
+      if (seq === fetchChatsSeqRef.current) {
+        setIsLoadingChats(false)
+      }
+    }
+  }, [
+    selectedRepoPathsKey,
+    repos,
+    timePreset,
+    customSince,
+    customUntil,
+    workspaces,
+    sessions,
+    chatHistories
+  ])
+
+  // Handle loading fallback recent chats
+  const handleLoadFallbackChats = useCallback(() => {
+    if (!fallbackRecentChats || fallbackRecentChats.length === 0) return
+    setChatsData((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id))
+      const toAdd = fallbackRecentChats.filter((c) => !existingIds.has(c.id))
+      const combined = [...prev, ...toAdd].sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+      setSelectedChatIds((prevSelected) => {
+        const next = new Set(prevSelected)
+        toAdd.forEach((c) => next.add(c.id))
+        return next
+      })
+      return combined
+    })
+    setFallbackRecentChats([])
+  }, [fallbackRecentChats])
+
+  // Open and lazily load detailed messages for a chat
+  const handleOpenDetailChat = useCallback(async (chat) => {
+    if (!chat) return
+    setActiveDetailChat(chat)
+
+    // If chat already has detailed messages, no need to fetch
+    if (Array.isArray(chat.messages) && chat.messages.length > 0) return
+
+    if (window.flywork?.getWeeklyChatMessages) {
+      setIsLoadingDetailMessages(true)
+      try {
+        const res = await window.flywork.getWeeklyChatMessages(chat.sessionId, chat.agent)
+        if (res?.success && Array.isArray(res.messages)) {
+          setActiveDetailChat((prev) =>
+            prev && prev.id === chat.id ? { ...prev, messages: res.messages } : prev
+          )
+          setChatsData((prev) =>
+            prev.map((c) =>
+              c.id === chat.id
+                ? { ...c, messages: res.messages, messageCount: res.messages.length || c.messageCount }
+                : c
+            )
+          )
+        }
+      } catch (err) {
+        console.error('Failed to load chat messages for detail:', err)
+      } finally {
+        setIsLoadingDetailMessages(false)
+      }
+    }
+  }, [])
+
+  // Fetch chats whenever repos or time preset changes
+  useEffect(() => {
+    fetchAgentChats()
+  }, [fetchAgentChats])
+
+  // Filtered chats by selected agent
+  const allChatAgents = useMemo(() => {
+    return Array.from(new Set(chatsData.map((c) => c.agent).filter(Boolean)))
+  }, [chatsData])
+
+  const filteredChats = useMemo(() => {
+    if (selectedChatAgent === 'ALL') return chatsData
+    return chatsData.filter((c) => c.agent === selectedChatAgent)
+  }, [chatsData, selectedChatAgent])
+
+  const includedChats = useMemo(() => {
+    return chatsData.filter((c) => selectedChatIds.has(c.id))
+  }, [chatsData, selectedChatIds])
+
+  const handleToggleChat = (id) => {
+    setSelectedChatIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAllChats = (selectAll) => {
+    if (selectAll) {
+      setSelectedChatIds(new Set(chatsData.map((c) => c.id)))
+    } else {
+      setSelectedChatIds(new Set())
+    }
+  }
 
   // Load fallback recent commits
   const handleLoadFallbackCommits = () => {
@@ -392,8 +685,8 @@ export default function WeeklyReport({
 
   // Start Weekly Report Generation
   const handleGenerateReport = async () => {
-    if (includedCommits.length === 0) {
-      alert('请先至少选择 1 条 Git 提交记录！')
+    if (includedCommits.length === 0 && includedChats.length === 0) {
+      alert('请至少勾选 1 条 Git 提交记录或 1 场智能体会话！')
       return
     }
 
@@ -417,6 +710,7 @@ export default function WeeklyReport({
           agentId: selectedAgentId,
           prompt: promptTemplate,
           commits: includedCommits,
+          chatRecords: includedChats,
           repoNames: selectedRepoNames,
           dateRange: getDateRangeLabel(timePreset),
           workdir: Array.from(selectedRepoPaths)[0] || ''
@@ -435,12 +729,20 @@ export default function WeeklyReport({
             prompt: promptTemplate,
             content: res.report,
             commitCount: includedCommits.length,
+            chatCount: includedChats.length,
             commits: includedCommits.map((c) => ({
               hash: c.shortHash,
               subject: c.subject,
               repo: c.repoName,
               date: c.date,
               author: c.author
+            })),
+            chats: includedChats.map((c) => ({
+              id: c.id,
+              agent: c.agent,
+              title: c.title,
+              repo: c.repoName,
+              date: c.date
             }))
           }
 
@@ -491,12 +793,20 @@ export default function WeeklyReport({
         prompt: promptTemplate,
         content: currentReportContent,
         commitCount: includedCommits.length,
+        chatCount: includedChats.length,
         commits: includedCommits.map((c) => ({
           hash: c.shortHash,
           subject: c.subject,
           repo: c.repoName,
           date: c.date,
           author: c.author
+        })),
+        chats: includedChats.map((c) => ({
+          id: c.id,
+          agent: c.agent,
+          title: c.title,
+          repo: c.repoName,
+          date: c.date
         }))
       }
       setActiveReportId(newId)
@@ -1003,209 +1313,579 @@ export default function WeeklyReport({
             )}
           </div>
 
-          {/* Section 4: Commits Selection List */}
+          {/* Section 4: Records Selection (Commits + Agent Chats Tabs) */}
           <div
             className="card"
             style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 10
-              }}
-            >
-              <div
+            {/* Tab switchers */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${recordListTab === 'commits' ? 'btn-primary' : 'btn-secondary'}`}
                 style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
+                  flex: 1,
+                  fontSize: 11,
+                  padding: '5px 8px',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 6
                 }}
+                onClick={() => setRecordListTab('commits')}
               >
-                <span>📋 提取的提交记录</span>
-                <span className="badge badge-green" style={{ fontSize: 10 }}>
-                  {includedCommits.length} / {allCommits.length} 条已勾选
+                <span>📋 Git 提交</span>
+                <span
+                  className={`badge ${recordListTab === 'commits' ? 'badge-blue' : 'badge-gray'}`}
+                  style={{ fontSize: 10 }}
+                >
+                  {includedCommits.length} / {allCommits.length}
                 </span>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ fontSize: 10, padding: '2px 6px' }}
-                  onClick={() =>
-                    handleSelectAllCommits(selectedCommitIds.size !== allCommits.length)
-                  }
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${recordListTab === 'chats' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  flex: 1,
+                  fontSize: 11,
+                  padding: '5px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+                onClick={() => setRecordListTab('chats')}
+              >
+                <span>💬 智能体聊天</span>
+                <span
+                  className={`badge ${recordListTab === 'chats' ? 'badge-blue' : 'badge-purple'}`}
+                  style={{ fontSize: 10 }}
                 >
-                  {selectedCommitIds.size === allCommits.length ? '全部取消' : '全选'}
-                </button>
-                <button
-                  className="btn btn-ghost btn-icon btn-sm"
-                  title="刷新提交记录"
-                  onClick={fetchCommits}
-                  disabled={isLoadingCommits}
-                >
-                  🔄
-                </button>
-              </div>
+                  {includedChats.length} / {chatsData.length}
+                </span>
+              </button>
             </div>
 
-            {isLoadingCommits ? (
-              <div
-                style={{
-                  padding: 24,
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: 12
-                }}
-              >
+            {recordListTab === 'commits' ? (
+              <>
                 <div
                   style={{
-                    fontSize: 24,
-                    marginBottom: 8,
-                    animation: 'spin 1.2s linear infinite',
-                    display: 'inline-block'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 10
                   }}
                 >
-                  ⟳
-                </div>
-                <div>正在从 Git 仓库拉取提交记录...</div>
-              </div>
-            ) : allCommits.length === 0 ? (
-              <div
-                style={{
-                  padding: '16px 12px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: 12,
-                  background: 'var(--bg-elevated)',
-                  borderRadius: 8,
-                  border: '1px dashed var(--border)'
-                }}
-              >
-                <div style={{ fontSize: 20, marginBottom: 6 }}>📭</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                  所选时间范围内暂无 Git 提交记录
-                </div>
-                {hasFallbackAvailable ? (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                      仓库最近一次提交记录于较早时间，点击下方按钮可直接载入最近提交：
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        style={{ fontSize: 11 }}
-                        onClick={handleLoadFallbackCommits}
-                      >
-                        👉 载入最近历史提交
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: 11 }}
-                        onClick={() => setTimePreset('all')}
-                      >
-                        切换至「全部近期提交」
-                      </button>
-                    </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>📋 提取的提交记录</span>
+                    <span className="badge badge-green" style={{ fontSize: 10 }}>
+                      {includedCommits.length} / {allCommits.length} 条已勾选
+                    </span>
                   </div>
-                ) : (
-                  <div style={{ fontSize: 11, marginTop: 6 }}>
-                    可尝试在上方切换时间为「全部近期提交」或「最近 30 天」。
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 10, padding: '2px 6px' }}
+                      onClick={() =>
+                        handleSelectAllCommits(selectedCommitIds.size !== allCommits.length)
+                      }
+                    >
+                      {selectedCommitIds.size === allCommits.length ? '全部取消' : '全选'}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-icon btn-sm"
+                      title="刷新提交记录"
+                      onClick={fetchCommits}
+                      disabled={isLoadingCommits}
+                    >
+                      🔄
+                    </button>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  maxHeight: 340,
-                  overflowY: 'auto',
-                  paddingRight: 4
-                }}
-              >
-                {allCommits.map((c) => {
-                  const isSelected = selectedCommitIds.has(c.id)
-                  return (
+                </div>
+
+                {isLoadingCommits ? (
+                  <div
+                    style={{
+                      padding: 24,
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: 12
+                    }}
+                  >
                     <div
-                      key={c.id}
-                      onClick={() => handleToggleCommit(c.id)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 8,
-                        padding: '8px 10px',
-                        borderRadius: 6,
-                        background: isSelected ? 'var(--bg-elevated)' : 'rgba(255,255,255,0.015)',
-                        border: `1px solid ${isSelected ? 'rgba(79,158,248,0.3)' : 'var(--border)'}`,
-                        cursor: 'pointer',
-                        transition: 'all 120ms ease'
+                        fontSize: 24,
+                        marginBottom: 8,
+                        animation: 'spin 1.2s linear infinite',
+                        display: 'inline-block'
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => {}}
-                        style={{
-                          marginTop: 2,
-                          cursor: 'pointer',
-                          accentColor: 'var(--accent-blue)'
-                        }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      ⟳
+                    </div>
+                    <div>正在从 Git 仓库拉取提交记录...</div>
+                  </div>
+                ) : allCommits.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '16px 12px',
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: 12,
+                      background: 'var(--bg-elevated)',
+                      borderRadius: 8,
+                      border: '1px dashed var(--border)'
+                    }}
+                  >
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>📭</div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                      所选时间范围内暂无 Git 提交记录
+                    </div>
+                    {hasFallbackAvailable ? (
+                      <div style={{ marginTop: 10 }}>
                         <div
                           style={{
-                            fontSize: 12,
-                            fontWeight: 500,
-                            color: 'var(--text-primary)',
-                            lineHeight: 1.4,
-                            wordBreak: 'break-word'
+                            fontSize: 11,
+                            color: 'var(--text-secondary)',
+                            marginBottom: 8
                           }}
                         >
-                          {c.subject}
+                          仓库最近一次提交记录于较早时间，点击下方按钮可直接载入最近提交：
                         </div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: 'var(--text-muted)',
-                            marginTop: 4,
-                            display: 'flex',
-                            gap: 8,
-                            flexWrap: 'wrap',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <span
-                            className="badge badge-purple"
-                            style={{ fontSize: 9, padding: '1px 5px' }}
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: 11 }}
+                            onClick={handleLoadFallbackCommits}
                           >
-                            👤 {c.author}
-                          </span>
-                          <span
-                            className="badge badge-gray"
-                            style={{ fontSize: 9, fontFamily: 'monospace' }}
+                            👉 载入最近历史提交
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: 11 }}
+                            onClick={() => setTimePreset('all')}
                           >
-                            📂 {c.repoName}
-                          </span>
-                          <code style={{ fontSize: 9, color: 'var(--accent-blue)' }}>
-                            {c.shortHash}
-                          </code>
-                          <span>🕒 {c.date || c.relativeDate}</span>
-                          {c.stats?.filesChanged > 0 && (
-                            <span style={{ color: 'var(--accent-green)' }}>
-                              +{c.stats.insertions} / -{c.stats.deletions}
-                            </span>
-                          )}
+                            切换至「全部近期提交」
+                          </button>
                         </div>
                       </div>
+                    ) : (
+                      <div style={{ fontSize: 11, marginTop: 6 }}>
+                        可尝试在上方切换时间为「全部近期提交」或「最近 30 天」。
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      maxHeight: 340,
+                      overflowY: 'auto',
+                      paddingRight: 4
+                    }}
+                  >
+                    {allCommits.map((c) => {
+                      const isSelected = selectedCommitIds.has(c.id)
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => handleToggleCommit(c.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '8px 10px',
+                            borderRadius: 6,
+                            background: isSelected
+                              ? 'var(--bg-elevated)'
+                              : 'rgba(255,255,255,0.015)',
+                            border: `1px solid ${isSelected ? 'rgba(79,158,248,0.3)' : 'var(--border)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 120ms ease'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{
+                              marginTop: 2,
+                              cursor: 'pointer',
+                              accentColor: 'var(--accent-blue)'
+                            }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 500,
+                                color: 'var(--text-primary)',
+                                lineHeight: 1.4,
+                                wordBreak: 'break-word'
+                              }}
+                            >
+                              {c.subject}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: 'var(--text-muted)',
+                                marginTop: 4,
+                                display: 'flex',
+                                gap: 8,
+                                flexWrap: 'wrap',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <span
+                                className="badge badge-purple"
+                                style={{ fontSize: 9, padding: '1px 5px' }}
+                              >
+                                👤 {c.author}
+                              </span>
+                              <span
+                                className="badge badge-gray"
+                                style={{ fontSize: 9, fontFamily: 'monospace' }}
+                              >
+                                📂 {c.repoName}
+                              </span>
+                              <code style={{ fontSize: 9, color: 'var(--accent-blue)' }}>
+                                {c.shortHash}
+                              </code>
+                              <span>🕒 {c.date || c.relativeDate}</span>
+                              {c.stats?.filesChanged > 0 && (
+                                <span style={{ color: 'var(--accent-green)' }}>
+                                  +{c.stats.insertions} / -{c.stats.deletions}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Chats Tab View */
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 10,
+                    gap: 8,
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>💬 关联智能体聊天记录</span>
+                    <span className="badge badge-purple" style={{ fontSize: 10 }}>
+                      {includedChats.length} / {chatsData.length} 场已勾选
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {allChatAgents.length > 1 && (
+                      <select
+                        value={selectedChatAgent}
+                        onChange={(e) => setSelectedChatAgent(e.target.value)}
+                        style={{ fontSize: 10, padding: '2px 6px', height: 24 }}
+                      >
+                        <option value="ALL">全部智能体</option>
+                        {allChatAgents.map((ag) => (
+                          <option key={ag} value={ag}>
+                            {ag}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {fallbackRecentChats.length > 0 && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{
+                          fontSize: 10,
+                          padding: '2px 6px',
+                          color: 'var(--accent-purple)',
+                          border: '1px solid rgba(163,113,247,0.3)'
+                        }}
+                        title="载入更多历史智能体会话"
+                        onClick={handleLoadFallbackChats}
+                      >
+                        + 载入历史会话 ({fallbackRecentChats.length})
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 10, padding: '2px 6px' }}
+                      onClick={() =>
+                        handleSelectAllChats(selectedChatIds.size !== chatsData.length)
+                      }
+                    >
+                      {selectedChatIds.size === chatsData.length ? '全部取消' : '全选'}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-icon btn-sm"
+                      title="刷新智能体会话记录"
+                      onClick={fetchAgentChats}
+                      disabled={isLoadingChats}
+                    >
+                      🔄
+                    </button>
+                  </div>
+                </div>
+
+                {isLoadingChats ? (
+                  <div
+                    style={{
+                      padding: 24,
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: 12
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 24,
+                        marginBottom: 8,
+                        animation: 'spin 1.2s linear infinite',
+                        display: 'inline-block'
+                      }}
+                    >
+                      ⟳
                     </div>
-                  )
-                })}
-              </div>
+                    <div>正在解析各个智能体关联项目的会话与聊天记录...</div>
+                  </div>
+                ) : filteredChats.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '20px 14px',
+                      textAlign: 'center',
+                      color: 'var(--text-muted)',
+                      fontSize: 12,
+                      background: 'var(--bg-elevated)',
+                      borderRadius: 8,
+                      border: '1px dashed var(--border)'
+                    }}
+                  >
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>💬</div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 13 }}>
+                      当前筛选范围内暂无智能体会话记录
+                    </div>
+                    {fallbackRecentChats.length > 0 ? (
+                      <>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            marginTop: 6,
+                            lineHeight: 1.6,
+                            maxWidth: 380,
+                            margin: '6px auto 0'
+                          }}
+                        >
+                          在当前时间筛选范围内未找到新会话，但在历史记录中为您找到了{' '}
+                          <strong style={{ color: 'var(--accent-purple)' }}>
+                            {fallbackRecentChats.length}
+                          </strong>{' '}
+                          场各个智能体（ChatGPT / Codex、Cursor、Claude Code、Antigravity 等）的研发交互记录。
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 14,
+                            display: 'flex',
+                            gap: 8,
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: 11, padding: '5px 14px' }}
+                            onClick={handleLoadFallbackChats}
+                          >
+                            👉 一键载入近期的 {fallbackRecentChats.length} 场智能体会话
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ fontSize: 11, padding: '5px 10px' }}
+                            onClick={() => setTimePreset('all')}
+                          >
+                            切换为全部时间
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+                        未检索到与所选项目匹配的智能体（ChatGPT/Codex、Claude
+                        Code、Cursor、Antigravity）会话。
+                        可尝试切换时间范围为“全部”或添加对应代码仓库。
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      maxHeight: 340,
+                      overflowY: 'auto',
+                      paddingRight: 4
+                    }}
+                  >
+                    {filteredChats.map((chat) => {
+                      const isSelected = selectedChatIds.has(chat.id)
+                      const getAgentStyle = (ag = '') => {
+                        if (ag.includes('Claude')) return { icon: '🤖', badge: 'badge-purple' }
+                        if (ag.includes('Codex') || ag.includes('ChatGPT'))
+                          return { icon: '🧠', badge: 'badge-green' }
+                        if (ag.includes('Cursor')) return { icon: '⚡', badge: 'badge-blue' }
+                        if (ag.includes('Antigravity') || ag.includes('Gemini'))
+                          return { icon: '🔮', badge: 'badge-purple' }
+                        return { icon: '💬', badge: 'badge-gray' }
+                      }
+                      const { icon: agentIcon, badge: agentBadgeClass } = getAgentStyle(chat.agent)
+                      return (
+                        <div
+                          key={chat.id}
+                          onClick={() => handleToggleChat(chat.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '8px 10px',
+                            borderRadius: 6,
+                            background: isSelected
+                              ? 'var(--bg-elevated)'
+                              : 'rgba(255,255,255,0.015)',
+                            border: `1px solid ${isSelected ? 'rgba(163,113,247,0.35)' : 'var(--border)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 120ms ease'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            style={{
+                              marginTop: 3,
+                              cursor: 'pointer',
+                              accentColor: 'var(--accent-purple)'
+                            }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 6
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: 'var(--text-primary)',
+                                  lineHeight: 1.4,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  flex: 1
+                                }}
+                              >
+                                {chat.title || chat.summary}
+                              </div>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                style={{
+                                  fontSize: 10,
+                                  padding: '1px 6px',
+                                  color: 'var(--accent-blue)',
+                                  flexShrink: 0
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleOpenDetailChat(chat)
+                                }}
+                              >
+                                👁️ 对话详情
+                              </button>
+                            </div>
+
+                            {/* Preview quote */}
+                            {chat.preview && (
+                              <div
+                                style={{
+                                  fontSize: 11,
+                                  color: 'var(--text-secondary)',
+                                  background: 'var(--bg-base)',
+                                  padding: '3px 8px',
+                                  borderRadius: 4,
+                                  marginTop: 4,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  borderLeft: '2px solid var(--accent-purple)'
+                                }}
+                              >
+                                {chat.preview}
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: 'var(--text-muted)',
+                                marginTop: 4,
+                                display: 'flex',
+                                gap: 8,
+                                flexWrap: 'wrap',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <span
+                                className={`badge ${agentBadgeClass}`}
+                                style={{ fontSize: 9, padding: '1px 5px' }}
+                              >
+                                {agentIcon} {chat.agent}
+                              </span>
+                              <span
+                                className="badge badge-gray"
+                                style={{ fontSize: 9, fontFamily: 'monospace' }}
+                              >
+                                📂 {chat.repoName}
+                              </span>
+                              <span>🕒 {chat.date || chat.updatedAt}</span>
+                              <span className="badge badge-blue" style={{ fontSize: 9 }}>
+                                💬 {chat.messageCount || chat.messages?.length || 0} 轮交互
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -1240,9 +1920,15 @@ export default function WeeklyReport({
                   gap: 8
                 }}
                 onClick={handleGenerateReport}
-                disabled={includedCommits.length === 0}
+                disabled={includedCommits.length === 0 && includedChats.length === 0}
               >
-                <span>🚀 一键生成本周周报 ({includedCommits.length} 条提交)</span>
+                <span>
+                  🚀 一键生成本周周报 (
+                  {includedCommits.length > 0 ? `${includedCommits.length} 提交` : ''}
+                  {includedCommits.length > 0 && includedChats.length > 0 ? ' + ' : ''}
+                  {includedChats.length > 0 ? `${includedChats.length} 智能体会话` : ''}
+                  {includedCommits.length === 0 && includedChats.length === 0 ? '0 项已选' : ''})
+                </span>
               </button>
             )}
           </div>
@@ -1469,6 +2155,215 @@ export default function WeeklyReport({
         </div>
       </div>
 
+      {/* Dialogue Detail Modal for Agent Chat */}
+      {activeDetailChat && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            animation: 'fadeIn 120ms ease'
+          }}
+          onClick={() => setActiveDetailChat(null)}
+        >
+          <div
+            style={{
+              width: 700,
+              maxHeight: '85vh',
+              background: 'var(--bg-surface)',
+              borderRadius: 12,
+              border: '1px solid var(--border)',
+              boxShadow: '0 20px 48px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--bg-elevated)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>💬</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  智能体研发对话详情
+                </span>
+                <span className="badge badge-purple" style={{ fontSize: 11 }}>
+                  {activeDetailChat.agent}
+                </span>
+                <span className="badge badge-gray" style={{ fontSize: 11 }}>
+                  📂 {activeDetailChat.repoName}
+                </span>
+              </div>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => setActiveDetailChat(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Session Header Info */}
+            <div
+              style={{
+                padding: '12px 20px',
+                background: 'var(--bg-base)',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  flex: 1,
+                  marginRight: 12
+                }}
+              >
+                {activeDetailChat.title || activeDetailChat.summary}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+                🕒 {activeDetailChat.date} {activeDetailChat.updatedAt}
+              </div>
+            </div>
+
+            {/* Messages Stream */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}
+            >
+              {isLoadingDetailMessages ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div
+                    style={{
+                      fontSize: 24,
+                      marginBottom: 8,
+                      animation: 'spin 1.2s linear infinite',
+                      display: 'inline-block'
+                    }}
+                  >
+                    ⟳
+                  </div>
+                  <div style={{ fontSize: 12 }}>正在加载详细对话历史与上下文...</div>
+                </div>
+              ) : activeDetailChat.messages && activeDetailChat.messages.length > 0 ? (
+                activeDetailChat.messages.map((m, idx) => {
+                  const isUser = m.role === 'user'
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        alignItems: isUser ? 'flex-end' : 'flex-start'
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: 'var(--text-muted)',
+                          padding: '0 4px'
+                        }}
+                      >
+                        {isUser ? '👤 用户' : `🤖 ${activeDetailChat.agent}`}
+                        {m.time && ` · ${m.time}`}
+                      </div>
+                      <div
+                        style={{
+                          maxWidth: '92%',
+                          padding: '10px 14px',
+                          borderRadius: isUser ? '12px 12px 2px 12px' : '2px 12px 12px 12px',
+                          background: isUser ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+                          border: `1px solid ${isUser ? 'rgba(79,158,248,0.3)' : 'var(--border)'}`,
+                          fontSize: 12,
+                          lineHeight: 1.65,
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word'
+                        }}
+                        className="selectable"
+                      >
+                        {m.content}
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+                  <div style={{ fontSize: 12 }}>
+                    {activeDetailChat.notes || activeDetailChat.preview || '暂无详细文本消息'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: '12px 20px',
+                borderTop: '1px solid var(--border)',
+                background: 'var(--bg-elevated)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedChatIds.has(activeDetailChat.id)}
+                  onChange={() => handleToggleChat(activeDetailChat.id)}
+                  style={{ accentColor: 'var(--accent-purple)' }}
+                />
+                <span>勾选并纳入本周工作周报</span>
+              </label>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setActiveDetailChat(null)}
+              >
+                完成关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* History Drawer Modal / Sidebar */}
       {showHistoryDrawer && (
         <div
@@ -1608,6 +2503,7 @@ export default function WeeklyReport({
                     <span>📅 {formatTime(item.createdAt)}</span>
                     <span>🤖 {item.agent}</span>
                     <span>📋 {item.commitCount || 0} commits</span>
+                    {item.chatCount > 0 && <span>💬 {item.chatCount} 场会话</span>}
                   </div>
 
                   {item.repoNames && item.repoNames.length > 0 && (

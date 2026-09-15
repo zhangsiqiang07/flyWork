@@ -116,6 +116,9 @@ const flyworkAPI = {
 
   // 周报 (Weekly Report) APIs
   getWeeklyCommits: (options) => ipcRenderer.invoke('weekly-report-get-commits', options),
+  getWeeklyAgentChats: (options) => ipcRenderer.invoke('weekly-report-get-agent-chats', options),
+  getWeeklyChatMessages: (sessionId, agentType) =>
+    ipcRenderer.invoke('weekly-report-get-chat-messages', { sessionId, agentType }),
   generateWeeklyReport: (params) => ipcRenderer.invoke('weekly-report-generate', params),
   cancelWeeklyReport: (taskId) => ipcRenderer.invoke('weekly-report-cancel', taskId),
   onWeeklyReportLogChunk: (callback) => {

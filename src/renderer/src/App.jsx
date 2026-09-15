@@ -90,6 +90,7 @@ export default function App() {
   const [weeklyReportRepos, setWeeklyReportRepos] = useState([])
   const [weeklyReportPrompt, setWeeklyReportPrompt] = useState('')
   const [weeklyReportInitialRepoPath, setWeeklyReportInitialRepoPath] = useState(null)
+  const [hasVisitedWeeklyReport, setHasVisitedWeeklyReport] = useState(false)
   const [orchestratorPlans, setOrchestratorPlans] = useState(INITIAL_ORCHESTRATOR_PLANS)
   const [activeOrchestratorPlanId, setActiveOrchestratorPlanId] = useState(null)
   const [settingsInitialTab, setSettingsInitialTab] = useState('audit-log')
@@ -226,7 +227,10 @@ export default function App() {
   useEffect(() => {
     if (window.flywork) {
       window.flywork.onToggleCommandCenter(() => setCommandCenterOpen((prev) => !prev))
-      window.flywork.onNavigate((view) => setCurrentView(view))
+      window.flywork.onNavigate((view) => {
+        if (view === 'weekly-report') setHasVisitedWeeklyReport(true)
+        setCurrentView(view)
+      })
     }
     const handleKeyDown = (e) => {
       if ((e.metaKey && e.key === 'k') || (e.altKey && e.key === ' ')) {
@@ -242,7 +246,10 @@ export default function App() {
   const navigateTo = useCallback((view, meta = null) => {
     setCurrentView(view)
     if (view === 'workspace-detail' && meta) setSelectedWorkspaceId(meta)
-    if (view === 'weekly-report') setWeeklyReportInitialRepoPath(meta)
+    if (view === 'weekly-report') {
+      setWeeklyReportInitialRepoPath(meta)
+      setHasVisitedWeeklyReport(true)
+    }
     if (view === 'orchestrator') {
       if (meta) setActiveOrchestratorPlanId(meta)
       else setActiveOrchestratorPlanId(null)
@@ -532,18 +539,7 @@ export default function App() {
         )
       }
       case 'weekly-report':
-        return (
-          <WeeklyReport
-            workspaces={workspaces}
-            weeklyReports={weeklyReports}
-            setWeeklyReports={setWeeklyReports}
-            cachedRepos={weeklyReportRepos}
-            setCachedRepos={setWeeklyReportRepos}
-            cachedPrompt={weeklyReportPrompt}
-            setCachedPrompt={setWeeklyReportPrompt}
-            initialRepoPath={weeklyReportInitialRepoPath}
-          />
-        )
+        return null
       case 'automations':
         return null
       case 'settings':
@@ -707,7 +703,29 @@ export default function App() {
                 onAskAI={handleAskAI}
               />
             </div>
-            {currentView !== 'automations' && renderMainContent()}
+            {/* Keep weekly report state and selections alive once visited for 0ms instant tab switching */}
+            {hasVisitedWeeklyReport && (
+              <div
+                style={{
+                  display: currentView === 'weekly-report' ? 'block' : 'none',
+                  height: '100%'
+                }}
+              >
+                <WeeklyReport
+                  workspaces={workspaces}
+                  sessions={sessions}
+                  chatHistories={chatHistories}
+                  weeklyReports={weeklyReports}
+                  setWeeklyReports={setWeeklyReports}
+                  cachedRepos={weeklyReportRepos}
+                  setCachedRepos={setWeeklyReportRepos}
+                  cachedPrompt={weeklyReportPrompt}
+                  setCachedPrompt={setWeeklyReportPrompt}
+                  initialRepoPath={weeklyReportInitialRepoPath}
+                />
+              </div>
+            )}
+            {currentView !== 'automations' && currentView !== 'weekly-report' && renderMainContent()}
           </Suspense>
         </div>
         <ContextPanel
