@@ -149,3 +149,32 @@ test('Weekly Report Service - generateWeeklyReport with commits and chatRecords'
   assert.ok(res.report.includes('增加智能体聊天记录关联周报支持'))
   assert.ok(chunks.length > 0)
 })
+
+test('Weekly Report Service - generateWeeklyReport with codex agent', async () => {
+  const chunks = []
+  const res = await generateWeeklyReport({
+    taskId: 'test-task-codex-002',
+    agentId: 'codex',
+    prompt: '简短测试：{commits}',
+    commits: [
+      {
+        id: 'repo-1-hash1',
+        hash: 'a1b2c3d4e5f6',
+        shortHash: 'a1b2c3d',
+        author: 'Tester',
+        date: '2026-09-12',
+        subject: 'feat: test commit',
+        repoName: 'FlyDeck',
+        branch: 'main'
+      }
+    ],
+    chatRecords: [],
+    repoNames: ['FlyDeck'],
+    dateRange: '2026-09-08 ~ 2026-09-14',
+    onChunk: (c) => chunks.push(c)
+  })
+
+  assert.equal(res.success, true)
+  assert.ok(res.report && res.report.length > 0)
+  assert.ok(chunks.length > 0)
+})

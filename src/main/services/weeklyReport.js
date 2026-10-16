@@ -1666,10 +1666,15 @@ export async function generateWeeklyReport({
 
     let spawnCmd = selectedAgent.id
     let spawnArgs = []
+    let stdinInput = null
 
     if (agentId === 'codex') {
       spawnCmd = selectedAgent.path
-      spawnArgs = ['exec', resolvedPrompt]
+      // Use '--skip-git-repo-check' to support running from any directory,
+      // '--color', 'never' for clean output,
+      // and '-' with stdin streaming to avoid OS arg length limits and prevent blocking on unclosed stdin pipe.
+      spawnArgs = ['exec', '--skip-git-repo-check', '--color', 'never', '-']
+      stdinInput = resolvedPrompt
     } else if (agentId === 'claude') {
       spawnCmd = selectedAgent.path
       spawnArgs = ['-p', resolvedPrompt]
@@ -1696,6 +1701,20 @@ export async function generateWeeklyReport({
       detached: process.platform !== 'win32',
       stdio: ['pipe', 'pipe', 'pipe']
     })
+
+    if (proc.stdin) {
+      proc.stdin.on('error', (err) => {
+        console.warn('Agent CLI stdin warning:', err?.message)
+      })
+
+      if (stdinInput !== null) {
+        proc.stdin.write(stdinInput)
+        proc.stdin.end()
+      } else {
+        // Always close stdin so child processes never hang waiting for stdin EOF
+        proc.stdin.end()
+      }
+    }
 
     if (taskId) {
       activeReportProcesses.set(taskId, proc)
@@ -1727,7 +1746,7 @@ export async function generateWeeklyReport({
         return
       }
 
-      if (code === 0 && stdoutBuf.trim().length > 30) {
+      if (code === 0 && stdoutBuf.trim().length > 0) {
         onChunk({ type: 'exit', text: `\n[生成成功] ${selectedAgent.displayName} 执行完成！` })
         resolve({
           success: true,

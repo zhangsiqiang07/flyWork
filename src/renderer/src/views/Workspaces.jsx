@@ -54,10 +54,14 @@ export default function Workspaces({
                     {ws.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="workspace-card-name">{ws.name}</div>
-                    <div className="workspace-card-meta">{ws.description}</div>
+                    <div className="workspace-card-name" title={ws.name}>
+                      {ws.name}
+                    </div>
+                    <div className="workspace-card-meta" title={ws.description}>
+                      {ws.description}
+                    </div>
                   </div>
-                  <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div className="workspace-card-header-right">
                     {ws.buildStatus === 'failed' && (
                       <span className="badge badge-red" style={{ fontSize: 10 }}>
                         构建失败
@@ -73,46 +77,78 @@ export default function Workspaces({
                         正常
                       </span>
                     )}
-                    {onUpdateWorkspace && (
-                      <button
-                        className="btn btn-ghost btn-icon"
-                        style={{ width: 22, height: 22, padding: 0, fontSize: 11 }}
-                        title="修改名称及图标"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingWorkspace(ws)
-                        }}
-                      >
-                        ✏️
-                      </button>
-                    )}
-                    {onDeleteWorkspace && (
-                      <button
-                        className="btn btn-ghost btn-icon"
-                        style={{ width: 22, height: 22, padding: 0, fontSize: 12 }}
-                        title="删除工作空间"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (confirm(`确定要移除工作空间 "${ws.name}" 吗？`)) {
-                            onDeleteWorkspace(ws.id)
-                          }
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
+                    <div className="workspace-card-actions">
+                      {onUpdateWorkspace && (
+                        <button
+                          className="workspace-card-action-btn"
+                          title="修改名称及图标"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingWorkspace(ws)
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </button>
+                      )}
+                      {onDeleteWorkspace && (
+                        <button
+                          className="workspace-card-action-btn workspace-card-action-danger"
+                          title="删除工作空间"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (confirm(`确定要移除工作空间 "${ws.name}" 吗？`)) {
+                              onDeleteWorkspace(ws.id)
+                            }
+                          }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <span
-                      style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--accent-blue)' }}
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                        color: 'var(--accent-blue)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                      title={ws.gitBranch || 'main'}
                     >
                       ⑂ {ws.gitBranch || 'main'}
                     </span>
                     {ws.gitModifiedFiles?.length > 0 && (
-                      <span className="badge badge-amber" style={{ fontSize: 10 }}>
+                      <span className="badge badge-amber" style={{ fontSize: 10, flexShrink: 0 }}>
                         {ws.gitModifiedFiles.length} 个修改
                       </span>
                     )}
@@ -125,6 +161,7 @@ export default function Workspaces({
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }}
+                    title={ws.lastCommit}
                   >
                     {ws.lastCommit}
                   </div>
@@ -192,7 +229,17 @@ export default function Workspaces({
                       活跃会话
                     </div>
                   )}
-                  <div className="workspace-card-stat" style={{ marginLeft: 'auto' }}>
+                  <div
+                    className="workspace-card-stat"
+                    style={{
+                      marginLeft: 'auto',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      minWidth: 0
+                    }}
+                    title={ws.tags?.join(' · ')}
+                  >
                     <span>{ws.tags?.slice(0, 2).join(' · ')}</span>
                   </div>
                 </div>
